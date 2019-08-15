@@ -107,31 +107,29 @@ xlxs_title = [
 			]
 
 ReadFileName = [
-				'UpperLimitTPSearchCommand(Z6).txt',        #0
-				'UpperLimitChannelSearchCommand(Y3).txt',	#1
+                'UpperLimitTPSearchCommand(Z6).txt',        #0
+                'UpperLimitChannelSearchCommand(Y3).txt',   #1
 
-				'88SatBlindSearchCommand.txt',				#2
-				'88SatSuperBlindSearchCommand.txt',			#3
-				'88Sat5FBlindSearchCommand.txt',			#4
-				'88Sat6FBlindSearchAddCommand.txt',			#5
-				'88Sat6FSuperBlindSearchAddCommand.txt',	#6
+                '88Sat6FBlindSearchCommand.txt',            #2
+                '88Sat6FSuperBlindSearchCommand.txt',       #3
 
-				'Z6Sat5FBlindSearchCommand.txt',			#7
-				'Z6Sat5FSuperBlindSearchCommand.txt',		#8
-				'Z6Sat6FBlindSearchCommand.txt',			#9
+                'Z6Sat6FBlindSearchCommand.txt',            #4
+                'Z6Sat6FSuperBlindSearchCommand.txt',       #5
 
-				'Y3Sat6FBlindSearchCommand.txt',			#10
-				'Y3Sat6FSuperBlindSearchCommand.txt',		#11
-				'Y3Sat6FBlindSearchAddCommand.txt',			#12
+                'Y3Sat6FBlindSearchCommand.txt',            #6
+                'Y3Sat6FSuperBlindSearchCommand.txt',       #7
 
-				'138Sat6FBlindSearchCommand.txt',			#13
-				'138Sat6FBlindSearchAddCommand.txt',		#14
-				'138Sat6FSuperBlindSearchAddCommand.txt',	#15
+                '138Sat6FBlindSearchCommand.txt',           #8
+                '138Sat6FSuperBlindSearchCommand.txt',      #9
+                '138Sat6FBlindSearchAddCommand.txt',        #10
 
-				'PLPDSat6FBlindSearchAddCommand.txt',		#16
-				'PLPDSat6FSuperBlindSearchAddCommand.txt',	#17
-				'PLPDSat6FBlindSearchCommand.txt'			#18
-				]
+                'PLPDSat6FBlindSearchCommand.txt',          #11
+                'PLPDSat6FSuperBlindSearchCommand.txt',     #12
+
+                'FactoryResetSearchCommand.txt',            #13
+                'AddNewSat20SearchCommand.txt',             #14
+                'USBUpgradeUser20SatCommand.txt'            #15
+                ]
 
 #记录搜索相关信息的列表，对应xlxs_title的各项数据
 Search_data = []
