@@ -166,7 +166,8 @@ button["Srch_number"] = 2    #搜索次数
 WriteFileName = {}
 send_data = []
 WriteFileName["SendCommandFileName"] = ReadFileName[8]  #指定测试项
-WriteFileName["SendCommandPath"] = os.path.join(os.getcwd(),"CommandFile",WriteFileName["SendCommandFileName"])
+WriteFileName["ParentOfCurrentPath"] = os.path.abspath(os.path.join(os.getcwd(), "..")) #当前程序路径的上级路径
+WriteFileName["SendCommandPath"] = os.path.join(WriteFileName["ParentOfCurrentPath"],"CommandFile",WriteFileName["SendCommandFileName"])
 send_data = ReadDataFromFile(WriteFileName["SendCommandPath"],send_data)
 #print(send_data)
 button['data_length'] = len(send_data)
