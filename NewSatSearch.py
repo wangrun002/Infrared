@@ -91,7 +91,9 @@ kws_list = [
 			"[GUI] ######## widget : wnd_antenna_setting ###### signal : app_antenna_setting_keypress excute too long ########",
 			"[GUI] ######## widget : wnd_satellite_list ###### signal : app_sat_list_keypress excute too long ########",
 			"gx_search_blind_get_params error",
-			"[NIM] ERROR!!!  NIM is NULL,please init NIM!"
+			"[NIM] ERROR!!!  NIM is NULL,please init NIM!",
+			"*****blind search error*****", #Max TP
+			"gx_blind_search error"  #MaxTP Or Max Channel
 			]
 
 xlxs_title = [
