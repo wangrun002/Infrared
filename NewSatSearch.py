@@ -303,7 +303,8 @@ while State['MainLoopState']:
 			PolarInfo['GetBlindInfo'].clear()
 			PolarInfo['NumGetBlind'].clear()
 			PolarInfo["Countpolar"].clear()
-			ChannelInfo.clear()
+			ChannelInfo.clear()  #不同TP下的节目字典清空
+			Search_data[3] = 0  #搜索结束后将节目数清空
 		#搜索达到上限
 		if kws_list[5] in data2:
 			Search_time["end_time"] = datetime.now()
