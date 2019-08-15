@@ -304,6 +304,27 @@ while State['MainLoopState']:
 			PolarInfo['NumGetBlind'].clear()
 			PolarInfo["Countpolar"].clear()
 			ChannelInfo.clear()
+		#搜索达到上限
+		if kws_list[5] in data2:
+			Search_time["end_time"] = datetime.now()
+			Search_time["Srch_Dur_time"] = Search_time["end_time"] - Search_time["start_time"]
+			for i in range(len(TP_LIST)):
+				print(TP_LIST[i])
+			print("TP总数为:{},盲扫时长:{}".format(len(TP_LIST),Search_time["Srch_Dur_time"]))
+			Search_data[2] = len(TP_LIST)
+			Search_data[6] = str(Search_time["Srch_Dur_time"])[2:10]
+			Search_data[8] = TP_LIST
+			WriteDataToXlsx()
+			Search_time.clear()
+			TP_LIST.clear()
+			PolarInfo['GetBlindInfo'].clear()
+			PolarInfo['NumGetBlind'].clear()
+			PolarInfo["Countpolar"].clear()
+			ChannelInfo.clear()
+			ser1.write(hexStringTobytes("A1 F1 22 DD 15"))
+			time.sleep(2)
+			State['SendCommandState'] = True
+			button["Srch_number"] = 1
 
 	if not data and State['SendCommandState']:
 		if button['data_position'] != button['data_length']:
