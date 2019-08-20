@@ -28,8 +28,16 @@ ReadFileName = [
                 'USBUpgradeUser20SatCommand.txt'            #15
                 ]
 
+Serial_SER_Dict = {
+                        "1":"FTDVKA2HA",
+                        "2":"FTGDWJ64A",
+                        "3":"FT9SP964A",
+                        "4":"FTHB6SSTA"
+                }
+
 SearchTimes = 2  #搜索次数
 CommandFileNumber = 8  #指定搜索命令文件编号
+SER_Value = 4   #指定串口线的序号
 
 ParentOfCurProPath = os.path.abspath(os.path.join(os.getcwd(), "..")) #当前程序路径的上级路径
 #print(ParentOfCurProPath)
@@ -42,5 +50,5 @@ MainProgramPath = os.path.join(ParentOfCurProPath,"MainProgram","NewSatSearch.py
 #os.system("cd {} && python NewSatSearch.py {} {}".format(MainProgramPath,2,8))
 
 shutil.copy(MainProgramPath, os.getcwd())
-os.system("python ./NewSatSearch.py %d %d" % (SearchTimes,CommandFileNumber))
+os.system("python ./NewSatSearch.py %d %d %d" % (SearchTimes,CommandFileNumber,SER_Value))
 os.unlink(os.path.join(os.getcwd(),"NewSatSearch.py"))
