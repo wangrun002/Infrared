@@ -25,7 +25,7 @@ def check_ports():
 		for i in range(len(ports_list)):
 			if CheckPort["PortDescriptor"][0] in str(ports_list[i]):
 				CheckPort["SendPort"] = ports_list[i][0]
-			if CheckPort["PortDescriptor"][1] in str(ports_list[i]):
+			if CheckPort["PortDescriptor"][1] in str(ports_list[i]) and Serial_SER_Dict[str(CheckPort["SER_Value"])] in str(ports_list[i][2]):
 				CheckPort["ReceivePort"] = ports_list[i][0]
 			list_port.append(str(ports_list[i]))
 		print("可用端口:{}".format(list_port))
@@ -133,6 +133,13 @@ ReadFileName = [
                 'USBUpgradeUser20SatCommand.txt'            #15
                 ]
 
+Serial_SER_Dict = {
+					"1":"FTDVKA2HA",
+					"2":"FTGDWJ64A",
+					"3":"FT9SP964A",
+					"4":"FTHB6SSTA"
+				}
+
 #记录搜索相关信息的列表，对应xlxs_title的各项数据
 Search_data = []
 for i in range(len(xlxs_title)):
@@ -144,6 +151,7 @@ CheckPort = {}
 CheckPort["PortDescriptor"] = ["USB-SERIAL CH340","USB Serial Port"]
 CheckPort["SendPort"] = ''
 CheckPort["ReceivePort"] = ''
+CheckPort["SER_Value"] = 4   #指定USB转串口线的编号
 ports = check_ports()
 ser_name1 = CheckPort["SendPort"] #用于发送红外信号
 ser_name2 = CheckPort["ReceivePort"] #用于接收串口打印
