@@ -26,6 +26,7 @@ def check_ports():
 			if CheckPort["PortDescriptor"][0] in str(ports_list[i]):
 				CheckPort["SendPort"] = ports_list[i][0]
 			if CheckPort["PortDescriptor"][1] in str(ports_list[i]) and Serial_SER_Dict[str(sys.argv[3])] in str(ports_list[i][2]):
+				print(ports_list[i][2])
 				CheckPort["ReceivePort"] = ports_list[i][0]
 			list_port.append(str(ports_list[i]))
 		print("可用端口:{}".format(list_port))
