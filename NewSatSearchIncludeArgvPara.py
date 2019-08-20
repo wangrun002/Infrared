@@ -25,7 +25,7 @@ def check_ports():
 		for i in range(len(ports_list)):
 			if CheckPort["PortDescriptor"][0] in str(ports_list[i]):
 				CheckPort["SendPort"] = ports_list[i][0]
-			if CheckPort["PortDescriptor"][1] in str(ports_list[i]):
+			if CheckPort["PortDescriptor"][1] in str(ports_list[i]) and Serial_SER_Dict[str(sys.argv[3])] in str(ports_list[i][2]):
 				CheckPort["ReceivePort"] = ports_list[i][0]
 			list_port.append(str(ports_list[i]))
 		print("可用端口:{}".format(list_port))
@@ -132,6 +132,13 @@ ReadFileName = [
                 'AddNewSat20SearchCommand.txt',             #14
                 'USBUpgradeUser20SatCommand.txt'            #15
                 ]
+
+Serial_SER_Dict = {
+					"1":"FTDVKA2HA",
+					"2":"FTGDWJ64A",
+					"3":"FT9SP964A",
+					"4":"FTHB6SSTA"
+				}
 
 #记录搜索相关信息的列表，对应xlxs_title的各项数据
 Search_data = []
