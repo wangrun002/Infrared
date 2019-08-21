@@ -61,7 +61,7 @@ def WriteDataToXlsx():
 	column_number = column_index_from_string("A")+button["Data_interval"]
 	column_char = get_column_letter(column_number)
 	ws.column_dimensions[column_char].width = 12
-	print(column_number,column_char)
+#	print(column_number,column_char)
 
 	for i in range(len(Search_data)):
 		if i < len(Search_data) - 2:
@@ -142,7 +142,10 @@ Serial_SER_Dict = {
 				}
 
 #记录搜索相关信息的列表，对应xlxs_title的各项数据
-Search_data = []
+Search_data = []    #保存写入Excel表的各项数据
+TotalNumber = {}    #保存每次搜索的TP数和节目数
+TotalNumber["TotalChannel"] = []
+TotalNumber["TotalTP"] = []
 for i in range(len(xlxs_title)):
 	Search_data.append(0)
 Search_data[0] = "Blind"
@@ -302,12 +305,15 @@ while State['MainLoopState']:
 			Search_time["Srch_Dur_time"] = Search_time["end_time"] - Search_time["start_time"]
 			for i in range(len(TP_LIST)):
 				print(TP_LIST[i])
-			print("TP总数为:{},盲扫时长:{}".format(len(TP_LIST),Search_time["Srch_Dur_time"]))
+			print("本次搜索节目总数为:{},TP总数为:{},盲扫时长:{}".format(Search_data[3],len(TP_LIST),Search_time["Srch_Dur_time"]))
 #			print(ChannelInfo)
 			Search_data[2] = len(TP_LIST)
 			Search_data[6] = str(Search_time["Srch_Dur_time"])[2:10]
 			Search_data[8] = TP_LIST
 			WriteDataToXlsx()
+			TotalNumber["TotalChannel"].append(int(Search_data[3]))
+			TotalNumber["TotalTP"].append(Search_data[2])
+			print("当前轮次:{},累计搜索节目个数:{},TP个数:{}".format(Search_data[1],sum(TotalNumber["TotalChannel"]),sum(TotalNumber["TotalTP"])))
 			Search_time.clear()
 			TP_LIST.clear()
 			PolarInfo['GetBlindInfo'].clear()
@@ -321,11 +327,14 @@ while State['MainLoopState']:
 			Search_time["Srch_Dur_time"] = Search_time["end_time"] - Search_time["start_time"]
 			for i in range(len(TP_LIST)):
 				print(TP_LIST[i])
-			print("TP总数为:{},盲扫时长:{}".format(len(TP_LIST),Search_time["Srch_Dur_time"]))
+			print("本次搜索节目总数为:{},TP总数为:{},盲扫时长:{}".format(Search_data[3],len(TP_LIST),Search_time["Srch_Dur_time"]))
 			Search_data[2] = len(TP_LIST)
 			Search_data[6] = str(Search_time["Srch_Dur_time"])[2:10]
 			Search_data[8] = TP_LIST
 			WriteDataToXlsx()
+			TotalNumber["TotalChannel"].append(int(Search_data[3]))
+			TotalNumber["TotalTP"].append(Search_data[2])
+			print("当前轮次累计搜索节目个数:{},TP个数:{}".format(sum(TotalNumber["TotalChannel"]),sum(TotalNumber["TotalTP"])))
 			Search_time.clear()
 			TP_LIST.clear()
 			PolarInfo['GetBlindInfo'].clear()
