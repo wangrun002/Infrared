@@ -41,7 +41,7 @@ SER_Value = 4   #指定串口线的序号
 
 ParentOfCurProPath = os.path.abspath(os.path.join(os.getcwd(), "..")) #当前程序路径的上级路径
 #print(ParentOfCurProPath)
-MainProgramPath = os.path.join(ParentOfCurProPath,"MainProgram","NewSatSearch.py")
+MainProgramPath = os.path.join(ParentOfCurProPath,"MainProgram","NewSatSearchIncludeArgvPara.py")
 #print(MainProgramPath)
 
 #os.system("python ./FactoryReset.py")
@@ -50,5 +50,5 @@ MainProgramPath = os.path.join(ParentOfCurProPath,"MainProgram","NewSatSearch.py
 #os.system("cd {} && python NewSatSearch.py {} {}".format(MainProgramPath,2,8))
 
 shutil.copy(MainProgramPath, os.getcwd())
-os.system("python ./NewSatSearch.py %d %d %d" % (SearchTimes,CommandFileNumber,SER_Value))
-os.unlink(os.path.join(os.getcwd(),"NewSatSearch.py"))
+os.system("python ./NewSatSearchIncludeArgvPara.py %d %d %d" % (SearchTimes,CommandFileNumber,SER_Value))
+os.unlink(os.path.join(os.getcwd(),"NewSatSearchIncludeArgvPara.py"))
