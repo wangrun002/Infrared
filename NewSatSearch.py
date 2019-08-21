@@ -113,8 +113,8 @@ ReadFileName = [
                 'UpperLimitTPSearchCommand(Z6).txt',        #0
                 'UpperLimitChannelSearchCommand(Y3).txt',   #1
 
-                '88Sat6FBlindSearchCommand.txt',            #2
-                '88Sat6FSuperBlindSearchCommand.txt',       #3
+                '88Sat6FBlindSearchCommand.txt',            #2直连
+                '88Sat6FSuperBlindSearchCommand.txt',       #3直连
 
                 'Z6Sat6FBlindSearchCommand.txt',            #4
                 'Z6Sat6FSuperBlindSearchCommand.txt',       #5
@@ -334,7 +334,7 @@ while State['MainLoopState']:
 			WriteDataToXlsx()
 			TotalNumber["TotalChannel"].append(int(Search_data[3]))
 			TotalNumber["TotalTP"].append(Search_data[2])
-			print("当前轮次累计搜索节目个数:{},TP个数:{}".format(sum(TotalNumber["TotalChannel"]),sum(TotalNumber["TotalTP"])))
+			print("当前轮次:{},累计搜索节目个数:{},TP个数:{}".format(Search_data[1],sum(TotalNumber["TotalChannel"]),sum(TotalNumber["TotalTP"])))
 			Search_time.clear()
 			TP_LIST.clear()
 			PolarInfo['GetBlindInfo'].clear()
