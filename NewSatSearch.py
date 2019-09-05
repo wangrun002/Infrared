@@ -59,42 +59,53 @@ def WriteDataToFile(file_name,write_data):
 def WriteDataToXlsx():
 	alignment = Alignment(horizontal="center", vertical="center", wrapText=True)
 	column_number = column_index_from_string("A")+button["Data_interval"]
+	column_number_1 = column_index_from_string("A")+button["Data_interval"] + 1
+	column_number_2 = column_index_from_string("A")+button["Data_interval"] + 2
+	column_number_3 = column_index_from_string("A")+button["Data_interval"] + 3
 	column_char = get_column_letter(column_number)
+	column_char_1 = get_column_letter(column_number_1)
+	column_char_2 = get_column_letter(column_number_2)
+	column_char_3 = get_column_letter(column_number_3)
 	ws.column_dimensions[column_char].width = 12
+	ws.column_dimensions[column_char_1].width = 3
+	ws.column_dimensions[column_char_2].width = 3
+	ws.column_dimensions[column_char_3].width = 3
 #	print(column_number,column_char)
 
 	for i in range(len(Search_data)):
-		if i < len(Search_data) - 2:
+		if i < len(Search_data) - 2:		#按顺序写入Search_data[0]~[6]位元素的数据
 			ws.cell((i+1),(1+button["Data_interval"])).value = Search_data[i]
-			ws.merge_cells(start_row=(i+1),start_column=(1+button["Data_interval"]),end_row=(i+1),end_column=(1+button["Data_interval"]+2))
+			ws.merge_cells(start_row=(i+1),start_column=(1+button["Data_interval"]),end_row=(i+1),end_column=(1+button["Data_interval"]+4))
 			ws.cell((i+1),(1+button["Data_interval"])).alignment = alignment
-		elif i == len(Search_data) - 2:
-			ws.cell((i+1),(1+button["Data_interval"])).value = list(xlxs_title[i].values())[0][0]
-			ws.cell((i+1),(1+button["Data_interval"]+1)).value = list(xlxs_title[i].values())[0][1]
-			ws.cell((i+1),(1+button["Data_interval"]+2)).value = list(xlxs_title[i].values())[0][2]
-			ws.cell((i+1),(1+button["Data_interval"])).alignment = alignment
-			ws.cell((i+1),(1+button["Data_interval"]+1)).alignment = alignment
-			ws.cell((i+1),(1+button["Data_interval"]+2)).alignment = alignment
-		elif i == len(Search_data) - 1:
+		elif i == len(Search_data) - 2:		#写入Search_data[7]元素字典的value列表的各个元素（表头）
+			for n in range(len(xlxs_title[7]["数据类别"])):
+				ws.cell((i+1),(1+button["Data_interval"]+n)).value = list(xlxs_title[i].values())[0][n]
+				ws.cell((i+1),(1+button["Data_interval"]+n)).alignment = alignment
+				ws.row_dimensions[(i+1)].height = 13.5
+		elif i == len(Search_data) - 1:		#写入Search_data[8]元素（按照Search_data[7]的表头写入数据）
 			for j in range(len(TP_LIST)):
-#				ws["{}{}".format(chr(ord('A')+Search_data[1]),(i+1+j))].value = Search_data[i][j]
 				ws.cell((i+1+j),(1+button["Data_interval"])).value = Search_data[i][j]
-				ws.cell((i+1+j),(1+button["Data_interval"]+1)).value = len(ChannelInfo[str(j+1)])
-				ws.cell((i+1+j),(1+button["Data_interval"]+2)).value = ','.join(ChannelInfo[str(j+1)])
-#				ws["{}{}".format(chr(ord('A')+Search_data[1]),(i+1+j))].alignment = alignment
-				ws.cell((i+1+j),(1+button["Data_interval"])).alignment = alignment
-				ws.cell((i+1+j),(1+button["Data_interval"]+1)).alignment = alignment
-				ws.cell((i+1+j),(1+button["Data_interval"]+2)).alignment = alignment
+				ws.cell((i+1+j),(1+button["Data_interval"]+1)).value = len(ChannelInfo[str(j+1)][0]) + len(ChannelInfo[str(j+1)][1]) #单个TP下的电视和广播总数
+				ws.cell((i+1+j),(1+button["Data_interval"]+2)).value = len(ChannelInfo[str(j+1)][0])  #单个TP下的电视总数
+				ws.cell((i+1+j),(1+button["Data_interval"]+3)).value = len(ChannelInfo[str(j+1)][1])  #单个TP下的广播总数
+				ws.cell((i+1+j),(1+button["Data_interval"]+4)).value = ','.join(ChannelInfo[str(j+1)][0] + ChannelInfo[str(j+1)][1])
+				for m in range(len(xlxs_title[7]["数据类别"])):
+					ws.cell((i+1+j),(1+button["Data_interval"]+m)).alignment = alignment
 				ws.row_dimensions[(i+1+j)].height = 13.5
 	wb.save(WriteFileName["TotalExcel"])
 
 kws_list = [
-			"[GUI] ######## widget : wnd_antenna_setting ###### signal : app_antenna_setting_keypress excute too long ########",
-			"[GUI] ######## widget : wnd_satellite_list ###### signal : app_sat_list_keypress excute too long ########",
-			"gx_search_blind_get_params error",
-			"[NIM] ERROR!!!  NIM is NULL,please init NIM!",
-			"*****blind search error*****", #Max TP
-			"gx_blind_search error"  #MaxTP Or Max Channel
+			"[PTD]SearchStart",		#0
+			"[PTD]TV------",		#1
+			"[PTD]Radio-----",		#2
+			"[PTD]SearchFinish",	#3
+			"[PTD]get :  fre",		#4
+			"[PTD]TP_save=",		#5
+			"[PTD]TV_save=",		#6
+			"TV_save=",				#7
+			"Radio_save=",			#8
+			"[PTD]maximum_tp",		#9
+			"[PTD]maximum_channel",	#10
 			]
 
 xlxs_title = [
@@ -105,7 +116,7 @@ xlxs_title = [
 				"保存TP数",
 				"保存节目数",
 				"搜索时间",
-				{"数据类别":["TP","TV No.","TV Name"]},
+				{"数据类别":["TP","All","TV","Radio","CH_Name"]},
 				"TP"
 			]
 
@@ -144,8 +155,13 @@ Serial_SER_Dict = {
 #记录搜索相关信息的列表，对应xlxs_title的各项数据
 Search_data = []    #保存写入Excel表的各项数据
 TotalNumber = {}    #保存每次搜索的TP数和节目数
-TotalNumber["TotalChannel"] = []
+TotalNumber["TotalTVChannel"] = []
+TotalNumber["TotalRadioChannel"] = []
 TotalNumber["TotalTP"] = []
+TotalNumber["tv_num"] = 0			#搜索过程中的电视节目数据统计
+TotalNumber["radio_num"] = 0		#搜索过程中的广播节目数据统计
+TotalNumber["save_tv_num"] = 0		#保存后的电视节目数据统计
+TotalNumber["save_radio_num"] = 0	#保存后的广播节目数据统计
 for i in range(len(xlxs_title)):
 	Search_data.append(0)
 Search_data[0] = "Blind"
@@ -209,7 +225,6 @@ PolarInfo["TP"] = ''    #存放搜索过程中的TP信息，会覆盖
 ChannelInfo = {} #存放不同TP下的节目信息
 
 #判断保存测试数据和打印保存的目录是否存在，否则创建
-
 if not os.path.exists(os.path.dirname(WriteFileName["Excel"])):
 	os.mkdir(os.path.dirname(WriteFileName["Excel"]))
 
@@ -246,11 +261,18 @@ while State['MainLoopState']:
 	data = ser2.readline() #获取serial端口bytes数据
 	if data:
 		data1 = data.decode('ISO-8859-1')
-		data2 = re.compile('[\\x00-\\x08\\x0b-\\x0c\\x0e-\\x1f]').sub('', data1)
+		data2 = re.compile('[\\x00-\\x08\\x0b-\\x0c\\x0e-\\x1f]').sub('', data1).strip()
 		tt = datetime.now()
-		data3 = "[{}]    {}\n".format(str(tt),data2.strip())
-#		print(data2.strip())
+		data3 = "[{}]    {}\n".format(str(tt),data2)
+#		print(data2)
 		WriteDataToFile(WriteFileName["TEXT"],data3)
+
+		#监控搜索起始
+		if kws_list[0] in data2:
+			State['SendCommandState'] = False
+			Search_time["start_time"] = datetime.now()
+			Search_data[1] += 1
+			button["Data_interval"] = 1 + 5 * (Search_data[1] - 1)
 
 		#判断H和V极化方向
 		if 'get blind - fre' in data2:
@@ -268,83 +290,87 @@ while State['MainLoopState']:
 				elif (len(PolarInfo["Countpolar"]) % 2) ==0:
 					PolarInfo["Polar"] = "V"
 
-		#获取频点和节目信息
-		tp_info = re.findall('get :  fre',data2)
-		ch_info = re.findall(r"------\d{1,4}\s",data2)
-#		polar_info =re.findall('get blind - fre',data2)
-		if tp_info:
+		#获取频点信息
+		if kws_list[4] in data2:
 			fre = data2.split(' ')[5]
 			sym = data2.split(' ')[9]
 			PolarInfo["TP"] = "{}{}{}".format(fre,PolarInfo["Polar"],sym)
 			TP_LIST.append(PolarInfo["TP"])
 			ChannelInfo[str(len(TP_LIST))] = []
-		if ch_info:
-			Search_data[3] = re.split("------|    ",data2)[1]
-			ChannelInfo[str(len(TP_LIST))].append(re.split("------|    ",data2)[2])
+			ChannelInfo[str(len(TP_LIST))].append([])
+			ChannelInfo[str(len(TP_LIST))].append([])
+		#获取电视节目个数信息
+		if kws_list[1] in data2:
+			TotalNumber["tv_num"] = re.split("------|    ",data2)[1]  #提取电视个数信息
+#			print(TotalNumber["tv_num"])
+			Search_data[3] = "{}/{}".format(TotalNumber["tv_num"], TotalNumber["radio_num"])
+			#ChannelInfo[str(len(TP_LIST))].append(re.split("------|    ",data2)[2])  #提取电视节目名称
+			ChannelInfo[str(len(TP_LIST))][0].append("[T]{}".format(re.split("------|    ",data2)[2]))
+		#获取广播节目个数信息
+		if kws_list[2] in data2:
+			TotalNumber["radio_num"] = re.split("-----|    ",data2)[1]   #提取广播个数信息
+			Search_data[3] = "{}/{}".format(TotalNumber["tv_num"], TotalNumber["radio_num"])
+			#ChannelInfo[str(len(TP_LIST))].append(re.split("-----|    ",data2)[2])    #提取广播节目名称
+			ChannelInfo[str(len(TP_LIST))][1].append("[R]{}".format(re.split("-----|    ",data2)[2]))
+#			print(re.split("-----|    ",data2)[2])
 #			print(ChannelInfo[PolarInfo["TP"]])
 
-		#监控搜索起始
-		if kws_list[2] not in data2:
-			DataList.append(data2.strip())
-		if kws_list[3] in DataList:
-			pos = DataList.index(kws_list[3])
-			if len(DataList) >= pos+2:
-				if DataList[pos + 1] != kws_list[0]:
-					DataList.clear()
-				elif DataList[pos + 1] == kws_list[0]:
-#					print(DataList)
-					State['SendCommandState'] = False
-					Search_time["start_time"] = datetime.now()
-					Search_data[1] += 1
-					button["Data_interval"] = 1 + 3 * (Search_data[1] - 1)
-					DataList.clear()
 		#监控搜索结束
-		if kws_list[2] in data2:
+		if kws_list[3] in data2:
 			State['SendCommandState'] = True
 			Search_time["end_time"] = datetime.now()
 			Search_time["Srch_Dur_time"] = Search_time["end_time"] - Search_time["start_time"]
 			for i in range(len(TP_LIST)):
 				print(TP_LIST[i])
-			print("本次搜索节目总数为:{},TP总数为:{},盲扫时长:{}".format(Search_data[3],len(TP_LIST),Search_time["Srch_Dur_time"]))
-#			print(ChannelInfo)
+			print("本次搜索节目总数为TV/Radio:{},TP总数为:{},盲扫时长:{}".format(Search_data[3],\
+																				len(TP_LIST),\
+																				Search_time["Srch_Dur_time"]))
+		#监控保存的TP个数
+		if kws_list[5] in data2:
+			Search_data[4] = int(re.split(r'=', data2)[1])
+
+		#监控保存的电视和广播节目个数
+		if kws_list[6] in data2:
+#			str_pat = re.compile(r'\[(.*?)\]').findall(data2)
+			str_pat = re.split(r"]|,", data2)
+			for i in range(len(str_pat)):
+				if kws_list[7] in str_pat[i]:		#用来检测保存的TV数的监测
+					TotalNumber["save_tv_num"] = re.split(r'=',str_pat[i])[1]
+				if kws_list[8] in str_pat[i]:		#用来检测保存的TV数的监测
+					TotalNumber["save_radio_num"] = re.split(r'=',str_pat[i])[1]
+			Search_data[5] = "{}/{}".format(TotalNumber["save_tv_num"], TotalNumber["save_radio_num"])
+
 			Search_data[2] = len(TP_LIST)
 			Search_data[6] = str(Search_time["Srch_Dur_time"])[2:10]
 			Search_data[8] = TP_LIST
 			WriteDataToXlsx()
-			TotalNumber["TotalChannel"].append(int(Search_data[3]))
+			TotalNumber["TotalTVChannel"].append(int(TotalNumber["tv_num"]))
+			TotalNumber["TotalRadioChannel"].append(int(TotalNumber["radio_num"]))
 			TotalNumber["TotalTP"].append(Search_data[2])
-			print("当前轮次:{},累计搜索节目个数:{},TP个数:{}".format(Search_data[1],sum(TotalNumber["TotalChannel"]),sum(TotalNumber["TotalTP"])))
+			print("本次搜索实际保存TV/Radio:{},保存TP数为:{}".format(Search_data[5],Search_data[4]))
+			print("当前轮次:{},累计搜索节目个数:{}/{},TP个数:{}".format(Search_data[1],\
+																	sum(TotalNumber["TotalTVChannel"]),\
+																	sum(TotalNumber["TotalRadioChannel"]),\
+																	sum(TotalNumber["TotalTP"])))
 			Search_time.clear()
 			TP_LIST.clear()
 			PolarInfo['GetBlindInfo'].clear()
 			PolarInfo['NumGetBlind'].clear()
 			PolarInfo["Countpolar"].clear()
 			ChannelInfo.clear()  #不同TP下的节目字典清空
-			Search_data[3] = 0  #搜索结束后将节目数清空
-		#搜索达到上限
-		if kws_list[5] in data2:
-			Search_time["end_time"] = datetime.now()
-			Search_time["Srch_Dur_time"] = Search_time["end_time"] - Search_time["start_time"]
-			for i in range(len(TP_LIST)):
-				print(TP_LIST[i])
-			print("本次搜索节目总数为:{},TP总数为:{},盲扫时长:{}".format(Search_data[3],len(TP_LIST),Search_time["Srch_Dur_time"]))
-			Search_data[2] = len(TP_LIST)
-			Search_data[6] = str(Search_time["Srch_Dur_time"])[2:10]
-			Search_data[8] = TP_LIST
-			WriteDataToXlsx()
-			TotalNumber["TotalChannel"].append(int(Search_data[3]))
-			TotalNumber["TotalTP"].append(Search_data[2])
-			print("当前轮次:{},累计搜索节目个数:{},TP个数:{}".format(Search_data[1],sum(TotalNumber["TotalChannel"]),sum(TotalNumber["TotalTP"])))
-			Search_time.clear()
-			TP_LIST.clear()
-			PolarInfo['GetBlindInfo'].clear()
-			PolarInfo['NumGetBlind'].clear()
-			PolarInfo["Countpolar"].clear()
-			ChannelInfo.clear()
+			TotalNumber["tv_num"] = 0  #搜索结束后将节目数清空
+			TotalNumber["radio_num"] = 0
+
+		if kws_list[9] in data2:
+			print("搜索TP达到上限：{}".format(data2))
 			ser1.write(hexStringTobytes("A1 F1 22 DD 15"))
-			time.sleep(2)
-			State['SendCommandState'] = True
 			button["Srch_number"] = 1
+
+		if kws_list[10] in data2:
+			print("搜索节目达到上限：{}".format(data2))
+			ser1.write(hexStringTobytes("A1 F1 22 DD 15"))
+			button["Srch_number"] = 1
+
 
 	if not data and State['SendCommandState']:
 		if button['data_position'] != button['data_length']:
