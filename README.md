@@ -12,3 +12,5 @@ NewSatSearch.py   "该程序为更新KWS后重新用类管理变量的程序，调试使用，不包含sys.
 
 SatSearchIncludeArgvPara_Class.py
 "该程序为更新KWS后重新用类管理变量的程序，测试使用，包含sys.argv参数，需要在AutoSearch.py文件中执行"
+
+PrsetSatBlind.py   "该程序用于预置卫星搜索，有卫星和卫星下的参数的判断和设置"
