@@ -307,17 +307,17 @@ while MAIN_LOOP_STATE:
             end_time = datetime.now()
             SEND_COMMD_STATE = True
             search_dur_time = str(end_time - start_time)[2:10]
+            for i in range(len(GL.all_tp_list)):
+                print(GL.all_tp_list[i])
             print("第{}次搜索节目总数为TV/Radio:{}/{},TP总数为:{},盲扫时长:{}".format(GL.search_datas[1], \
                                                                       GL.tv_radio_tp_data[0], GL.tv_radio_tp_data[1], \
                                                                       len(GL.all_tp_list), search_dur_time))
-            for i in range(len(GL.all_tp_list)):
-                print(GL.all_tp_list[i])
             GL.search_datas[0] = search_mode
             GL.search_datas[2] = len(GL.all_tp_list)
             GL.search_datas[3] = "{}/{}".format(GL.tv_radio_tp_data[0], GL.tv_radio_tp_data[1])
             GL.search_datas[6] = search_dur_time
             GL.search_datas[8] = GL.all_tp_list
-            judge_and_write_data_to_xlsx()
+            # judge_and_write_data_to_xlsx()
 
         if GL.search_monitor_kws[5] in data2:  # 监控保存TP的个数
             GL.tv_radio_tp_data[4] = int(re.split("=", data2)[1])
