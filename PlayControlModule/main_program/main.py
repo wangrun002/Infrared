@@ -4,6 +4,10 @@
 from datetime import datetime
 from random import choice
 from threading import Timer
+from openpyxl import Workbook
+from openpyxl import load_workbook
+from openpyxl.styles import Font,colors,Alignment
+from openpyxl.utils import get_column_letter,column_index_from_string
 import serial
 import serial.tools.list_ports
 import logging
@@ -33,7 +37,9 @@ class MyGlobal():
         self.prog_group_name = ''                           # 组别名称
         self.prog_group_total = ''                          # 组别下的节目总数
         self.numb_key_switch_commd = []                     # 数字键切台指令集
-        self.all_test_case = []
+        self.all_test_case = []                             # 存放所有播放控制测试用例的数据集合
+        self.report_data = [0,0,0,0,0,0,[],[]]
+
 
 def check_ports(ser_cable_numb):
     serial_ser_value = {
@@ -74,7 +80,7 @@ def write_logs_to_txt(file_path,logs):
     with open(file_path, "a+", encoding="utf-8") as fo:
         fo.write(logs)
 
-def check_if_the_write_file_path_exists():
+def check_if_log_and_report_file_path_exists():
     global case_log_file_directory, full_log_file_directory, report_file_directory
     parent_path = os.path.dirname(os.getcwd())
     case_log_folder_name = "print_log"
@@ -90,6 +96,80 @@ def check_if_the_write_file_path_exists():
         os.mkdir(full_log_file_directory)
     if not os.path.exists(report_file_directory):
         os.mkdir(report_file_directory)
+
+def build_print_log_and_report_file_path():
+    global case_log_txt_path, full_log_txt_path, report_file_path, sheet_name
+    case_info = ALL_TEST_CASE[choice_switch_case]
+    time_info = re.sub(r"[-: ]", "_", str(datetime.now())[:19])
+    case_log_file_name = "{}_{}_{}_{}.txt".format(case_info[0], case_info[1], case_info[2], time_info)
+    case_log_txt_path = os.path.join(case_log_file_directory, case_log_file_name)
+    full_log_file_name = "full_{}_{}_{}_{}.txt".format(case_info[0], case_info[1], case_info[2], time_info)
+    full_log_txt_path = os.path.join(full_log_file_directory, full_log_file_name)
+    report_file_name = "{}_{}_{}_{}.xlsx".format(case_info[0], case_info[1], case_info[2], time_info)
+    report_file_path = os.path.join(report_file_directory, report_file_name)
+    sheet_name = "{}".format(case_info[1])
+
+    GL.report_data[0] = "{}_{}_{}".format(case_info[0], case_info[1], case_info[2])
+    GL.report_data[1] = "{}".format(case_info[3])
+    GL.report_data[3] = "{}".format(case_info[4])
+    GL.report_data[4] = "{}".format(case_info[2])
+
+def check_if_report_exists_and_write_data_to_report():
+    report_title = [
+        "report name",
+        "group name",
+        "group ch total",
+        "ch type",
+        "switch ch mode",
+        "switch ch times",
+        {"command": CH_INFO_KWS},
+    ]
+
+    alignment = Alignment(horizontal="center", vertical="center", wrapText=True)
+    if not os.path.exists(report_file_path):
+        wb = Workbook()
+        ws = wb.active
+        ws.title = sheet_name
+        ws.column_dimensions['A'].width = 16
+        for i in range(len(report_title)):
+            ws.row_dimensions[(i + 1)].height = 13.5
+            if i < len(report_title) - 1:
+                ws.cell(i + 1, 1).value = report_title[i]
+                ws.cell(i + 1, 1).alignment = alignment
+            elif i == len(report_title) - 1:
+                ws.cell(i + 1, 1).value = list(report_title[i].keys())[0]
+                ws.cell(i + 1, 1).alignment = alignment
+                for j in range(len(report_title[i]["command"])):
+                    all_column_numb = column_index_from_string("A") + (j + 1)
+                    all_column_char = get_column_letter(all_column_numb)
+                    ws.column_dimensions[all_column_char].width = 16
+                    ws.cell((i + 1), (1 + j + 1)).value = report_title[i]["command"][j]
+                    ws.cell((i + 1), (1 + j + 1)).alignment = alignment
+
+    elif os.path.exists(report_file_path):
+        wb = load_workbook(report_file_path)
+        sheets_name_list = wb.sheetnames
+        logging.info(sheets_name_list)
+        if sheet_name in sheets_name_list:
+            ws = wb[sheet_name]
+        elif sheet_name not in sheets_name_list:
+            ws = wb.create_sheet(sheet_name)
+        ws.column_dimensions['A'].width = 16
+        for i in range(len(report_title)):
+            ws.row_dimensions[(i + 1)].height = 13.5
+            if i < len(report_title) - 1:
+                ws.cell(i + 1, 1).value = report_title[i]
+                ws.cell(i + 1, 1).alignment = alignment
+            elif i == len(report_title) - 1:
+                ws.cell(i + 1, 1).value = list(report_title[i].keys())[0]
+                ws.cell(i + 1, 1).alignment = alignment
+                for j in range(len(report_title[i]["command"])):
+                    all_column_numb = column_index_from_string("A") + j
+                    all_column_char = get_column_letter(all_column_numb)
+                    ws.column_dimensions[all_column_char].width = 16
+                    ws.cell((i + 1), (1 + j + 1)).value = report_title[i]["command"][j]
+                    ws.cell((i + 1), (1 + j + 1)).alignment = alignment
+    wb.save(report_file_path)
 
 def delay_time(interval_time,expect_delay_time):
     global t
@@ -126,6 +206,29 @@ def change_numbs_to_commds_list(numbs_list):
             for j in range(len(numbs_list[i])):
                 channel_commds_list[i].append(KEY[numbs_list[i][j]])
     return channel_commds_list
+
+def change_commds_to_numbs_list(commds_list):
+    # 将指令集列表转化为数值列表
+    channel_numbs_list = []
+    for i in range(len(commds_list)):
+        channel_numbs_list.append([])
+        for j in range(len(commds_list[i])):
+            channel_numbs_list[i].append(REVERSE_KEY[commds_list[i][j]])
+    return channel_numbs_list
+
+def change_numbs_to_str_list(numbs_list):
+    # 将数值列表转化为字符串
+    channel_str_list = []
+    for m in range(len(numbs_list)):
+        channel_str_list.append("")
+        for n in range(len(numbs_list[m])):
+            try:
+                int(numbs_list[m][n])
+            except:
+                channel_str_list[m] = channel_str_list[m] + "_" + numbs_list[m][n]
+            else:
+                channel_str_list[m] = channel_str_list[m] + numbs_list[m][n]
+    return channel_str_list
 
 def commds_add_key_list(old_commds_list,key_name):
     # 在每个指令集后增加指定的单一指令
@@ -187,15 +290,6 @@ def build_all_test_case():
                           GL.numb_key_switch_commd[2], EXIT_TO_SCREEN],
     ]
 
-def build_print_log_file_path():
-    global case_log_txt_path,full_log_txt_path
-    case_info = ALL_TEST_CASE[choice_switch_case]
-    time_info = re.sub(r"[-: ]", "_", str(datetime.now())[:19])
-    case_log_file_name = "{}_{}_{}_{}.txt".format(case_info[0], case_info[1], case_info[2], time_info)
-    case_log_txt_path = os.path.join(case_log_file_directory, case_log_file_name)
-    full_log_file_name = "full_{}_{}_{}_{}.txt".format(case_info[0], case_info[1], case_info[2], time_info)
-    full_log_txt_path = os.path.join(full_log_file_directory, full_log_file_name)
-
 def build_all_scene_commd_list():
     GL.numb_key_switch_commd = build_tv_numb_key_switch_list()
 
@@ -228,6 +322,8 @@ if __name__ == "__main__":
         "YELLOW": "A1 F1 22 DD 1B",
         "TV/R": "A1 F1 22 DD 42",
     }
+
+    REVERSE_KEY = dict([val,key] for key,val in KEY.items())
 
     SWITCH_CHANNEL_KWS = [
         "[PTD]Prog_numb=",
@@ -270,8 +366,9 @@ if __name__ == "__main__":
 
     # 检查打印日志和报告的目录,以及创建文件名称
 
-    check_if_the_write_file_path_exists()
-    build_print_log_file_path()
+    check_if_log_and_report_file_path_exists()
+    build_print_log_and_report_file_path()
+    check_if_report_exists_and_write_data_to_report()
 
     # 获取串口并配置串口信息
     send_ser_name,receive_ser_name = check_ports(GL.ser_cable_numb)
@@ -376,7 +473,7 @@ if __name__ == "__main__":
                     logging.info(GL.Radio_channel_groups.keys())
                     build_all_scene_commd_list()
                     build_all_test_case()
-                    # build_print_log_file_path()
+                    # build_print_log_and_report_file_path()
                     logging.info(GL.all_test_case[choice_switch_case][2])
                     GL.get_group_channel_total_info_state = False
                 # if GL.sub_stage == 0:
@@ -489,6 +586,16 @@ if __name__ == "__main__":
                     GL.current_stage += 1
                     GL.commd_global_length = 0
                     GL.commd_global_pos = 0
+            elif GL.current_stage == 4: # 写报告
+                if ALL_TEST_CASE[choice_switch_case][4] == "TV":
+                    GL.report_data[2] = int(GL.TV_channel_groups["All"])
+                elif ALL_TEST_CASE[choice_switch_case][4] == "Radio":
+                    GL.report_data[2] = int(GL.Radio_channel_groups["All"])
 
-            elif GL.current_stage == 4: # 结束程序
+                GL.report_data[5] = len(GL.all_test_case[choice_switch_case][2])
+                # GL.report_data[6] =
+                check_if_report_exists_and_write_data_to_report()
+
+            elif GL.current_stage == 5: # 结束程序
+
                 GL.main_loop_state = False
