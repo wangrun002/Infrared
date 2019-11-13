@@ -19,10 +19,11 @@ import os
 
 class MyGlobal():
     def __init__(self):
-        self.ser_cable_numb = sys.argv[2]                   # 用于指定USB转串口线的编号
+        self.ser_cable_numb = 5                             # 用于指定USB转串口线的编号
         self.main_loop_state = True                         # 主程序循环状态变量
         self.send_commd_state = True                        #
         self.control_stage_delay_state = True               # 控制延时的状态变量
+        self.control_send_commd_delay_state = True          # 控制延时切台的状态变量
         self.get_group_channel_total_info_state = True      # 控制获取组别等信息的进程与用例执行代码切换的状态变量
         self.current_stage = 0                              # 控制执行用例的各个阶段
         self.sub_stage = 0                                  # 控制信息获取的各个阶段
@@ -115,14 +116,23 @@ def build_print_log_and_report_file_path():
     GL.report_data[4] = "{}".format(case_info[2])
 
 def check_if_report_exists_and_write_data_to_report():
+    # report_title = [
+    #     "report name",
+    #     "group name",
+    #     "group ch total",
+    #     "ch type",
+    #     "switch ch mode",
+    #     "switch ch times",
+    #     {"command": CH_INFO_KWS},
+    # ]
     report_title = [
-        "report name",
-        "group name",
-        "group ch total",
-        "ch type",
-        "switch ch mode",
-        "switch ch times",
-        {"command": CH_INFO_KWS},
+        "报告名称",
+        "分组名称",
+        "分组节目总数",
+        "节目类别",
+        "切台模式",
+        "切台次数",
+        {"命令": CH_INFO_KWS},
     ]
 
     alignment = Alignment(horizontal="center", vertical="center", wrapText=True)
@@ -139,11 +149,11 @@ def check_if_report_exists_and_write_data_to_report():
             elif i == len(report_title) - 1:
                 ws.cell(i + 1, 1).value = list(report_title[i].keys())[0]
                 ws.cell(i + 1, 1).alignment = alignment
-                for j in range(len(report_title[i]["command"])):
+                for j in range(len(list(report_title[i].values())[0])):
                     all_column_numb = column_index_from_string("A") + (j + 1)
                     all_column_char = get_column_letter(all_column_numb)
                     ws.column_dimensions[all_column_char].width = 16
-                    ws.cell((i + 1), (1 + j + 1)).value = report_title[i]["command"][j]
+                    ws.cell((i + 1), (1 + j + 1)).value = list(report_title[i].values())[0][j]
                     ws.cell((i + 1), (1 + j + 1)).alignment = alignment
 
     elif os.path.exists(report_file_path):
@@ -163,12 +173,29 @@ def check_if_report_exists_and_write_data_to_report():
             elif i == len(report_title) - 1:
                 ws.cell(i + 1, 1).value = list(report_title[i].keys())[0]
                 ws.cell(i + 1, 1).alignment = alignment
-                for j in range(len(report_title[i]["command"])):
+                for j in range(len(list(report_title[i].values())[0])):
                     all_column_numb = column_index_from_string("A") + j
                     all_column_char = get_column_letter(all_column_numb)
                     ws.column_dimensions[all_column_char].width = 16
-                    ws.cell((i + 1), (1 + j + 1)).value = report_title[i]["command"][j]
+                    ws.cell((i + 1), (1 + j + 1)).value = list(report_title[i].values())[0][j]
                     ws.cell((i + 1), (1 + j + 1)).alignment = alignment
+
+    for m in range(len(GL.report_data)):
+        if m < len(GL.report_data) - 2:
+            ws.cell(m + 1, 2).value = GL.report_data[m]
+            ws.merge_cells(start_row=(m + 1), start_column=2, end_row=(m + 1), end_column=7)
+            ws.cell(m + 1, 2).alignment = alignment
+        elif m == len(GL.report_data) - 2:
+            for n in range(len(GL.report_data[m])):
+                ws.cell(m + 2 + n, 1).value = GL.report_data[m][n]
+                ws.cell(m + 2 + n, 1).alignment = alignment
+        elif m == len(GL.report_data) - 1:
+            for k in range(len(GL.report_data[m])):
+                prog_info_list = GL.report_data[m][k]
+                for l in range(len(prog_info_list)):
+                    ws.cell((m + 1 + k),(2 + l)).value = GL.report_data[m][k][l]
+                    ws.cell((m + 1 + k),(2 + l)).alignment = alignment
+                    ws.row_dimensions[(m + 1 + k)].height = 13.5
     wb.save(report_file_path)
 
 def delay_time(interval_time,expect_delay_time):
@@ -179,6 +206,17 @@ def delay_time(interval_time,expect_delay_time):
         GL.control_stage_delay_state = True
     if expect_delay_time > 0:
         t = Timer(interval_time, delay_time, args=(interval_time, expect_delay_time)).start()
+
+def delay_send_commd_time(interval_time,expect_delay_time):
+    global t
+    expect_delay_time -= interval_time
+    print(expect_delay_time)
+    if expect_delay_time == 0:
+        print(GL.channel_info)
+        GL.report_data[7].append(GL.channel_info)
+        GL.control_send_commd_delay_state = True
+    if expect_delay_time > 0:
+        t = Timer(interval_time, delay_send_commd_time, args=(interval_time, expect_delay_time)).start()
 
 def build_ch_numbs_list(chs_total):
     # 新建指定个数的数值列表
@@ -225,7 +263,7 @@ def change_numbs_to_str_list(numbs_list):
             try:
                 int(numbs_list[m][n])
             except:
-                channel_str_list[m] = channel_str_list[m] + "_" + numbs_list[m][n]
+                channel_str_list[m] = channel_str_list[m] + " + " + numbs_list[m][n]
             else:
                 channel_str_list[m] = channel_str_list[m] + numbs_list[m][n]
     return channel_str_list
@@ -263,8 +301,9 @@ def commds_add_random_move_focus_list(old_commds_list,single_commd):
     return new_commds_list
 
 def build_tv_numb_key_switch_list():
+    # 数字键超时切台、即时切台、随机切台（numb、numb+ok、numb+random）
     scene_list = ["numb", "numb+ok", "numb+random"]
-    random_switch_time = 1000
+    random_switch_time = 100
     numb_key_total_commd = []
     GL.all_group_prog_total = int(GL.TV_channel_groups["All"])
     chs_numb_list = build_ch_numbs_list(GL.all_group_prog_total)
@@ -297,30 +336,49 @@ if __name__ == "__main__":
     LOG_FORMAT = "%(asctime)s %(name)s %(levelname)s %(message)s"  # 配置输出日志的格式
     DATE_FORMAT = "%Y-%m-%d %H:%M:%S %a"  # 配置输出时间的格式
     logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
+    # filename=r"d:\test\test.log" #有了filename参数就不会直接输出显示到控制台，而是直接写入文件
 
+    # KEY = {
+    #     "0": "A1 F1 22 DD 00",
+    #     "1": "A1 F1 22 DD 01",
+    #     "2": "A1 F1 22 DD 02",
+    #     "3": "A1 F1 22 DD 03",
+    #     "4": "A1 F1 22 DD 04",
+    #     "5": "A1 F1 22 DD 05",
+    #     "6": "A1 F1 22 DD 06",
+    #     "7": "A1 F1 22 DD 07",
+    #     "8": "A1 F1 22 DD 08",
+    #     "9": "A1 F1 22 DD 09",
+    #     "OK": "A1 F1 22 DD 15",
+    #     "UP": "A1 F1 22 DD 11",
+    #     "DOWN": "A1 F1 22 DD 14",
+    #     "LEFT": "A1 F1 22 DD 12",
+    #     "RIGHT": "A1 F1 22 DD 13",
+    #     "PAGE_UP": "A1 F1 22 DD 41",
+    #     "PAGE_DOWN": "A1 F1 22 DD 18",
+    #     "MENU": "A1 F1 22 DD 0C",
+    #     "EXIT": "A1 F1 22 DD 0D",
+    #     "EPG": "A1 F1 22 DD 0E",
+    #     "YELLOW": "A1 F1 22 DD 1B",
+    #     "TV/R": "A1 F1 22 DD 42",
+    # }
     KEY = {
-        "0": "A1 F1 22 DD 00",
-        "1": "A1 F1 22 DD 01",
-        "2": "A1 F1 22 DD 02",
-        "3": "A1 F1 22 DD 03",
-        "4": "A1 F1 22 DD 04",
-        "5": "A1 F1 22 DD 05",
-        "6": "A1 F1 22 DD 06",
-        "7": "A1 F1 22 DD 07",
-        "8": "A1 F1 22 DD 08",
-        "9": "A1 F1 22 DD 09",
-        "OK": "A1 F1 22 DD 15",
-        "UP": "A1 F1 22 DD 11",
-        "DOWN": "A1 F1 22 DD 14",
-        "LEFT": "A1 F1 22 DD 12",
-        "RIGHT": "A1 F1 22 DD 13",
-        "PAGE_UP": "A1 F1 22 DD 41",
-        "PAGE_DOWN": "A1 F1 22 DD 18",
-        "MENU": "A1 F1 22 DD 0C",
-        "EXIT": "A1 F1 22 DD 0D",
-        "EPG": "A1 F1 22 DD 0E",
-        "YELLOW": "A1 F1 22 DD 1B",
-        "TV/R": "A1 F1 22 DD 42",
+        "POWER": "A1 F1 22 DD 0A", "TV/R": "A1 F1 22 DD 42", "MUTE": "A1 F1 22 DD 10",
+        "1": "A1 F1 22 DD 01", "2": "A1 F1 22 DD 02", "3": "A1 F1 22 DD 03",
+        "4": "A1 F1 22 DD 04", "5": "A1 F1 22 DD 05", "6": "A1 F1 22 DD 06",
+        "7": "A1 F1 22 DD 07", "8": "A1 F1 22 DD 08", "9": "A1 F1 22 DD 09",
+        "FAV": "A1 F1 22 DD 1E", "0": "A1 F1 22 DD 00", "ZOOM": "A1 F1 22 DD 16",
+        "MENU": "A1 F1 22 DD 0C", "EPG": "A1 F1 22 DD 0E", "INFO": "A1 F1 22 DD 1F", "EXIT": "A1 F1 22 DD 0D",
+        "UP": "A1 F1 22 DD 11", "DOWN": "A1 F1 22 DD 14",
+        "LEFT": "A1 F1 22 DD 12", "RIGHT": "A1 F1 22 DD 13", "OK": "A1 F1 22 DD 15",
+        "P/N": "A1 F1 22 DD 0F", "R/L": "A1 F1 22 DD 17", "PAGE_UP": "A1 F1 22 DD 41", "PAGE_DOWN": "A1 F1 22 DD 18",
+        "RED": "A1 F1 22 DD 19", "GREEN": "A1 F1 22 DD 1A", "YELLOW": "A1 F1 22 DD 1B", "BLUE": "A1 F1 22 DD 1C",
+        "FIND": "A1 F1 22 DD 46", "PAUSE": "A1 F1 22 DD 45", "SUB": "A1 F1 22 DD 44", "RECALL": "A1 F1 22 DD 43",
+        "REWIND": "A1 F1 22 DD 1D", "FF": "A1 F1 22 DD 47", "PLAY": "A1 F1 22 DD 0B", "RECORD": "A1 F1 22 DD 40",
+        "PREVIOUS": "A1 F1 22 DD 4A", "NEXT": "A1 F1 22 DD 49", "TIMESHIFT": "A1 F1 22 DD 48", "STOP": "A1 F1 22 DD 4D",
+
+        "CH+": "A1 F1 22 DD 11", "CH-": "A1 F1 22 DD 14", "VOL-": "A1 F1 22 DD 12", "VOL+": "A1 F1 22 DD 13",
+        "MULTIFEED": "A1 F1 22 DD 0F", "SAT": "A1 F1 22 DD 17", "AUDIO": "A1 F1 22 DD 19", "TTX": "A1 F1 22 DD 1C",
     }
 
     REVERSE_KEY = dict([val,key] for key,val in KEY.items())
@@ -365,10 +423,8 @@ if __name__ == "__main__":
     choice_switch_case = int(sys.argv[1])
 
     # 检查打印日志和报告的目录,以及创建文件名称
-
     check_if_log_and_report_file_path_exists()
     build_print_log_and_report_file_path()
-    check_if_report_exists_and_write_data_to_report()
 
     # 获取串口并配置串口信息
     send_ser_name,receive_ser_name = check_ports(GL.ser_cable_numb)
@@ -383,12 +439,14 @@ if __name__ == "__main__":
         if data:
             tt = datetime.now()
             # data1 = data.decode("ISO-8859-1", "replace")
-            # data2 = data.decode('ISO-8859-1', 'replace').replace('\ufffd', '')
-            data1 = data.decode("GB18030", "replace")
-            data2 = data.decode('GB18030', 'replace').replace('\ufffd', '').strip()
+            # data2 = data.decode('ISO-8859-1', 'replace').replace('\ufffd', '').strip()
+            # data1 = data.decode("GB18030", "replace")
+            # data2 = data.decode('GB18030', 'replace').replace('\ufffd', '').strip()
+            data1 = data.decode("GB18030", "ignore")
+            data2 = re.compile('[\\x00-\\x08\\x0b-\\x0c\\x0e-\\x1f]').sub('', data1).strip()
             data3 = re.compile('[\\x00-\\x08\\x0b-\\x0c\\x0e-\\x1f]').sub('', data2).strip()
             data4 = "[{}]     {}\n".format(str(tt), data2)
-            print(data2)
+            # print(data2)
             write_logs_to_txt(full_log_txt_path, data4)
             if not GL.get_group_channel_total_info_state:
                 write_logs_to_txt(case_log_txt_path, data4)
@@ -405,7 +463,7 @@ if __name__ == "__main__":
                 flag_info_split = re.split(r"[\],]", data2)
                 for i in range(len(flag_info_split)):
                     if CH_INFO_KWS[2] in flag_info_split[i]:    # 提取频道所属TP
-                        GL.channel_info[2] = re.split(r"=", flag_info_split[i])[-1]
+                        GL.channel_info[2] = re.split(r"=", flag_info_split[i])[-1].replace(" ","")
                     if CH_INFO_KWS[3] in flag_info_split[i]:    # 提取频道TTX_flag
                         GL.channel_info[3] = re.split(r"=", flag_info_split[i])[-1]
                     if CH_INFO_KWS[4] in flag_info_split[i]:    # 提取频道SUB_flag
@@ -473,7 +531,6 @@ if __name__ == "__main__":
                     logging.info(GL.Radio_channel_groups.keys())
                     build_all_scene_commd_list()
                     build_all_test_case()
-                    # build_print_log_and_report_file_path()
                     logging.info(GL.all_test_case[choice_switch_case][2])
                     GL.get_group_channel_total_info_state = False
                 # if GL.sub_stage == 0:
@@ -558,18 +615,19 @@ if __name__ == "__main__":
 
             elif GL.current_stage == 2: # 发送所选用例的切台指令
                 GL.commd_global_length = len(GL.all_test_case[choice_switch_case][2])
-                if GL.commd_global_pos < GL.commd_global_length and GL.control_stage_delay_state:
-                    GL.control_stage_delay_state = False
+                if GL.commd_global_pos < GL.commd_global_length and GL.control_send_commd_delay_state:
+                    GL.control_send_commd_delay_state = False
                     send_data = GL.all_test_case[choice_switch_case][2][GL.commd_global_pos]
+                    GL.channel_info = ['','','','','','','','','','','','']
                     for i in range(len(send_data)):
                         send_ser.write(hex_strs_to_bytes(send_data[i]))
                         time.sleep(0.2)
                     if GL.all_test_case[choice_switch_case][0][-1] == INTERVAL_TIME[0]:
-                        delay_time(0.5, INTERVAL_TIME[0])
+                        delay_send_commd_time(0.5, INTERVAL_TIME[0])
                     elif GL.all_test_case[choice_switch_case][0][-1] == INTERVAL_TIME[1]:
-                        delay_time(1.0,INTERVAL_TIME[1])
+                        delay_send_commd_time(1.0,INTERVAL_TIME[1])
                     GL.commd_global_pos += 1
-                elif GL.commd_global_pos == GL.commd_global_length:
+                elif GL.commd_global_pos == GL.commd_global_length and GL.control_send_commd_delay_state:
                     GL.current_stage += 1
                     GL.commd_global_length = 0
                     GL.commd_global_pos = 0
@@ -586,16 +644,21 @@ if __name__ == "__main__":
                     GL.current_stage += 1
                     GL.commd_global_length = 0
                     GL.commd_global_pos = 0
+
             elif GL.current_stage == 4: # 写报告
                 if ALL_TEST_CASE[choice_switch_case][4] == "TV":
                     GL.report_data[2] = int(GL.TV_channel_groups["All"])
                 elif ALL_TEST_CASE[choice_switch_case][4] == "Radio":
                     GL.report_data[2] = int(GL.Radio_channel_groups["All"])
 
-                GL.report_data[5] = len(GL.all_test_case[choice_switch_case][2])
-                # GL.report_data[6] =
+                scene_commd_list = GL.all_test_case[choice_switch_case][2]
+                GL.report_data[5] = len(scene_commd_list)
+                GL.report_data[6] = change_numbs_to_str_list(change_commds_to_numbs_list(scene_commd_list))
+                logging.debug(GL.report_data[7])
                 check_if_report_exists_and_write_data_to_report()
+                GL.current_stage += 1
+                GL.control_stage_delay_state = False
+                delay_time(1.0,INTERVAL_TIME[1])
 
-            elif GL.current_stage == 5: # 结束程序
-
+            elif GL.current_stage == 5 and GL.control_stage_delay_state: # 结束程序
                 GL.main_loop_state = False
