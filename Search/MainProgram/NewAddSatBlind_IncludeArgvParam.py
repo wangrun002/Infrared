@@ -120,7 +120,7 @@ xlsx_title = [
 
 class MyGlobal():
     def __init__(self):
-        self.ser_cable_num = 4                          # USB转串口线编号
+        self.ser_cable_num = 5                          # USB转串口线编号
         self.switch_commd_stage = 0                     # 切换发送命令的阶段
         self.setting_option_numb = 0                    # 设置项位置number
 
@@ -308,7 +308,8 @@ def check_ports(ser_cable_num):
                         "5":"FTDVKPRSA",
                     }
     send_port_desc = "USB-SERIAL CH340"
-    receive_port_desc = "USB Serial Port"
+    # receive_port_desc = "USB Serial Port"
+    receive_port_desc = serial_ser[str(ser_cable_num)]
     ports = list(serial.tools.list_ports.comports())
     for i in range(len(ports)):
         logging.info("可用端口:名称:{} + 描述:{} + 硬件id:{}".format(ports[i].device,ports[i].description,ports[i].hwid))
