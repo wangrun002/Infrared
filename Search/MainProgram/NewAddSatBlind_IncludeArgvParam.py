@@ -77,12 +77,12 @@ PRESET_SAT_NAME = ['Nilesat', 'Hotbird', 'Badr 4/5/6/7 K', 'Thor 5/6/7', 'Turksa
                   'SES 4 K', 'Intelsat 905 C', 'AlComSat 1', 'Intelsat 907 C', 'Intelsat 907 K', 'Hispasat 4/5/6',
                   'Intelsat 35e', 'Intelsat 707 K', 'Intelsat 21 K', 'Amazonas 2/3 K', 'Asiasat 7 C', 'Chinas6b_C']
 
-NORMAL_SEARCH_TIMES = 3                  # 10 普通盲扫次数
+NORMAL_SEARCH_TIMES = 10                  # 10 普通盲扫次数
 SUPER_SEARCH_TIMES = 10                  # 10 超级盲扫次数
-INCREMENTAL_SEARCH_TIMES = 3             # 15 累加搜索次数
+INCREMENTAL_SEARCH_TIMES = 15             # 15 累加搜索次数
 UPPER_LIMIT_SEARCH_TIMES = 72            # 72 上限搜索初始次数
-UPPER_LIMIT_CYCLE_TIMES = 10              # 5  上限搜索循环次数
-UPPER_LIMIT_LATER_SEARCH_TIMES = 1       # 20 上限搜索后其他情况执行测试
+UPPER_LIMIT_CYCLE_TIMES = 5              # 5  上限搜索循环次数
+UPPER_LIMIT_LATER_SEARCH_TIMES = 72       # 20 上限搜索后其他情况执行测试
 ONLY_EXECUTE_ONE_TIME = 1                # 单独场景只执行一次
 NOT_UPPER_LIMIT_LATER_SEARCH_TIME = 0
 
@@ -120,7 +120,7 @@ xlsx_title = [
 
 class MyGlobal():
     def __init__(self):
-        self.ser_cable_num = 5                          # USB转串口线编号
+        self.ser_cable_num = 4                          # USB转串口线编号
         self.switch_commd_stage = 0                     # 切换发送命令的阶段
         self.setting_option_numb = 0                    # 设置项位置number
 
@@ -884,7 +884,7 @@ while GL.MAIN_LOOP_STATE:
                                     if GL.sat_param_save[0] == GL.random_choice_sat[0]:
                                         logging.info("{},{},{}".format(GL.sat_param_save[0], GL.random_choice_sat[0], GL.searched_sat_name))
                                         GL.other_operate_sub_stage += 1
-                                        GL.searched_sat_name.remove(GL.random_choice_sat[0])
+                                        GL.searched_sat_name.remove(GL.random_choice_sat[0]) # 避免搜索时该卫星在已搜索的卫星列表中，不能进行搜索
                                         GL.random_choice_sat.clear()
                                     elif GL.sat_param_save[0] != GL.random_choice_sat[0]:
                                         if PRESET_SAT_NAME.index(GL.sat_param_save[0]) > PRESET_SAT_NAME.index(GL.random_choice_sat[0]):
@@ -1056,7 +1056,7 @@ while GL.MAIN_LOOP_STATE:
             GL.tv_radio_tp_count[2] = re.split("=", split_result[1])[1]
             GL.tv_radio_tp_count[3] = re.split("=", split_result[2])[1]
             GL.search_datas[5] = "{}/{}".format(GL.tv_radio_tp_count[2], GL.tv_radio_tp_count[3])
-            GL.save_ch_finish_state = True
+
             GL.tv_radio_tp_accumulated[0].append(int(GL.tv_radio_tp_count[0]))
             GL.tv_radio_tp_accumulated[1].append(int(GL.tv_radio_tp_count[1]))
             GL.tv_radio_tp_accumulated[2].append((int(len(GL.all_tp_list))))
@@ -1068,6 +1068,6 @@ while GL.MAIN_LOOP_STATE:
                                                           sum(GL.tv_radio_tp_accumulated[1]), \
                                                           sum(GL.tv_radio_tp_accumulated[2]), \
                                                           sum(GL.tv_radio_tp_accumulated[3])))
-
+            GL.save_ch_finish_state = True
         if GL.delete_ch_finish_kws in data2:    # 监控删除所有节目成功的关键字
             GL.delete_ch_finish_state = True
