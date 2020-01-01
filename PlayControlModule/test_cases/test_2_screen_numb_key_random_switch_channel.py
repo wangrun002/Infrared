@@ -21,7 +21,7 @@ def build_all_test_case():
                           GL.numb_key_switch_commd[2], EXIT_TO_SCREEN],
     ]
 
-choice_switch_mode = 2
+choice_switch_mode = 0
 ser_cable_numb = 4
 
 parent_path = os.path.dirname(os.getcwd())
