@@ -46,6 +46,7 @@ import sys
 import random
 import logging
 import threading
+import platform
 
 class MyGlobal():
     def __init__(self):
@@ -204,24 +205,36 @@ class MyGlobal():
                                 ]
 
 def check_ports():
-    send_com = ''
-    receive_com = ''
-    ser_cable_num = 5   # USB转串口线编号
-    serial_ser = {
-        "1": "FTDVKA2HA",
-        "2": "FTGDWJ64A",
-        "3": "FT9SP964A",
-        "4": "FTHB6SSTA",
-        "5": "FTDVKPRSA",
-        "6": "FTHI8UIHA",
-    }
+    global send_com,receive_com
     ports_info = []
-    send_port_desc = "USB-SERIAL CH340"
-    # receive_port_desc = "USB Serial Port"
-    receive_port_desc = serial_ser[str(ser_cable_num)]
+    if platform.system() == "Windows":
+        ser_cable_num = 5
+        serial_ser = {
+            "1": "FTDVKA2HA",
+            "2": "FTGDWJ64A",
+            "3": "FT9SP964A",
+            "4": "FTHB6SSTA",
+            "5": "FTDVKPRSA",
+            "6": "FTHI8UIHA",
+             }
+        send_port_desc = "USB-SERIAL CH340"
+        receive_port_desc = serial_ser[str(ser_cable_num)]
+    elif platform.system() == "Linux":
+        ser_cable_num = 5
+        serial_ser = {
+            "1": "FTDVKA2H",
+            "2": "FTGDWJ64",
+            "3": "FT9SP964",
+            "4": "FTHB6SST",
+            "5": "FTDVKPRS",
+            "6": "FTHI8UIH",
+            }
+        send_port_desc = "USB2.0-Serial"
+        receive_port_desc = serial_ser[str(ser_cable_num)]
     ports = list(serial.tools.list_ports.comports())
     for i in range(len(ports)):
         logging.info("可用端口:名称:{} + 描述:{} + 硬件id:{}".format(ports[i].device, ports[i].description, ports[i].hwid))
+        # print("可用端口:名称:{} + 描述:{} + 硬件id:{}".format(ports[i].device, ports[i].description, ports[i].hwid))
         ports_info.append("{}~{}~{}".format(ports[i].device, ports[i].description, ports[i].hwid))
     if len(ports) <= 0:
         logging.info("无可用端口")
@@ -253,6 +266,118 @@ def send_commd(commd):
     send_ser.write(hex_strs_to_bytes(commd))
     # send_ser.flush()
     time.sleep(1)
+
+def add_write_data_to_txt(file_path,write_data):    # 追加写文本
+    with open(file_path,"a+",encoding="utf-8") as fo:
+        fo.write(write_data)
+
+def build_print_log_and_report_file_path():
+    global sat_name, search_mode, sheet_name, write_xlsx_path, write_txt_path
+    global report_file_path, case_log_txt_path
+    sat_name = GL.all_sat_commd[choice_search_sat][2][0]
+    search_mode = GL.all_sat_commd[choice_search_sat][2][-1]
+    timestamp = re.sub(r'[-: ]', '_', str(datetime.now())[:19])
+    sheet_name = "{}_{}".format(sat_name, search_mode)
+
+    report_file_name = "{}_{}_{}_{}_Result_{}.xlsx".format(choice_search_sat, simplify_sat_name[sat_name], sat_name, search_mode, timestamp)
+    report_file_path = os.path.join(report_file_directory, report_file_name)
+
+    case_log_file_name = "{}_{}_{}_{}_{}.txt".format(choice_search_sat, simplify_sat_name[sat_name], sat_name, search_mode, timestamp)
+    case_log_txt_path = os.path.join(case_log_file_directory, case_log_file_name)
+
+def judge_write_file_exist():
+    global case_log_file_directory, report_file_directory
+    parent_path = os.path.dirname(os.getcwd())
+    test_file_folder_name = "test_data"
+    test_file_directory = os.path.join(parent_path, test_file_folder_name)
+    case_log_folder_name = "print_log"
+    case_log_file_directory = os.path.join(parent_path, test_file_folder_name, case_log_folder_name)
+    report_folder_name = "report"
+    report_file_directory = os.path.join(parent_path, test_file_folder_name, report_folder_name)
+
+    if not os.path.exists(test_file_directory):
+        os.mkdir(test_file_directory)
+    if not os.path.exists(case_log_file_directory):
+        os.mkdir(case_log_file_directory)
+    if not os.path.exists(report_file_directory):
+        os.mkdir(report_file_directory)
+
+def judge_and_wirte_data_to_xlsx():
+    global xlsx_title
+    alignment = Alignment(horizontal="center",vertical="center",wrapText=True)
+    if not os.path.exists(report_file_path):
+        wb = Workbook()
+        ws = wb.active
+        ws.title = sheet_name
+        ws.column_dimensions['A'].width = 11
+        for i in range(len(xlsx_title)):
+            if i < len(xlsx_title) - 2:
+                ws.cell(i + 1, 1).value = xlsx_title[i]
+                ws.cell(i + 1, 1).alignment = alignment
+            elif i == len(xlsx_title) - 2:
+                ws.cell(i + 1, 1).value = list(xlsx_title[i].keys())[0]
+                ws.cell(i + 1, 1).alignment = alignment
+            elif i == len(xlsx_title) - 1:
+                ws.cell(i + 1, 1).value = xlsx_title[i]
+                ws.cell(i + 1, 1).alignment = alignment
+
+    elif os.path.exists(report_file_path):
+        wb = load_workbook(report_file_path)
+        sheets_name_list = wb.sheetnames
+        logging.info(sheets_name_list)
+        if sheet_name in sheets_name_list:
+            ws = wb[sheet_name]
+        elif sheet_name not in sheets_name_list:
+            ws = wb.create_sheet(sheet_name)
+        ws.column_dimensions['A'].width = 11
+        for i in range(len(xlsx_title)):
+            if i < len(xlsx_title) - 2:
+                ws.cell(i + 1, 1).value = xlsx_title[i]
+                ws.cell(i + 1, 1).alignment = alignment
+            elif i == len(xlsx_title) - 2:
+                ws.cell(i + 1, 1).value = list(xlsx_title[i].keys())[0]
+                ws.cell(i + 1, 1).alignment = alignment
+            elif i == len(xlsx_title) - 1:
+                ws.cell(i + 1, 1).value = xlsx_title[i]
+                ws.cell(i + 1, 1).alignment = alignment
+
+    tp_column_numb = column_index_from_string("A") + GL.xlsx_data_interval
+    all_column_numb = column_index_from_string("A") + GL.xlsx_data_interval + 1
+    tv_column_numb = column_index_from_string("A") + GL.xlsx_data_interval + 2
+    radio_column_numb = column_index_from_string("A") + GL.xlsx_data_interval + 3
+    tp_column_char = get_column_letter(tp_column_numb)
+    all_column_char = get_column_letter(all_column_numb)
+    tv_column_char = get_column_letter(tv_column_numb)
+    radio_column_char = get_column_letter(radio_column_numb)
+    ws.column_dimensions[tp_column_char].width = 12
+    ws.column_dimensions[all_column_char].width = 3
+    ws.column_dimensions[tv_column_char].width = 3
+    ws.column_dimensions[radio_column_char].width = 3
+
+    for m in range(len(GL.search_datas)):
+        if m < len(GL.search_datas) - 2:
+            ws.cell((m + 1),(1 + GL.xlsx_data_interval)).value = GL.search_datas[m]
+            ws.merge_cells(start_row=(m + 1),start_column=(1 + GL.xlsx_data_interval),\
+                           end_row=(m + 1),end_column=(1 + GL.xlsx_data_interval + 4))
+            ws.cell((m + 1),(1 + GL.xlsx_data_interval)).alignment = alignment
+        elif m == len(GL.search_datas) - 2:
+            for n in range(len(xlsx_title[7]["数据类别"])):
+                ws.cell((m + 1),(1 + GL.xlsx_data_interval + n)).value = list(xlsx_title[m].values())[0][n]
+                ws.cell((m + 1), (1 + GL.xlsx_data_interval + n)).alignment = alignment
+                ws.row_dimensions[(m+1)].height = 13.5
+        elif m == len(GL.search_datas) - 1:
+            for j in range(len(GL.all_tp_list)):
+                ws.cell((m+1+j),(1+GL.xlsx_data_interval)).value = GL.search_datas[m][j]
+                ws.cell((m+1+j),(1+GL.xlsx_data_interval)+1).value = len(GL.channel_info[str(j+1)][0]) + \
+                                                                     len(GL.channel_info[str(j+1)][1])
+                ws.cell((m+1+j),(1+GL.xlsx_data_interval)+2).value = len(GL.channel_info[str(j+1)][0])
+                ws.cell((m+1+j),(1+GL.xlsx_data_interval)+3).value = len(GL.channel_info[str(j+1)][1])
+                ws.cell((m+1+j),(1+GL.xlsx_data_interval)+4).value = ",".join(GL.channel_info[str(j+1)][0] + \
+                                                                              GL.channel_info[str(j+1)][1])
+                for k in range(len(xlsx_title[7]["数据类别"])):
+                    ws.cell((m+1+j),(1+GL.xlsx_data_interval)+k).alignment = alignment
+                ws.row_dimensions[(m+1+j)].height = 13.5
+    wb.save(report_file_path)
 
 def enter_antenna_setting():
     logging.debug("Enter Antenna Setting")
@@ -516,109 +641,6 @@ def cyclic_srh_setting():
             GL.send_loop_state = False
             GL.receive_loop_state = False
 
-def add_write_data_to_txt(file_path,write_data):    # 追加写文本
-    with open(file_path,"a+",encoding="utf-8") as fo:
-        fo.write(write_data)
-
-def build_print_log_and_report_file_path():
-    global sat_name, search_mode, sheet_name, write_xlsx_path, write_txt_path
-    global write_xlsx_relative_path, write_txt_relative_path
-    sat_name = GL.all_sat_commd[choice_search_sat][2][0]
-    search_mode = GL.all_sat_commd[choice_search_sat][2][-1]
-    timestamp = re.sub(r'[-: ]', '_', str(datetime.now())[:19])
-    sheet_name = "{}_{}".format(sat_name, search_mode)
-
-    write_xlsx_file_name = "{}_{}_{}_{}_Result_{}.xlsx".format(choice_search_sat, simplify_sat_name[sat_name], sat_name, search_mode, timestamp)
-    write_xlsx_relative_path = r".\Result"
-    write_xlsx_path = os.path.join(write_xlsx_relative_path, write_xlsx_file_name)
-
-    write_txt_file_name = "{}_{}_{}_{}_{}.txt".format(choice_search_sat, simplify_sat_name[sat_name], sat_name, search_mode, timestamp)
-    write_txt_relative_path = r".\PrintLog"
-    write_txt_path = os.path.join(write_txt_relative_path, write_txt_file_name)
-
-def judge_write_file_exist():
-    if not os.path.exists(write_xlsx_relative_path):
-        os.mkdir(write_xlsx_relative_path)
-    if not os.path.exists(write_txt_relative_path):
-        os.mkdir(write_txt_relative_path)
-
-def judge_and_wirte_data_to_xlsx():
-    global xlsx_title
-    alignment = Alignment(horizontal="center",vertical="center",wrapText=True)
-    if not os.path.exists(write_xlsx_path):
-        wb = Workbook()
-        ws = wb.active
-        ws.title = sheet_name
-        ws.column_dimensions['A'].width = 11
-        for i in range(len(xlsx_title)):
-            if i < len(xlsx_title) - 2:
-                ws.cell(i + 1, 1).value = xlsx_title[i]
-                ws.cell(i + 1, 1).alignment = alignment
-            elif i == len(xlsx_title) - 2:
-                ws.cell(i + 1, 1).value = list(xlsx_title[i].keys())[0]
-                ws.cell(i + 1, 1).alignment = alignment
-            elif i == len(xlsx_title) - 1:
-                ws.cell(i + 1, 1).value = xlsx_title[i]
-                ws.cell(i + 1, 1).alignment = alignment
-
-    elif os.path.exists(write_xlsx_path):
-        wb = load_workbook(write_xlsx_path)
-        sheets_name_list = wb.sheetnames
-        logging.info(sheets_name_list)
-        if sheet_name in sheets_name_list:
-            ws = wb[sheet_name]
-        elif sheet_name not in sheets_name_list:
-            ws = wb.create_sheet(sheet_name)
-        ws.column_dimensions['A'].width = 11
-        for i in range(len(xlsx_title)):
-            if i < len(xlsx_title) - 2:
-                ws.cell(i + 1, 1).value = xlsx_title[i]
-                ws.cell(i + 1, 1).alignment = alignment
-            elif i == len(xlsx_title) - 2:
-                ws.cell(i + 1, 1).value = list(xlsx_title[i].keys())[0]
-                ws.cell(i + 1, 1).alignment = alignment
-            elif i == len(xlsx_title) - 1:
-                ws.cell(i + 1, 1).value = xlsx_title[i]
-                ws.cell(i + 1, 1).alignment = alignment
-
-    tp_column_numb = column_index_from_string("A") + GL.xlsx_data_interval
-    all_column_numb = column_index_from_string("A") + GL.xlsx_data_interval + 1
-    tv_column_numb = column_index_from_string("A") + GL.xlsx_data_interval + 2
-    radio_column_numb = column_index_from_string("A") + GL.xlsx_data_interval + 3
-    tp_column_char = get_column_letter(tp_column_numb)
-    all_column_char = get_column_letter(all_column_numb)
-    tv_column_char = get_column_letter(tv_column_numb)
-    radio_column_char = get_column_letter(radio_column_numb)
-    ws.column_dimensions[tp_column_char].width = 12
-    ws.column_dimensions[all_column_char].width = 3
-    ws.column_dimensions[tv_column_char].width = 3
-    ws.column_dimensions[radio_column_char].width = 3
-
-    for m in range(len(GL.search_datas)):
-        if m < len(GL.search_datas) - 2:
-            ws.cell((m + 1),(1 + GL.xlsx_data_interval)).value = GL.search_datas[m]
-            ws.merge_cells(start_row=(m + 1),start_column=(1 + GL.xlsx_data_interval),\
-                           end_row=(m + 1),end_column=(1 + GL.xlsx_data_interval + 4))
-            ws.cell((m + 1),(1 + GL.xlsx_data_interval)).alignment = alignment
-        elif m == len(GL.search_datas) - 2:
-            for n in range(len(xlsx_title[7]["数据类别"])):
-                ws.cell((m + 1),(1 + GL.xlsx_data_interval + n)).value = list(xlsx_title[m].values())[0][n]
-                ws.cell((m + 1), (1 + GL.xlsx_data_interval + n)).alignment = alignment
-                ws.row_dimensions[(m+1)].height = 13.5
-        elif m == len(GL.search_datas) - 1:
-            for j in range(len(GL.all_tp_list)):
-                ws.cell((m+1+j),(1+GL.xlsx_data_interval)).value = GL.search_datas[m][j]
-                ws.cell((m+1+j),(1+GL.xlsx_data_interval)+1).value = len(GL.channel_info[str(j+1)][0]) + \
-                                                                     len(GL.channel_info[str(j+1)][1])
-                ws.cell((m+1+j),(1+GL.xlsx_data_interval)+2).value = len(GL.channel_info[str(j+1)][0])
-                ws.cell((m+1+j),(1+GL.xlsx_data_interval)+3).value = len(GL.channel_info[str(j+1)][1])
-                ws.cell((m+1+j),(1+GL.xlsx_data_interval)+4).value = ",".join(GL.channel_info[str(j+1)][0] + \
-                                                                              GL.channel_info[str(j+1)][1])
-                for k in range(len(xlsx_title[7]["数据类别"])):
-                    ws.cell((m+1+j),(1+GL.xlsx_data_interval)+k).alignment = alignment
-                ws.row_dimensions[(m+1+j)].height = 13.5
-    wb.save(write_xlsx_path)
-
 def data_send_thread():
     global  search_time
     while GL.send_loop_state:
@@ -666,8 +688,8 @@ def data_receiver_thread():
             data1 = data.decode("GB18030", "ignore")
             data2 = re.compile('[\\x00-\\x08\\x0b-\\x0c\\x0e-\\x1f]').sub('', data1).strip()
             data3 = "[{}]     {}\n".format(str(tt), data2)
-            print(data2)
-            add_write_data_to_txt(write_txt_path, data3)
+            # print(data2)
+            add_write_data_to_txt(case_log_txt_path, data3)
 
             if GL.start_record_maximum_state:
                 GL.record_maximum_data.append(data2)
@@ -892,8 +914,8 @@ if __name__ == "__main__":
     elif len(GL.all_sat_commd[choice_search_sat]) == 9:
         search_time = GL.all_sat_commd[choice_search_sat][7]
 
-    build_print_log_and_report_file_path()
     judge_write_file_exist()
+    build_print_log_and_report_file_path()
 
     send_ser_name,receive_ser_name = check_ports()
     send_ser = serial.Serial(send_ser_name, 9600)
