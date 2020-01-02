@@ -20,6 +20,7 @@ import os
 import random
 import threading
 import shelve
+import platform
 
 class MyGlobal():
     def __init__(self):
@@ -59,21 +60,32 @@ class MyGlobal():
 
 
 def check_ports():
-    send_com = ''
-    receive_com = ''
-    ser_cable_num = 5   # USB转串口线编号
-    serial_ser = {
-        "1": "FTDVKA2HA",
-        "2": "FTGDWJ64A",
-        "3": "FT9SP964A",
-        "4": "FTHB6SSTA",
-        "5": "FTDVKPRSA",
-        "6": "FTHI8UIHA",
-    }
+    global send_com,receive_com
     ports_info = []
-    send_port_desc = "USB-SERIAL CH340"
-    # receive_port_desc = "USB Serial Port"
-    receive_port_desc = serial_ser[str(ser_cable_num)]
+    if platform.system() == "Windows":
+        ser_cable_num = 5
+        serial_ser = {
+            "1": "FTDVKA2HA",
+            "2": "FTGDWJ64A",
+            "3": "FT9SP964A",
+            "4": "FTHB6SSTA",
+            "5": "FTDVKPRSA",
+            "6": "FTHI8UIHA",
+             }
+        send_port_desc = "USB-SERIAL CH340"
+        receive_port_desc = serial_ser[str(ser_cable_num)]
+    elif platform.system() == "Linux":
+        ser_cable_num = 5
+        serial_ser = {
+            "1": "FTDVKA2H",
+            "2": "FTGDWJ64",
+            "3": "FT9SP964",
+            "4": "FTHB6SST",
+            "5": "FTDVKPRS",
+            "6": "FTHI8UIH",
+            }
+        send_port_desc = "USB2.0-Serial"
+        receive_port_desc = serial_ser[str(ser_cable_num)]
     ports = list(serial.tools.list_ports.comports())
     for i in range(len(ports)):
         logging.info("可用端口:名称:{} + 描述:{} + 硬件id:{}".format(ports[i].device, ports[i].description, ports[i].hwid))
@@ -1917,6 +1929,8 @@ if __name__ == "__main__":
     # filename=r"d:\test\test.log" #有了filename参数就不会直接输出显示到控制台，而是直接写入文件
 
     # 获取串口并配置串口信息
+    send_com = ''
+    receive_com = ''
     send_ser_name,receive_ser_name = check_ports()
     send_ser = serial.Serial(send_ser_name, 9600)
     receive_ser = serial.Serial(receive_ser_name, 115200, timeout=1)
