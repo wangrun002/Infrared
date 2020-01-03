@@ -1603,7 +1603,7 @@ def data_send_thread():
                         send_numb_key_commd(send_data[i][j])
                         if j == len(send_data[i]) - 1:
                             if GL.all_test_case[choice_switch_case][0][-1] == INTERVAL_TIME[0]:
-                                send_ser.send_break(1)
+                                time.sleep(1)
                                 if GL.channel_info[5] == "1":
                                     unlock_channel()
                                 print(GL.channel_info)
