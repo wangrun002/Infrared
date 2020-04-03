@@ -1751,10 +1751,10 @@ def data_receiver_thread():
             if SWITCH_CHANNEL_KWS[3] in data2:
                 group_info_split = re.split(r"[\],]", data2)
                 for i in range(len(group_info_split)):
-                    if GROUP_INGO_KWS[0] in group_info_split[i]:  # 提取频道所属组别
+                    if GROUP_INFO_KWS[0] in group_info_split[i]:  # 提取频道所属组别
                         GL.prog_group_name = re.split(r"=", group_info_split[i])[-1]
                         GL.channel_info[12] = GL.prog_group_name
-                    if GROUP_INGO_KWS[1] in group_info_split[i]:  # 提取频道所属组别下的节目总数
+                    if GROUP_INFO_KWS[1] in group_info_split[i]:  # 提取频道所属组别下的节目总数
                         GL.prog_group_total = re.split(r"=", group_info_split[i])[-1]
 
             if SWITCH_CHANNEL_KWS[4] in data2:      # 提取切台时间
@@ -1822,7 +1822,7 @@ if __name__ == "__main__":
         "组别",
         "切台时间"]
 
-    GROUP_INGO_KWS = [
+    GROUP_INFO_KWS = [
         "Group_name",
         "Prog_total"
     ]
