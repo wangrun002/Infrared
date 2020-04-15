@@ -219,8 +219,8 @@ def get_group_all_ch_type(choice_group_ch_total_numb):
     logging.info(GL.Radio_ch_attribute)
     GL.current_stage += 1
 
-def check_epg_info_already_show():
-    while GL.ch_epg_info[-1] == '':
+def check_epg_info_already_show(): # 检查EPG信息是否已经显示
+    while GL.ch_epg_info[-1] == '':         # 假如还没有获取到当前节目的EPG信息，则需要退出等待5秒再进入
         GL.ch_epg_info = ['', '', '']
         send_commd(KEY["EXIT"])
         time.sleep(5)
@@ -330,7 +330,7 @@ def write_data_to_report():
     channel_info_title = ["频道名称", "EPG事件日期", "EPG事件时段", "EPG事件名称"]
 
     alignment = Alignment(horizontal="center", vertical="center", wrapText=True)
-    GL.interval = 1 + (len(GL.all_ch_epg_info.keys()) - 1) * 4
+    GL.interval = 1 + (len(GL.all_ch_epg_info.keys()) - 1) * len(channel_info_title)    # 根据抬头和当前已经获取到的节目个数来设置间隔
 
     if not os.path.exists(report_file_path):
         wb = Workbook()
@@ -338,16 +338,16 @@ def write_data_to_report():
         ws.title = sheet_name
         ws.column_dimensions['A'].width = 17
         ws.column_dimensions['D'].width = 17
-        for i in range(len(expect_report_title)):
+        for i in range(len(expect_report_title)):  # 写期望测试项的title信息
             ws.row_dimensions[(i + 1)].height = 13.5
             ws.cell(i + 1, 1).value = expect_report_title[i]
             ws.cell(i + 1, 1).alignment = alignment
-        for j in range(len(actual_report_title)):
+        for j in range(len(actual_report_title)):   # 写实际测试项的title信息
             # ws.row_dimensions[(j + 1)].height = 13.5
             ws.cell(j + 2, 4).value = actual_report_title[j]
             ws.cell(j + 2, 4).alignment = alignment
 
-        for k in range(len(channel_info_title)):
+        for k in range(len(channel_info_title)):    # 根据节目个数循环写EPG信息的title信息，并设置列宽
             all_column_numb = column_index_from_string("A") + k + GL.interval
             all_column_char = get_column_letter(all_column_numb)
             ws.column_dimensions[all_column_char].width = 16  # 设置列宽
@@ -364,36 +364,36 @@ def write_data_to_report():
             ws = wb.create_sheet(sheet_name)
         ws.column_dimensions['A'].width = 17
         ws.column_dimensions['D'].width = 17
-        for i in range(len(expect_report_title)):
+        for i in range(len(expect_report_title)):       # 写期望测试项的title信息
             ws.row_dimensions[(i + 1)].height = 13.5
             ws.cell(i + 1, 1).value = expect_report_title[i]
             ws.cell(i + 1, 1).alignment = alignment
-        for j in range(len(actual_report_title)):
+        for j in range(len(actual_report_title)):       # 写实际测试项的title信息
             ws.cell(j + 2, 4).value = actual_report_title[j]
             ws.cell(j + 2, 4).alignment = alignment
 
-        for k in range(len(channel_info_title)):
+        for k in range(len(channel_info_title)):        # 根据节目个数循环写EPG信息的title信息，并设置列宽
             all_column_numb = column_index_from_string("A") + k + GL.interval
             all_column_char = get_column_letter(all_column_numb)
             ws.column_dimensions[all_column_char].width = 16  # 设置列宽
             ws.cell(len(expect_report_title) + 1, GL.interval + k).value = channel_info_title[k]
             ws.cell(len(expect_report_title) + 1, GL.interval + k).alignment = alignment
 
-    for m in range(len(GL.expect_report_data)):
+    for m in range(len(GL.expect_report_data)):         # 写期望测试项的期望结果
         ws.cell(m + 1, 2).value = GL.expect_report_data[m]
         ws.cell(m + 1, 2).alignment = alignment
         if m == 0:
             ws.merge_cells(start_row=(m + 1), start_column=2, end_row=(m + 1), end_column=6)
         else:
             ws.merge_cells(start_row=(m + 1), start_column=2, end_row=(m + 1), end_column=3)
-    for n in range(len(GL.actual_report_data)):
+    for n in range(len(GL.actual_report_data)):         # 写实际测试项的测试结果
         ws.cell(n + 2, 5).value = GL.actual_report_data[n]
         ws.merge_cells(start_row=(n + 2), start_column=5, end_row=(n + 2), end_column=6)
         ws.cell(n + 2, 5).alignment = alignment
     # for x in range(len(GL.all_ch_epg_info.keys())):
     #     ch_name_key = list(GL.all_ch_epg_info.keys())[x]
     ch_name_key = list(GL.all_ch_epg_info.keys())[len(GL.all_ch_epg_info.keys()) - 1]
-    for y in range(len(GL.all_ch_epg_info[ch_name_key])):
+    for y in range(len(GL.all_ch_epg_info[ch_name_key])):       # 写每个有EPG信息节目下切换后的获取到的EPG信息
         ws.cell(len(expect_report_title) + 2 + y, GL.interval).value = ch_name_key
         ws.cell(len(expect_report_title) + 2 + y, GL.interval).alignment = alignment
         ws.row_dimensions[(len(expect_report_title) + 2 + y)].height = 13.5
