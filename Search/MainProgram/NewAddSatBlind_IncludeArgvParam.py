@@ -208,7 +208,7 @@ def check_ports():
     global send_com,receive_com
     ports_info = []
     if platform.system() == "Windows":
-        ser_cable_num = 5
+        ser_cable_num = 7
         serial_ser = {
             "1": "FTDVKA2HA",
             "2": "FTGDWJ64A",
@@ -216,11 +216,12 @@ def check_ports():
             "4": "FTHB6SSTA",
             "5": "FTDVKPRSA",
             "6": "FTHI8UIHA",
-             }
+            "7": "FTHG05TTA",
+        }
         send_port_desc = "USB-SERIAL CH340"
         receive_port_desc = serial_ser[str(ser_cable_num)]
     elif platform.system() == "Linux":
-        ser_cable_num = 5
+        ser_cable_num = 7
         serial_ser = {
             "1": "FTDVKA2H",
             "2": "FTGDWJ64",
@@ -228,7 +229,8 @@ def check_ports():
             "4": "FTHB6SST",
             "5": "FTDVKPRS",
             "6": "FTHI8UIH",
-            }
+            "7": "FTHG05TT",
+        }
         send_port_desc = "USB2.0-Serial"
         receive_port_desc = serial_ser[str(ser_cable_num)]
     ports = list(serial.tools.list_ports.comports())
@@ -407,13 +409,14 @@ def check_satellite_param():
                 GL.searched_sat_name.remove(random.choice(GL.searched_sat_name))
         while GL.sat_param_save[0] in GL.searched_sat_name:
             logging.info("sat in list")
+            logging.info("{},{}".format(GL.sat_param_save[0], GL.searched_sat_name))
             send_commd(KEY["RIGHT"])
             logging.info("{},{}".format(GL.sat_param_save[0], GL.searched_sat_name))
         # elif GL.sat_param_save[0] not in GL.searched_sat_name:
         logging.info("sat not in list")
-        send_commd(KEY["DOWN"])
         GL.searched_sat_name.append(GL.sat_param_save[0])
         logging.info("{},{}".format(GL.sat_param_save[0], GL.searched_sat_name))
+        send_commd(KEY["DOWN"])
 
     elif GL.all_sat_commd[choice_search_sat][1] == SEARCH_PREPARATORY_WORK[1]:  # normal sat search
         send_commd(KEY["DOWN"])
