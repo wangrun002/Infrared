@@ -19,9 +19,9 @@ sat_search_mode_list = [
 
                             "138_incremental_blind",            #10 累加搜索
 
-                            "y3_ch_upper_limit_blind",          #11 搜索节目达到上限,会删除所有节目,重新搜索
-                            "y3_ch_ul_later_cont_blind",        #12 搜索节目达到上限后,不删除指定卫星下的tp,继续搜索
-                            "y3_ch_ul_later_del_tp_blind",      #13 搜索节目达到上限后,删除指定卫星下的tp,继续搜索
+                            "138_ch_upper_limit_blind",          #11 搜索节目达到上限,会删除所有节目,重新搜索
+                            "138_ch_ul_later_cont_blind",        #12 搜索节目达到上限后,不删除指定卫星下的tp,继续搜索
+                            "138_ch_ul_later_del_tp_blind",      #13 搜索节目达到上限后,删除指定卫星下的tp,继续搜索
 
                             "z6_tp_upper_limit_blind",          #14 搜索tp达到上限,会恢复出厂设置,重新搜索
                             "z6_tp_ul_later_cont_blind",        #15 搜索tp达到上限后,不删除指定卫星下的tp,继续搜索
@@ -33,7 +33,7 @@ sat_search_mode_list = [
 
 read_data = []
 
-with open("new_file.py","r") as f:
+with open("new_file.py","r",encoding='UTF-8') as f:
     for line in f.readlines():
         print(line,end='')
         read_data.append(line)
@@ -44,7 +44,7 @@ def not_need_reset_factory(file_path):
         "os.system('python3 ./NewAddSatBlind_IncludeArgvParam.py %d' % (choice_sat_search_mode_numb))",
         "os.unlink(os.path.join(os.getcwd(),'NewAddSatBlind_IncludeArgvParam.py'))",
         ]
-    with open(file_path,"a+") as fo:
+    with open(file_path,"a+",encoding='UTF-8') as fo:
         for data in datas:
             fo.write('{}\n'.format(data))
 
@@ -55,7 +55,7 @@ def need_reset_factory(file_path):
         "os.system('python3 ./NewAddSatBlind_IncludeArgvParam.py %d' % (choice_sat_search_mode_numb))",
         "os.unlink(os.path.join(os.getcwd(),'NewAddSatBlind_IncludeArgvParam.py'))",
         ]
-    with open(file_path,"a+") as fo:
+    with open(file_path,"a+",encoding='UTF-8') as fo:
         for data in datas:
             fo.write('{}\n'.format(data))
 
@@ -65,7 +65,7 @@ def build_x_numb_python_file():
             if i < 10:
                 sequence_numb = "0{}".format(i)
                 python_file_path = "test_{}_{}.py".format(sequence_numb,sat_search_mode_list[i])
-                with open(python_file_path,"a+") as fo:
+                with open(python_file_path,"a+",encoding='UTF-8') as fo:
                     for j in range(len(read_data)):
                         if "choice_sat_search_mode_numb =" in read_data[j]:
                             fo.write("choice_sat_search_mode_numb = {}\n".format(i))
@@ -75,7 +75,7 @@ def build_x_numb_python_file():
             else:
                 sequence_numb = "{}".format(i)
                 python_file_path = "test_{}_{}.py".format(sequence_numb,sat_search_mode_list[i])
-                with open(python_file_path,"a+") as fo:
+                with open(python_file_path,"a+",encoding='UTF-8') as fo:
                     for j in range(len(read_data)):
                         if "choice_sat_search_mode_numb =" in read_data[j]:
                             fo.write("choice_sat_search_mode_numb = {}\n".format(i))
