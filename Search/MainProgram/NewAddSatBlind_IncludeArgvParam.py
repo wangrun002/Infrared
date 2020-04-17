@@ -266,7 +266,7 @@ def hex_strs_to_bytes(strings):
 
 def send_commd(commd):
     send_ser.write(hex_strs_to_bytes(commd))
-    # send_ser.flush()
+    send_ser.flush()
     time.sleep(1)
 
 def add_write_data_to_txt(file_path,write_data):    # 追加写文本
@@ -386,6 +386,14 @@ def enter_antenna_setting():
     send_data = GL.all_sat_commd[choice_search_sat][0]
     for i in range(len(send_data)):
         send_commd(send_data[i])
+    while GL.sat_param_save[0] == '':
+        send_data_1 = EXIT_TO_SCREEN
+        send_data_2 = GL.all_sat_commd[choice_search_sat][0]
+        logging.info("没有正确进入天线设置界面，重新进入")
+        for j in range(len(send_data_1)):
+            send_commd(send_data_1[j])
+        for k in range(len(send_data_2)):
+            send_commd(send_data_2[k])
 
 def judge_preparatory_work():
     if len(GL.all_sat_commd[choice_search_sat][1]) == 0:
@@ -411,12 +419,12 @@ def check_satellite_param():
             logging.info("sat in list")
             logging.info("{},{}".format(GL.sat_param_save[0], GL.searched_sat_name))
             send_commd(KEY["RIGHT"])
+        else:
             logging.info("{},{}".format(GL.sat_param_save[0], GL.searched_sat_name))
-        # elif GL.sat_param_save[0] not in GL.searched_sat_name:
-        logging.info("sat not in list")
-        GL.searched_sat_name.append(GL.sat_param_save[0])
-        logging.info("{},{}".format(GL.sat_param_save[0], GL.searched_sat_name))
-        send_commd(KEY["DOWN"])
+            logging.info("sat not in list")
+            GL.searched_sat_name.append(GL.sat_param_save[0])
+            logging.info("{},{}".format(GL.sat_param_save[0], GL.searched_sat_name))
+            send_commd(KEY["DOWN"])
 
     elif GL.all_sat_commd[choice_search_sat][1] == SEARCH_PREPARATORY_WORK[1]:  # normal sat search
         send_commd(KEY["DOWN"])
@@ -426,33 +434,38 @@ def check_lnb_power():
     power_off = "Polar=2"
     while GL.sat_param_save[1] != power_off:
         send_commd(KEY["LEFT"])
-    send_commd(KEY["RIGHT"])
-    send_commd(KEY["DOWN"])
+    else:
+        send_commd(KEY["RIGHT"])
+        send_commd(KEY["DOWN"])
 
 def check_lnb_fre():
     logging.debug("LBN FREQUENCY")
     logging.info(GL.sat_param_save)
     while GL.sat_param_save[2] != GL.all_sat_commd[choice_search_sat][2][2]:
         send_commd(KEY["RIGHT"])
-    send_commd(KEY["DOWN"])
+    else:
+        send_commd(KEY["DOWN"])
 
 def check_22k():
     logging.debug("22k")
     while GL.sat_param_save[3] != GL.all_sat_commd[choice_search_sat][2][3]:
         send_commd(KEY["RIGHT"])
-    send_commd(KEY["DOWN"])
+    else:
+        send_commd(KEY["DOWN"])
 
 def check_diseqc_10():
     logging.debug("Diseqc 1.0")
     while GL.sat_param_save[4] != GL.all_sat_commd[choice_search_sat][2][4]:
         send_commd(KEY["LEFT"])
-    send_commd(KEY["DOWN"])
+    else:
+        send_commd(KEY["DOWN"])
 
 def check_diseqc_11():
     logging.debug("Diseqc 1.1")
     while GL.sat_param_save[5] != GL.all_sat_commd[choice_search_sat][2][5]:
         send_commd(KEY["LEFT"])
-    send_commd(KEY["DOWN"])
+    else:
+        send_commd(KEY["DOWN"])
 
 def check_tp():
     logging.debug("TP")
@@ -460,8 +473,9 @@ def check_tp():
 
 def choice_srh_mode_and_start_srh():
     logging.debug("Choice Search Mode And Start Search")
-    for i in range(len(GL.all_sat_commd[choice_search_sat][3])):
-        send_commd(GL.all_sat_commd[choice_search_sat][3][i])
+    send_data = GL.all_sat_commd[choice_search_sat][3]
+    for i in range(len(send_data)):
+        send_commd(send_data[i])
 
 def antenna_setting():
     check_satellite_param()
@@ -531,26 +545,29 @@ def exit_antenna_setting():
 
 def other_operate_del_all_ch():
     logging.debug("Delete All Channels And Choice Searched First Sat")
+    # 执行删除所有节目的命令
+    send_data = GL.all_sat_commd[choice_search_sat][6]
+    for i in range(len(send_data)):
+        send_commd(send_data[i])
+    # 等待节目删除完成后返回成功标志
     while True:
-        if GL.del_all_ch_commd_stage == 0:
-            send_data = GL.all_sat_commd[choice_search_sat][6]
-            for i in range(len(send_data)):
-                send_commd(send_data[i])
-            GL.del_all_ch_commd_stage += 1
-        elif GL.del_all_ch_commd_stage == 1:
-            if GL.delete_ch_finish_state:
-                GL.del_all_ch_commd_stage += 1
-        elif GL.del_all_ch_commd_stage == 2:
-            send_commd(KEY["EXIT"])
-            send_commd(KEY["MENU"])
-            send_commd(KEY["OK"])
-            first_sat_name = GL.searched_sat_name[0]
-            while GL.sat_param_save[0] != first_sat_name:
-                send_commd(KEY["LEFT"])
-            for i in range(len(EXIT_TO_SCREEN)):
-                send_commd(EXIT_TO_SCREEN[i])
-            GL.searched_sat_name.clear()
+        if not GL.delete_ch_finish_state:
+            logging.info("还没有删除完成，请等待")
+            time.sleep(1)
+        elif GL.delete_ch_finish_state:
+            logging.info("删除完成")
             break
+    # 进入天线设置界面，并切换到第一个卫星
+    send_commd(KEY["EXIT"])
+    send_commd(KEY["MENU"])
+    send_commd(KEY["OK"])
+    first_sat_name = GL.searched_sat_name[0]
+    while GL.sat_param_save[0] != first_sat_name:
+        send_commd(KEY["LEFT"])
+    # 退回大画面
+    for i in range(len(EXIT_TO_SCREEN)):
+        send_commd(EXIT_TO_SCREEN[i])
+    GL.searched_sat_name.clear()
 
 def other_operate_del_specify_sat_all_tp():
     logging.debug("Delete Specify Sat TP And Choice Random Sat")
@@ -646,41 +663,55 @@ def cyclic_srh_setting():
 
 def data_send_thread():
     global  search_time
-    while GL.send_loop_state:
-        # 执行单次运行的场景
-        if len(GL.all_sat_commd[choice_search_sat]) < 9:
-            if search_time >= 1:
-                send_data = GL.all_sat_commd[choice_search_sat][0]
-                for i in range(len(send_data)):
-                    send_commd(send_data[i])
-                search_time -= 1
+    # 执行单次运行的场景
+    if len(GL.all_sat_commd[choice_search_sat]) < 9:
+        send_data = GL.all_sat_commd[choice_search_sat][0]
+        for i in range(len(send_data)):
+            send_commd(send_data[i])
+        search_time -= 1
+        if search_time < 1:
+            logging.info("单次执行恢复出厂设置等待30秒")
+            time.sleep(30)
+            GL.send_loop_state = False
+            GL.receive_loop_state = False
 
-            elif search_time < 1:
-                logging.info("单次执行恢复出厂设置等待30秒")
-                time.sleep(30)
-                GL.send_loop_state = False
-                GL.receive_loop_state = False
-
-        # 执行多次运行的场景
-        elif len(GL.all_sat_commd[choice_search_sat]) == 9:
-            if GL.switch_commd_stage == 0:
+    # 执行多次运行的场景
+    elif len(GL.all_sat_commd[choice_search_sat]) == 9:
+        if GL.all_sat_commd[choice_search_sat][-1] == NOT_UPPER_LIMIT_LATER_SEARCH_TIME:    # 普通搜索
+            while search_time > 0:
                 enter_antenna_setting()
                 judge_preparatory_work()
                 antenna_setting()
-                # choice_srh_mode_and_start_srh()
-                GL.switch_commd_stage += 1
-            elif GL.switch_commd_stage == 1:
-                if GL.search_end_state:
-                    judge_srh_limit()
-                    judge_save_ch_mode()
-                    write_data_to_excel()
-                    clear_variate()
-                    exit_antenna_setting()
-                    judge_other_operate()
-                    cyclic_srh_setting()
-                    GL.switch_commd_stage = 0
-                elif not GL.search_end_state:
-                    block_send_thread()
+                while True:
+                    if GL.search_end_state:
+                        judge_srh_limit()
+                        judge_save_ch_mode()
+                        write_data_to_excel()
+                        clear_variate()
+                        exit_antenna_setting()
+                        judge_other_operate()
+                        cyclic_srh_setting()
+                        break
+                    elif not GL.search_end_state:
+                        block_send_thread()
+
+        else:   # 上限搜索
+            while GL.all_sat_commd[choice_search_sat][-1] >= 0:
+                enter_antenna_setting()
+                judge_preparatory_work()
+                antenna_setting()
+                while True:
+                    if GL.search_end_state:
+                        judge_srh_limit()
+                        judge_save_ch_mode()
+                        write_data_to_excel()
+                        clear_variate()
+                        exit_antenna_setting()
+                        judge_other_operate()
+                        cyclic_srh_setting()
+                        break
+                    elif not GL.search_end_state:
+                        block_send_thread()
 
 def data_receiver_thread():
     global start_time,end_time
@@ -887,9 +918,9 @@ if __name__ == "__main__":
 
                             "138_incremental_blind",            #10 累加搜索
 
-                            "y3_ch_upper_limit_blind",          #11 搜索节目达到上限,会删除所有节目,重新搜索
-                            "y3_ch_ul_later_cont_blind",        #12 搜索节目达到上限后,不删除指定卫星下的tp,继续搜索
-                            "y3_ch_ul_later_del_tp_blind",      #13 搜索节目达到上限后,删除指定卫星下的tp,继续搜索
+                            "138_ch_upper_limit_blind",          #11 搜索节目达到上限,会删除所有节目,重新搜索
+                            "138_ch_ul_later_cont_blind",        #12 搜索节目达到上限后,不删除指定卫星下的tp,继续搜索
+                            "138_ch_ul_later_del_tp_blind",      #13 搜索节目达到上限后,删除指定卫星下的tp,继续搜索
 
                             "z6_tp_upper_limit_blind",          #14 搜索tp达到上限,会恢复出厂设置,重新搜索
                             "z6_tp_ul_later_cont_blind",        #15 搜索tp达到上限后,不删除指定卫星下的tp,继续搜索
