@@ -50,8 +50,7 @@ import platform
 
 class MyGlobal():
     def __init__(self):
-        self.switch_commd_stage = 0                     # 切换发送命令的阶段
-        self.del_all_ch_commd_stage = 0                 # 删除所有节目控制步骤
+        self.search_start_state = False
         self.search_end_state = False
         self.all_tp_list = []                           # 用于存放搜索到的TP
         self.channel_info = {}                          # 用于存放各个TP下搜索到的电视和广播节目名称
@@ -67,11 +66,16 @@ class MyGlobal():
         self.upper_limit_state = False                  # 用于控制搜索达到上限的时其他操作的状态变量，false不执行，true时执行
         self.random_choice_sat = []                     # 用于存放搜索达到上限后每次随机选择的卫星,然后进行删除其TP
         self.delete_ch_finish_state = False             # 用于删除所有节目成功的状态变量
-        self.save_ch_finish_state = False               # 用于保存节目结束的状态变量
+        # self.save_ch_finish_state = False               # 用于保存节目结束的状态变量
         self.record_maximum_data = []                   # 用于存放达到上限时的打印
         self.start_record_maximum_state = False         # 用于开始记录达到上限时的状态变量
         self.upper_limit_send_ok_commd_state = False    # 用于控制搜索达到上限后是否发送OK命令的状态变量
         self.delete_ch_finish_kws = "[PTD]All programs deleted successfully"  # 删除所有节目成功关键字
+        self.infrared_rsv_kws = "[PTD]Infrared_key_values:"     # 获取红外接收关键字
+        self.antenna_setting_kws = "[PTD]Antenna_setting:"      # 获取天线与卫星设置界面焦点位置关键字
+        self.antenna_setting_focus_pos = ''                     # 天线与卫星设置界面焦点位置
+        self.infrared_send_commd = []                           # 所有红外发送命令列表
+        self.infrared_rsv_commd = []                            # 所有红外接收命令列表
         self.sat_param_save = ["", "", "", "", "", ""]      # [sat_name,LNB_Power,LNB_Fre,22k,diseqc1.0,diseqc1.1]
         self.sat_param_kws =    [
                                     "[PTD]sat_name=",
@@ -267,6 +271,8 @@ def hex_strs_to_bytes(strings):
 def send_commd(commd):
     send_ser.write(hex_strs_to_bytes(commd))
     send_ser.flush()
+    logging.info("红外发送：{}".format(REVERSE_KEY[commd]))
+    GL.infrared_send_commd.append(REVERSE_KEY[commd])
     time.sleep(1)
 
 def add_write_data_to_txt(file_path,write_data):    # 追加写文本
@@ -274,8 +280,24 @@ def add_write_data_to_txt(file_path,write_data):    # 追加写文本
         fo.write(write_data)
 
 def build_print_log_and_report_file_path():
-    global sat_name, search_mode, sheet_name, write_xlsx_path, write_txt_path
+    global sat_name, search_mode, sheet_name
     global report_file_path, case_log_txt_path
+    # 设计测试数据的目录
+    parent_path = os.path.dirname(os.getcwd())
+    test_file_folder_name = "test_data"
+    test_file_directory = os.path.join(parent_path, test_file_folder_name)
+    case_log_folder_name = "print_log"
+    case_log_file_directory = os.path.join(parent_path, test_file_folder_name, case_log_folder_name)
+    report_folder_name = "report"
+    report_file_directory = os.path.join(parent_path, test_file_folder_name, report_folder_name)
+    # 检查是否存在测试数据的目录，没有就创建
+    if not os.path.exists(test_file_directory):
+        os.mkdir(test_file_directory)
+    if not os.path.exists(case_log_file_directory):
+        os.mkdir(case_log_file_directory)
+    if not os.path.exists(report_file_directory):
+        os.mkdir(report_file_directory)
+    # 设计打印和报告文件的完整路径
     sat_name = GL.all_sat_commd[choice_search_sat][2][0]
     search_mode = GL.all_sat_commd[choice_search_sat][2][-1]
     timestamp = re.sub(r'[-: ]', '_', str(datetime.now())[:19])
@@ -305,6 +327,7 @@ def judge_write_file_exist():
         os.mkdir(report_file_directory)
 
 def judge_and_wirte_data_to_xlsx():
+    GL.xlsx_data_interval = 1 + 5 * (GL.searched_time - 1)
     global xlsx_title
     alignment = Alignment(horizontal="center",vertical="center",wrapText=True)
     if not os.path.exists(report_file_path):
@@ -386,6 +409,7 @@ def enter_antenna_setting():
     send_data = GL.all_sat_commd[choice_search_sat][0]
     for i in range(len(send_data)):
         send_commd(send_data[i])
+    time.sleep(1)
     while GL.sat_param_save[0] == '':
         send_data_1 = EXIT_TO_SCREEN
         send_data_2 = GL.all_sat_commd[choice_search_sat][0]
@@ -404,78 +428,107 @@ def judge_preparatory_work():
         send_data_2 = GL.all_sat_commd[choice_search_sat][1][1]
         for i in range(len(send_data_1)):
             send_commd(send_data_1[i])
-        logging.info("等待删除卫星保存结束5秒")
-        time.sleep(5)  # 等待删除卫星保存结束
+        logging.info("等待删除卫星保存结束6秒")
+        time.sleep(6)  # 等待删除卫星保存结束
         for j in range(len(send_data_2)):
             send_commd(send_data_2[j])
 
 def check_satellite_param():
     logging.debug("Satellite")
-    if GL.all_sat_commd[choice_search_sat][1] == SEARCH_PREPARATORY_WORK[0]:  # upper limit or incremental search
-        if len(GL.searched_sat_name) == 72:  # 避免程序还没有执行结束，但是搜索的卫星个数满了导致的死循环
-            for i in range(len(GL.searched_sat_name) // 2):
-                GL.searched_sat_name.remove(random.choice(GL.searched_sat_name))
-        while GL.sat_param_save[0] in GL.searched_sat_name:
-            logging.info("sat in list")
-            logging.info("{},{}".format(GL.sat_param_save[0], GL.searched_sat_name))
-            send_commd(KEY["RIGHT"])
-        else:
-            logging.info("{},{}".format(GL.sat_param_save[0], GL.searched_sat_name))
-            logging.info("sat not in list")
-            GL.searched_sat_name.append(GL.sat_param_save[0])
-            logging.info("{},{}".format(GL.sat_param_save[0], GL.searched_sat_name))
-            send_commd(KEY["DOWN"])
-
-    elif GL.all_sat_commd[choice_search_sat][1] == SEARCH_PREPARATORY_WORK[1]:  # normal sat search
+    time.sleep(1)
+    while GL.antenna_setting_focus_pos != "Satellite":
         send_commd(KEY["DOWN"])
+    else:
+        if GL.all_sat_commd[choice_search_sat][1] == SEARCH_PREPARATORY_WORK[0]:  # upper limit or incremental search
+            if len(GL.searched_sat_name) == 72:  # 避免程序还没有执行结束，但是搜索的卫星个数满了导致的死循环
+                for i in range(len(GL.searched_sat_name) // 2):
+                    GL.searched_sat_name.remove(random.choice(GL.searched_sat_name))
+            while GL.sat_param_save[0] in GL.searched_sat_name:
+                logging.info("sat in list")
+                logging.info("{},{}".format(GL.sat_param_save[0], GL.searched_sat_name))
+                send_commd(KEY["RIGHT"])
+            else:
+                logging.info("{},{}".format(GL.sat_param_save[0], GL.searched_sat_name))
+                logging.info("sat not in list")
+                GL.searched_sat_name.append(GL.sat_param_save[0])
+                logging.info("{},{}".format(GL.sat_param_save[0], GL.searched_sat_name))
+                send_commd(KEY["DOWN"])
+
+        elif GL.all_sat_commd[choice_search_sat][1] == SEARCH_PREPARATORY_WORK[1]:  # normal sat search
+            send_commd(KEY["DOWN"])
 
 def check_lnb_power():
     logging.debug("LNB POWER")
-    power_off = "Polar=2"
-    while GL.sat_param_save[1] != power_off:
-        send_commd(KEY["LEFT"])
-    else:
-        send_commd(KEY["RIGHT"])
+    while GL.antenna_setting_focus_pos != "LNB Power":
         send_commd(KEY["DOWN"])
+    else:
+        power_off = "Polar=2"
+        while GL.sat_param_save[1] != power_off:
+            send_commd(KEY["LEFT"])
+        else:
+            send_commd(KEY["RIGHT"])
+            send_commd(KEY["DOWN"])
 
 def check_lnb_fre():
     logging.debug("LBN FREQUENCY")
-    logging.info(GL.sat_param_save)
-    while GL.sat_param_save[2] != GL.all_sat_commd[choice_search_sat][2][2]:
-        send_commd(KEY["RIGHT"])
-    else:
+    while GL.antenna_setting_focus_pos != "LNB Frequency":
         send_commd(KEY["DOWN"])
+    else:
+        logging.info(GL.sat_param_save)
+        while GL.sat_param_save[2] != GL.all_sat_commd[choice_search_sat][2][2]:
+            send_commd(KEY["RIGHT"])
+        else:
+            send_commd(KEY["DOWN"])
 
 def check_22k():
     logging.debug("22k")
-    while GL.sat_param_save[3] != GL.all_sat_commd[choice_search_sat][2][3]:
-        send_commd(KEY["RIGHT"])
-    else:
+    while GL.antenna_setting_focus_pos != "22K":
         send_commd(KEY["DOWN"])
+    else:
+        while GL.sat_param_save[3] != GL.all_sat_commd[choice_search_sat][2][3]:
+            send_commd(KEY["RIGHT"])
+        else:
+            send_commd(KEY["DOWN"])
 
 def check_diseqc_10():
     logging.debug("Diseqc 1.0")
-    while GL.sat_param_save[4] != GL.all_sat_commd[choice_search_sat][2][4]:
-        send_commd(KEY["LEFT"])
-    else:
+    while GL.antenna_setting_focus_pos != "DiSEqC 1,0":
         send_commd(KEY["DOWN"])
+    else:
+        while GL.sat_param_save[4] != GL.all_sat_commd[choice_search_sat][2][4]:
+            send_commd(KEY["LEFT"])
+        else:
+            send_commd(KEY["DOWN"])
 
 def check_diseqc_11():
     logging.debug("Diseqc 1.1")
-    while GL.sat_param_save[5] != GL.all_sat_commd[choice_search_sat][2][5]:
-        send_commd(KEY["LEFT"])
-    else:
+    while GL.antenna_setting_focus_pos != "DiSEqC 1,1":
         send_commd(KEY["DOWN"])
+    else:
+        while GL.sat_param_save[5] != GL.all_sat_commd[choice_search_sat][2][5]:
+            send_commd(KEY["LEFT"])
+        else:
+            send_commd(KEY["DOWN"])
 
 def check_tp():
     logging.debug("TP")
-    send_commd(KEY["DOWN"])
+    while GL.antenna_setting_focus_pos != "TP":
+        send_commd(KEY["DOWN"])
+    else:
+        send_commd(KEY["DOWN"])
 
 def choice_srh_mode_and_start_srh():
     logging.debug("Choice Search Mode And Start Search")
-    send_data = GL.all_sat_commd[choice_search_sat][3]
-    for i in range(len(send_data)):
-        send_commd(send_data[i])
+    while GL.antenna_setting_focus_pos != "Start Search":
+        send_commd(KEY["DOWN"])
+    else:
+        send_data = GL.all_sat_commd[choice_search_sat][3]
+        for i in range(len(send_data)):
+            send_commd(send_data[i])
+        time.sleep(1)
+        while not GL.search_start_state:
+            send_commd(KEY["OK"])
+            time.sleep(1)
 
 def antenna_setting():
     check_satellite_param()
@@ -519,6 +572,8 @@ def judge_save_ch_mode():
 
 def write_data_to_excel():
     logging.debug("Write data to Excel")
+    logging.info("保存节目后等待保存TP和保存节目的打印5秒")
+    time.sleep(5)
     GL.search_datas[0] = sheet_name
     GL.search_datas[2] = len(GL.all_tp_list)
     GL.search_datas[3] = "{}/{}".format(GL.tv_radio_tp_count[0], GL.tv_radio_tp_count[1])
@@ -550,11 +605,9 @@ def other_operate_del_all_ch():
     for i in range(len(send_data)):
         send_commd(send_data[i])
     # 等待节目删除完成后返回成功标志
+    logging.info("等待所有节目删除完成")
     while True:
-        if not GL.delete_ch_finish_state:
-            logging.info("还没有删除完成，请等待")
-            time.sleep(1)
-        elif GL.delete_ch_finish_state:
+        if GL.delete_ch_finish_state:
             logging.info("删除完成")
             break
     # 进入天线设置界面，并切换到第一个卫星
@@ -600,7 +653,7 @@ def judge_other_operate():
             logging.debug("Exist Other Operate But Not Upper Limit")
         elif GL.upper_limit_state:
             if GL.all_sat_commd[choice_search_sat][8] < 0:  # 搜索的次数到最后一次时不再进行额外的操作
-                GL.switch_commd_stage += 1
+                logging.info("搜索的次数到最后一次时不再进行额外的操作")
             else:
                 if GL.all_sat_commd[choice_search_sat][6] == RESET_FACTORY:
                     logging.debug("Reset Factory")
@@ -624,14 +677,13 @@ def cyclic_srh_setting():
     global search_time
     logging.debug("Cyclic Search Setting")
     if GL.all_sat_commd[choice_search_sat][8] == NOT_UPPER_LIMIT_LATER_SEARCH_TIME:
-        GL.switch_commd_stage = 0
         GL.upper_limit_state = False  # 恢复默认状态
         GL.sat_param_save = ["", "", "", "", "", ""]  # 获取卫星的参数保存数据恢复默认状态
         GL.delete_ch_finish_state = False  # 删除所有节目成功状态恢复默认
-        GL.save_ch_finish_state = False  # 保存节目成功状态恢复默认
+        # GL.save_ch_finish_state = False  # 保存节目成功状态恢复默认
         GL.search_end_state = False  # 搜索结束状态恢复默认
+        GL.search_start_state = False   # 搜索开始状态恢复默认
         GL.upper_limit_send_ok_commd_state = False  # 搜索达到上限后是否发送OK命令的状态变量恢复默认
-        GL.del_all_ch_commd_stage = 0
 
         search_time -= 1
         logging.info("进入下一次循环搜索等待5秒")
@@ -643,14 +695,13 @@ def cyclic_srh_setting():
             GL.receive_loop_state = False
 
     elif GL.all_sat_commd[choice_search_sat][8] != NOT_UPPER_LIMIT_LATER_SEARCH_TIME:
-        GL.switch_commd_stage = 0
         GL.upper_limit_state = False  # 恢复默认状态
         GL.sat_param_save = ["", "", "", "", "", ""]  # 获取卫星的参数保存数据恢复默认状态
         GL.delete_ch_finish_state = False  # 删除所有节目成功状态恢复默认
-        GL.save_ch_finish_state = False  # 保存节目成功状态恢复默认
+        # GL.save_ch_finish_state = False  # 保存节目成功状态恢复默认
         GL.search_end_state = False  # 搜索结束状态恢复默认
+        GL.search_start_state = False  # 搜索开始状态恢复默认
         GL.upper_limit_send_ok_commd_state = False  # 搜索达到上限后是否发送OK命令的状态变量恢复默认
-        GL.del_all_ch_commd_stage = 0
 
         logging.info("进入下一次循环搜索等待5秒")
         time.sleep(5)
@@ -729,6 +780,18 @@ def data_receiver_thread():
                 GL.record_maximum_data.append(data2)
                 logging.debug(GL.record_maximum_data)
 
+            if GL.infrared_rsv_kws in data2:    # 红外接收打印
+                infrared_rsv_commd = re.split(":", data2)[-1]
+                GL.infrared_rsv_commd.append(infrared_rsv_commd)
+                if infrared_rsv_commd not in reverse_rsv_key.keys():
+                    logging.info("红外键值{}不在当前字典中，被其他遥控影响".format(infrared_rsv_commd))
+                else:
+                    logging.info("红外键值(发送和接受):({})--({})".format(GL.infrared_send_commd[-1], reverse_rsv_key[GL.infrared_rsv_commd[-1]]))
+                    logging.info("红外次数统计(发送和接受):{}--{}".format(len(GL.infrared_send_commd), len(GL.infrared_rsv_commd)))
+
+            if GL.antenna_setting_kws in data2:     # 天线设置界面获取焦点位置
+                GL.antenna_setting_focus_pos = re.split(":", data2)[-1]
+
             if GL.sat_param_kws[0] in data2:  # 判断卫星名称
                 GL.sat_param_save[0] = re.split("=", data2)[-1]
 
@@ -751,9 +814,10 @@ def data_receiver_thread():
                 GL.sat_param_save[5] = disqc1_1_info_split[-1].split("=")[-1]
 
             if GL.search_monitor_kws[0] in data2:  # 监控搜索起始
+                GL.search_start_state = True
                 start_time = datetime.now()
                 GL.searched_time += 1
-                GL.xlsx_data_interval = 1 + 5 * (GL.searched_time - 1)
+                # GL.xlsx_data_interval = 1 + 5 * (GL.searched_time - 1)
                 if GL.all_sat_commd[choice_search_sat][6] == NOT_OTHER_OPERATE:
                     GL.search_datas[1] = GL.searched_time
                 elif GL.all_sat_commd[choice_search_sat][6] != NOT_OTHER_OPERATE:
@@ -823,7 +887,7 @@ def data_receiver_thread():
                                                                               sum(GL.tv_radio_tp_accumulated[1]), \
                                                                               sum(GL.tv_radio_tp_accumulated[2]), \
                                                                               sum(GL.tv_radio_tp_accumulated[3])))
-                GL.save_ch_finish_state = True
+                # GL.save_ch_finish_state = True
             if GL.delete_ch_finish_kws in data2:  # 监控删除所有节目成功的关键字
                 GL.delete_ch_finish_state = True
 
@@ -833,19 +897,38 @@ if __name__ == "__main__":
     DATE_FORMAT = "%Y-%m-%d %H:%M:%S %a"  # 配置输出时间的格式
     logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
 
-    KEY = {"0": "A1 F1 22 DD 00",
-           "UP": "A1 F1 22 DD 11",
-           "DOWN": "A1 F1 22 DD 14",
-           "LEFT": "A1 F1 22 DD 12",
-           "RIGHT": "A1 F1 22 DD 13",
-           "OK": "A1 F1 22 DD 15",
-           "MENU": "A1 F1 22 DD 0C",
-           "EXIT": "A1 F1 22 DD 0D",
-           "RED": "A1 F1 22 DD 19",
-           "GREEN": "A1 F1 22 DD 1A",
-           "BLUE": "A1 F1 22 DD 1C",
-           "INFO": "A1 F1 22 DD 1F", }
-
+    KEY = {
+        "POWER": "A1 F1 22 DD 0A", "TV/R": "A1 F1 22 DD 42", "MUTE": "A1 F1 22 DD 10",
+        "1": "A1 F1 22 DD 01", "2": "A1 F1 22 DD 02", "3": "A1 F1 22 DD 03",
+        "4": "A1 F1 22 DD 04", "5": "A1 F1 22 DD 05", "6": "A1 F1 22 DD 06",
+        "7": "A1 F1 22 DD 07", "8": "A1 F1 22 DD 08", "9": "A1 F1 22 DD 09",
+        "FAV": "A1 F1 22 DD 1E", "0": "A1 F1 22 DD 00", "SAT": "A1 F1 22 DD 16",
+        "MENU": "A1 F1 22 DD 0C", "EPG": "A1 F1 22 DD 0E", "INFO": "A1 F1 22 DD 1F", "EXIT": "A1 F1 22 DD 0D",
+        "UP": "A1 F1 22 DD 11", "DOWN": "A1 F1 22 DD 14",
+        "LEFT": "A1 F1 22 DD 12", "RIGHT": "A1 F1 22 DD 13", "OK": "A1 F1 22 DD 15",
+        "P/N": "A1 F1 22 DD 0F", "SLEEP": "A1 F1 22 DD 17", "PAGE_UP": "A1 F1 22 DD 41", "PAGE_DOWN": "A1 F1 22 DD 18",
+        "RED": "A1 F1 22 DD 19", "GREEN": "A1 F1 22 DD 1A", "YELLOW": "A1 F1 22 DD 1B", "BLUE": "A1 F1 22 DD 1C",
+        "F1": "A1 F1 22 DD 46", "F2": "A1 F1 22 DD 45", "F3": "A1 F1 22 DD 44", "RECALL": "A1 F1 22 DD 43",
+        "REWIND": "A1 F1 22 DD 1D", "FF": "A1 F1 22 DD 47", "PLAY": "A1 F1 22 DD 0B", "RECORD": "A1 F1 22 DD 40",
+        "PREVIOUS": "A1 F1 22 DD 4A", "NEXT": "A1 F1 22 DD 49", "TIMESHIFT": "A1 F1 22 DD 48", "STOP": "A1 F1 22 DD 4D",
+    }
+    REVERSE_KEY = dict([val, key] for key, val in KEY.items())
+    rsv_key = {
+        "POWER": "0xbbaf", "TV/R": "0xbbbd", "MUTE": "0xbbf7",
+        "1": "0xbb7f", "2": "0xbbbf", "3": "0xbb3f",
+        "4": "0xbbdf", "5": "0xbb5f", "6": "0xbb9f",
+        "7": "0xbb1f", "8": "0xbbef", "9": "0xbb6f",
+        "FAV": "0xbb87", "0": "0xbbff", "SAT": "0xbb97",
+        "MENU": "0xbbcf", "EPG": "0xbb8f", "INFO": "0xbb07", "EXIT": "0xbb4f",
+        "UP": "0xbb77", "DOWN": "0xbbd7",
+        "LEFT": "0xbbb7", "RIGHT": "0xbb37", "OK": "0xbb57",
+        "P/N": "0xbb0f", "SLEEP": "0xbb17", "PAGE_UP": "0xbb7d", "PAGE_DOWN": "0xbbe7",
+        "RED": "0xbb67", "GREEN": "0xbba7", "YELLOW": "0xbb27", "BLUE": "0xbbc7",
+        "F1": "0xbb9d", "F2": "0xbb5d", "F3": "0xbbdd", "RECALL": "0xbb3d",
+        "REWIND": "0xbb47", "FF": "0xbb1d", "PLAY": "0xbb2f", "RECORD": "0xbbfd",
+        "PREVIOUS": "0xbbad", "NEXT": "0xbb6d", "TIMESHIFT": "0xbbed", "STOP": "0xbb4d"
+    }
+    reverse_rsv_key = dict([val, key] for key, val in rsv_key.items())
     PRESET_SAT_NAME = ['Nilesat', 'Hotbird', 'Badr 4/5/6/7 K', 'Thor 5/6/7', 'Turksat 2A/3A', 'BulgariaSat-1',
                        'Eutelsat 3B C', 'Eutelsat 4A', 'Eutelsat 9B', 'Amos 5 K', 'Astra 1E/3B', 'Arabsat 5A C',
                        'Arabsat 5A K', 'Eutelsat 33E K', 'C_Paksat 1R', 'Intelsat 12', 'Azerspace K', 'Intelsat 10',
@@ -948,7 +1031,7 @@ if __name__ == "__main__":
     elif len(GL.all_sat_commd[choice_search_sat]) == 9:
         search_time = GL.all_sat_commd[choice_search_sat][7]
 
-    judge_write_file_exist()
+    # judge_write_file_exist()
     build_print_log_and_report_file_path()
 
     send_ser_name,receive_ser_name = check_ports()
