@@ -406,18 +406,20 @@ def judge_and_wirte_data_to_xlsx():
 
 def enter_antenna_setting():
     logging.debug("Enter Antenna Setting")
-    send_data = GL.all_sat_commd[choice_search_sat][0]
-    for i in range(len(send_data)):
-        send_commd(send_data[i])
-    time.sleep(1)
+    GL.sat_param_save[0] = ''
+    send_commd(KEY["MENU"])
+    send_commd(KEY["OK"])
+    time.sleep(1)       # 等待进入天线卫星设置界面，且获取到卫星名称和焦点位置
     while GL.sat_param_save[0] == '':
-        send_data_1 = EXIT_TO_SCREEN
-        send_data_2 = GL.all_sat_commd[choice_search_sat][0]
         logging.info("没有正确进入天线设置界面，重新进入")
-        for j in range(len(send_data_1)):
-            send_commd(send_data_1[j])
-        for k in range(len(send_data_2)):
-            send_commd(send_data_2[k])
+        send_commd(KEY["EXIT"])
+        send_commd(KEY["EXIT"])
+        send_commd(KEY["EXIT"])
+        time.sleep(0.5)
+        send_commd(KEY["MENU"])
+        send_commd(KEY["OK"])
+        time.sleep(1)
+
 
 def judge_preparatory_work():
     if len(GL.all_sat_commd[choice_search_sat][1]) == 0:
@@ -549,16 +551,22 @@ def judge_srh_limit():
     if not GL.upper_limit_state:
         logging.debug("Not Upper Limit")
     elif GL.upper_limit_state:
-        logging.debug("Upper Limit")
-        logging.debug("打印搜索达到上限是否有新增节目的记录列表:{}".format(GL.record_maximum_data))
-        for i in range(len(GL.record_maximum_data)):
-            if GL.search_monitor_kws[6] in GL.record_maximum_data[i]:  # "[PTD]TV_save="
-                GL.upper_limit_send_ok_commd_state = True
-        if GL.upper_limit_send_ok_commd_state:
-            logging.debug("搜索达到上限但是没有新增节目")
-        elif not GL.upper_limit_send_ok_commd_state:
-            logging.debug("搜索达到上限但是有新增节目")
-            send_commd(KEY["OK"])
+        if GL.all_sat_commd[choice_search_sat][8] != NOT_UPPER_LIMIT_LATER_SEARCH_TIME:     # 上限搜索
+            logging.debug("Upper Limit")
+            logging.debug("打印搜索达到上限是否有新增节目的记录列表:{}".format(GL.record_maximum_data))
+            search_time = 72
+            GL.all_sat_commd[choice_search_sat][8] -= 1
+            logging.info("搜索到上限剩余次数:{}".format(GL.all_sat_commd[choice_search_sat][8]))
+            for i in range(len(GL.record_maximum_data)):
+                if GL.search_monitor_kws[6] in GL.record_maximum_data[i]:  # "[PTD]TV_save="
+                    GL.upper_limit_send_ok_commd_state = True
+            if GL.upper_limit_send_ok_commd_state:
+                logging.debug("搜索达到上限但是没有新增节目")
+            elif not GL.upper_limit_send_ok_commd_state:
+                logging.debug("搜索达到上限但是有新增节目")
+                send_commd(KEY["OK"])
+        else:
+            logging.info("普通搜索，但是达到上限")
 
 def judge_save_ch_mode():
     logging.debug("Whether Or Not Save And End Search")
@@ -606,14 +614,30 @@ def other_operate_del_all_ch():
         send_commd(send_data[i])
     # 等待节目删除完成后返回成功标志
     logging.info("等待所有节目删除完成")
+    n = 20
     while True:
-        if GL.delete_ch_finish_state:
+        if not GL.delete_ch_finish_state:
+            logging.info("还没有删除完成，请等待")
+            time.sleep(1)
+            n -= 1
+            if n == 0:      # 假如20秒后还没有检查到删除成功的标志就重新删除
+                send_commd(KEY["EXIT"])
+                send_commd(KEY["EXIT"])
+                send_commd(KEY["EXIT"])
+                send_data = GL.all_sat_commd[choice_search_sat][6]
+                for i in range(len(send_data)):
+                    send_commd(send_data[i])
+                n = 20
+        elif GL.delete_ch_finish_state:
             logging.info("删除完成")
             break
     # 进入天线设置界面，并切换到第一个卫星
     send_commd(KEY["EXIT"])
-    send_commd(KEY["MENU"])
-    send_commd(KEY["OK"])
+    send_commd(KEY["EXIT"])
+    send_commd(KEY["EXIT"])
+    # send_commd(KEY["MENU"])
+    # send_commd(KEY["OK"])
+    enter_antenna_setting()
     first_sat_name = GL.searched_sat_name[0]
     while GL.sat_param_save[0] != first_sat_name:
         send_commd(KEY["LEFT"])
@@ -624,8 +648,9 @@ def other_operate_del_all_ch():
 
 def other_operate_del_specify_sat_all_tp():
     logging.debug("Delete Specify Sat TP And Choice Random Sat")
-    send_commd(KEY["MENU"])
-    send_commd(KEY["OK"])
+    # send_commd(KEY["MENU"])
+    # send_commd(KEY["OK"])
+    enter_antenna_setting()
     GL.random_choice_sat.append(random.choice(GL.searched_sat_name))
     while GL.sat_param_save[0] != GL.random_choice_sat[0]:
         if PRESET_SAT_NAME.index(GL.sat_param_save[0]) > PRESET_SAT_NAME.index(GL.random_choice_sat[0]):
@@ -848,9 +873,9 @@ def data_receiver_thread():
                 logging.info("搜索{}达到上限:{}".format(limit_type, data2))
                 GL.start_record_maximum_state = True
                 GL.record_maximum_data.append(data2)
-                search_time = 72
-                GL.all_sat_commd[choice_search_sat][8] -= 1
-                logging.info("搜索到上限剩余次数:{}".format(GL.all_sat_commd[choice_search_sat][8]))
+                # search_time = 72
+                # GL.all_sat_commd[choice_search_sat][8] -= 1
+                # logging.info("搜索到上限剩余次数:{}".format(GL.all_sat_commd[choice_search_sat][8]))
                 GL.upper_limit_state = True
 
             if GL.search_monitor_kws[3] in data2:  # 监控搜索结束
