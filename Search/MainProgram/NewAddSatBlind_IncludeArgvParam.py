@@ -524,12 +524,29 @@ def choice_srh_mode_and_start_srh():
     while GL.antenna_setting_focus_pos != "Start Search":
         send_commd(KEY["DOWN"])
     else:
-        send_data = GL.all_sat_commd[choice_search_sat][3]
-        for i in range(len(send_data)):
-            send_commd(send_data[i])
+        # send_data = GL.all_sat_commd[choice_search_sat][3]
+        if GL.all_sat_commd[choice_search_sat][3] == CHOICE_BLIND_MODE:
+            send_commd(KEY["RIGHT"])
+            send_commd(KEY["OK"])
+            send_commd(KEY["OK"])
+        elif GL.all_sat_commd[choice_search_sat][3] == CHOICE_SUPERBLIND_MODE:
+            send_commd(KEY["BLUE"])
+            send_commd(KEY["RIGHT"])
+            send_commd(KEY["OK"])
+            send_commd(KEY["OK"])
+
         time.sleep(1)
         while not GL.search_start_state:
-            send_commd(KEY["OK"])
+            send_commd(KEY["EXIT"])
+            if GL.all_sat_commd[choice_search_sat][3] == CHOICE_BLIND_MODE:
+                send_commd(KEY["RIGHT"])
+                send_commd(KEY["OK"])
+                send_commd(KEY["OK"])
+            elif GL.all_sat_commd[choice_search_sat][3] == CHOICE_SUPERBLIND_MODE:
+                send_commd(KEY["BLUE"])
+                send_commd(KEY["RIGHT"])
+                send_commd(KEY["OK"])
+                send_commd(KEY["OK"])
             time.sleep(1)
 
 def antenna_setting():
@@ -551,7 +568,9 @@ def judge_srh_limit():
     if not GL.upper_limit_state:
         logging.debug("Not Upper Limit")
     elif GL.upper_limit_state:
-        if GL.all_sat_commd[choice_search_sat][8] != NOT_UPPER_LIMIT_LATER_SEARCH_TIME:     # 上限搜索
+        if GL.all_sat_commd[choice_search_sat][8] == NOT_UPPER_LIMIT_LATER_SEARCH_TIME:     # 普通搜索
+            logging.info("普通搜索，但是达到上限")
+        else:   # 上限搜索
             logging.debug("Upper Limit")
             logging.debug("打印搜索达到上限是否有新增节目的记录列表:{}".format(GL.record_maximum_data))
             search_time = 72
@@ -565,8 +584,7 @@ def judge_srh_limit():
             elif not GL.upper_limit_send_ok_commd_state:
                 logging.debug("搜索达到上限但是有新增节目")
                 send_commd(KEY["OK"])
-        else:
-            logging.info("普通搜索，但是达到上限")
+
 
 def judge_save_ch_mode():
     logging.debug("Whether Or Not Save And End Search")
@@ -967,14 +985,14 @@ if __name__ == "__main__":
                        'SES 4 K', 'Intelsat 905 C', 'AlComSat 1', 'Intelsat 907 C', 'Intelsat 907 K', 'Hispasat 4/5/6',
                        'Intelsat 35e', 'Intelsat 707 K', 'Intelsat 21 K', 'Amazonas 2/3 K', 'Asiasat 7 C', 'Chinas6b_C']
 
-    NORMAL_SEARCH_TIMES = 5  # 10 普通盲扫次数
-    SUPER_SEARCH_TIMES = 5  # 10 超级盲扫次数
+    NORMAL_SEARCH_TIMES = 10  # 10 普通盲扫次数
+    SUPER_SEARCH_TIMES = 10  # 10 超级盲扫次数
     INCREMENTAL_SEARCH_TIMES = 15  # 15 累加搜索次数
     UPPER_LIMIT_SEARCH_TIMES = 72  # 72 上限搜索初始次数
     UPPER_LIMIT_CYCLE_TIMES = 5  # 5  上限搜索循环次数
     UPPER_LIMIT_LATER_SEARCH_TIMES = 20  # 20 上限搜索后其他情况执行测试
     ONLY_EXECUTE_ONE_TIME = 1  # 单独场景只执行一次
-    NOT_UPPER_LIMIT_LATER_SEARCH_TIME = 0
+    NOT_UPPER_LIMIT_LATER_SEARCH_TIME = "Normal_search"
 
     ENTER_ANTENNA_SETTING = [KEY["MENU"], KEY["OK"]]
     DELETE_ALL_SAT = [KEY["RED"], KEY["0"], KEY["RED"], KEY["OK"]]
