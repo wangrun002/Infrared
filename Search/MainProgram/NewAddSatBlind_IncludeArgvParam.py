@@ -210,6 +210,7 @@ class MyGlobal():
 
 def check_ports():
     global send_com,receive_com
+    send_com, receive_com = '', ''
     ports_info = []
     if platform.system() == "Windows":
         ser_cable_num = 7
@@ -392,13 +393,23 @@ def judge_and_wirte_data_to_xlsx():
                 ws.row_dimensions[(m+1)].height = 13.5
         elif m == len(GL.search_datas) - 1:
             for j in range(len(GL.all_tp_list)):
-                ws.cell((m+1+j),(1+GL.xlsx_data_interval)).value = GL.search_datas[m][j]
-                ws.cell((m+1+j),(1+GL.xlsx_data_interval)+1).value = len(GL.channel_info[str(j+1)][0]) + \
-                                                                     len(GL.channel_info[str(j+1)][1])
-                ws.cell((m+1+j),(1+GL.xlsx_data_interval)+2).value = len(GL.channel_info[str(j+1)][0])
-                ws.cell((m+1+j),(1+GL.xlsx_data_interval)+3).value = len(GL.channel_info[str(j+1)][1])
-                ws.cell((m+1+j),(1+GL.xlsx_data_interval)+4).value = ",".join(GL.channel_info[str(j+1)][0] + \
-                                                                              GL.channel_info[str(j+1)][1])
+                ws.cell((m + 1 + j), (1 + GL.xlsx_data_interval)).value = GL.search_datas[m][j]
+                # ws.cell((m+1+j),(1+GL.xlsx_data_interval)+1).value = len(GL.channel_info[str(j+1)][0]) + \
+                #                                                      len(GL.channel_info[str(j+1)][1])
+                # ws.cell((m+1+j),(1+GL.xlsx_data_interval)+2).value = len(GL.channel_info[str(j+1)][0])
+                # ws.cell((m+1+j),(1+GL.xlsx_data_interval)+3).value = len(GL.channel_info[str(j+1)][1])
+                # ws.cell((m+1+j),(1+GL.xlsx_data_interval)+4).value = ",".join(GL.channel_info[str(j+1)][0] + \
+                #                                                               GL.channel_info[str(j+1)][1])
+
+                ws.cell((m + 1 + j), (1 + GL.xlsx_data_interval) + 1).value = len(
+                    GL.channel_info[GL.search_datas[m][j]][0]) + len(GL.channel_info[GL.search_datas[m][j]][1])
+                ws.cell((m + 1 + j), (1 + GL.xlsx_data_interval) + 2).value = len(
+                    GL.channel_info[GL.search_datas[m][j]][0])
+                ws.cell((m + 1 + j), (1 + GL.xlsx_data_interval) + 3).value = len(
+                    GL.channel_info[GL.search_datas[m][j]][1])
+                ws.cell((m + 1 + j), (1 + GL.xlsx_data_interval) + 4).value = ",".join(
+                    GL.channel_info[GL.search_datas[m][j]][0] + GL.channel_info[GL.search_datas[m][j]][1])
+
                 for k in range(len(xlsx_title[7]["数据类别"])):
                     ws.cell((m+1+j),(1+GL.xlsx_data_interval)+k).alignment = alignment
                 ws.row_dimensions[(m+1+j)].height = 13.5
@@ -873,17 +884,20 @@ def data_receiver_thread():
                 polar = fre_symb_info_split[3].split("=")[-1].strip()
                 tp = "{}{}{}".format(fre, polar, symb)
                 GL.all_tp_list.append(tp)
-                GL.channel_info[str(len(GL.all_tp_list))] = [[], []]
+                # GL.channel_info[str(len(GL.all_tp_list))] = [[], []]
+                GL.channel_info[tp] = [[], []]
 
             if GL.search_monitor_kws[1] in data2:  # 监控搜索过程电视个数和名称信息
                 GL.tv_radio_tp_count[0] = re.split("-{2,}|\s{2,}", data2)[1]  # 提取电视节目数
                 tv_name = re.split("-{2,}|\s{2,}", data2)[2]  # 提取电视节目名称
-                GL.channel_info[str(len(GL.all_tp_list))][0].append('[T]{}'.format(tv_name))
+                # GL.channel_info[str(len(GL.all_tp_list))][0].append('[T]{}'.format(tv_name))
+                GL.channel_info[tp][0].append('[T]{}'.format(tv_name))
 
             if GL.search_monitor_kws[2] in data2:  # 监控搜索过程广播个数和名称信息
                 GL.tv_radio_tp_count[1] = re.split("-{2,}|\s{2,}", data2)[1]  # 提取广播节目数
                 radio_name = re.split("-{2,}|\s{2,}", data2)[2]  # 提取电视节目名称
-                GL.channel_info[str(len(GL.all_tp_list))][1].append('[R]{}'.format(radio_name))
+                # GL.channel_info[str(len(GL.all_tp_list))][1].append('[R]{}'.format(radio_name))
+                GL.channel_info[tp][1].append('[R]{}'.format(radio_name))
 
             if GL.search_monitor_kws[7] in data2 or GL.search_monitor_kws[8] in data2:  # 监控搜索达到上限
                 limit_type = re.split(r"[\s_]", data2)[1]
