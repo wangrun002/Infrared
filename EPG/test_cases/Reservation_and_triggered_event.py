@@ -11,12 +11,19 @@ import logging
 import re
 
 
+class MyGlobal(object):
+
+    def __init__(self):
+        self.add_res_event_numb = 2     # 预约事件响应次数
+        self.choice_res_ch = ''         # 预约Play或PVR事件时所选预约节目
+        self.res_event_mgr = []         # 预约事件管理
+
 
 def logging_info_setting():
     # 配置logging输出格式
     LOG_FORMAT = "%(asctime)s %(name)s %(levelname)s %(message)s"  # 配置输出日志的格式
     DATE_FORMAT = "%Y-%m-%d %H:%M:%S %a"  # 配置输出时间的格式
-    logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
+    logging.basicConfig(level=logging.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
 
 
 def hex_strs_to_bytes(strings):
@@ -97,6 +104,7 @@ def build_log_and_report_file_path():
 
 
 def clear_timer_setting_all_events():
+    # logging_info_setting()
     # 清除Timer_setting界面所有的事件
     enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
     delete_all_res_events = [KEY["BLUE"], KEY["OK"]]
@@ -104,13 +112,15 @@ def clear_timer_setting_all_events():
     # 进入定时器设置界面
     send_more_commds(enter_timer_setting_interface)
     # 对定时器设置界面的事件判断和清除
+    time.sleep(1)
     while not state["res_event_numb_state"]:
         logging.info("还没有获取到预约事件个数")
         time.sleep(1)
     else:
-        if rsv_kws["res_event_numb"] != 0:
+        logging.info(rsv_kws["res_event_numb"])
+        if rsv_kws["res_event_numb"] != '0':
             send_more_commds(delete_all_res_events)
-        elif rsv_kws["res_event_numb"] == 0:
+        elif rsv_kws["res_event_numb"] == '0':
             logging.info("没有预约事件存在")
             time.sleep(1)
         else:
@@ -145,6 +155,7 @@ def check_sys_time_mode():
 
 def get_current_system_time():
     # 获取当前系统时间
+    time.sleep(1)
     while not state["current_sys_time_state"]:
         logging.info("还没有获取到系统时间信息")
         time.sleep(1)
@@ -189,7 +200,7 @@ def choice_ch_for_res_event_type():
     send_commd(KEY["EXIT"])
     # 根据用例指定的事件类型来选择节目
     if TEST_CASE_INFO[4] == "Play":
-        choice_ch_numb.append(randint(1, int(group_dict[TEST_CASE_INFO[1]])))
+        choice_ch_numb.append(str(randint(1, int(group_dict[TEST_CASE_INFO[1]]))))
         choice_ch_cmd = change_numbs_to_commds_list(choice_ch_numb)
         for i in range(len(choice_ch_cmd)):
             for j in choice_ch_cmd[i]:
@@ -199,6 +210,7 @@ def choice_ch_for_res_event_type():
         if channel_info[3] == "1":
             send_commd(KEY["EXIT"])
         logging.info(f"所选节目频道号和所切到的节目频道号为:{choice_ch_numb}--{channel_info[0]}")
+        GL.choice_res_ch = channel_info[1]
         logging.info(channel_info)
 
 
@@ -206,12 +218,13 @@ def calculate_expected_event_start_time():
     # 计算期望的预约事件的时间
     expected_res_time = ['', '', '', '', '']        # 期望的预约事件时间信息[年，月，日，时，分]
     swap_data = [0, 0, 0, 0, 0]                     # 用于交换处理的时间信息[年，月，日，时，分]
-    time_interval = 2
+    time_interval = 3
     leap_year_month = 29
     nonleap_year_month = 28
     solar_month = [1, 3, 5, 7, 8, 10, 12]
     lunar_month = [4, 6, 9, 11]
     sys_time = rsv_kws['current_sys_time']
+    logging.info(sys_time)
     sys_time_split = re.split(r"[\s:/]", sys_time)
     sys_year = int(sys_time_split[0])
     sys_month = int(sys_time_split[1])
@@ -310,7 +323,7 @@ def create_expected_event_info():
     # 创建期望的事件信息
     expected_event_info = ['', '', '', '', '']      # [起始时间，事件响应类型，节目名称，持续时间，事件触发模式]
     if TEST_CASE_INFO[4] == "Play":
-        choice_ch_for_res_event_type()
+        # choice_ch_for_res_event_type()
         if TEST_CASE_INFO[3] == "Once":
             expected_event_full_time = calculate_expected_event_start_time()
             expected_event_info[0] = expected_event_full_time
@@ -327,24 +340,206 @@ def create_expected_event_info():
 
 
 def edit_res_event_info():
+    # 编辑预约事件信息
+    exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
+    start_date_list = []  # 用于将开始日期由字符串转化为发送指令的列表
+    start_time_list = []  # 用于将开始时间由字符串转化为发送指令的列表
+    # 进入事件编辑界面
+    send_commd(KEY["GREEN"])
     # 生成预期的预约事件
     expected_res_event_info = create_expected_event_info()
-    # 编辑预约事件信息
+    # 根据用例来编辑不同的事件
+    if TEST_CASE_INFO[4] == "Play":
+        while rsv_kws["edit_event_focus_pos"] == "":
+            time.sleep(2)       # 用于还没有进入和接收到焦点关键字时加的延时
+        # 设置Mode参数
+        logging.info("Edit Mode")
+        while rsv_kws["edit_event_focus_pos"] != "Mode":
+            send_commd(KEY["DOWN"])
+        else:
+            while rsv_kws["edit_event_mode"] != TEST_CASE_INFO[4]:
+                logging.info(f'Mode参数与预期不符:{rsv_kws["edit_event_mode"]}--{TEST_CASE_INFO[4]}')
+                send_commd(KEY["RIGHT"])
+            else:
+                logging.info(f'Mode参数与预期相符:{rsv_kws["edit_event_mode"]}--{TEST_CASE_INFO[4]}')
+                send_commd(KEY["DOWN"])
+        # 设置Type参数
+        logging.info("Edit Type")
+        while rsv_kws["edit_event_focus_pos"] != "Type":
+            send_commd(KEY["DOWN"])
+        else:
+            while rsv_kws["edit_event_type"] != TEST_CASE_INFO[3]:
+                logging.info(f'Type参数与预期不符:{rsv_kws["edit_event_type"]}--{TEST_CASE_INFO[3]}')
+                send_commd(KEY["RIGHT"])
+            else:
+                logging.info(f'Type参数与预期相符:{rsv_kws["edit_event_type"]}--{TEST_CASE_INFO[3]}')
+                send_commd(KEY["DOWN"])
+        # 设置Start_Date参数
+        logging.info("Edit Start Date")
+        while rsv_kws["edit_event_focus_pos"] != "Start Date":
+            send_commd(KEY["DOWN"])
+        else:
+            start_date_list.append(expected_res_event_info[0][:8])
+            start_date_cmd = change_numbs_to_commds_list(start_date_list)
+            for i in range(len(start_date_cmd)):
+                for j in start_date_cmd[i]:
+                    send_commd(j)
+            send_commd(KEY["DOWN"])
+        # 设置Start_Time参数
+        logging.info("Edit Start Time")
+        while rsv_kws["edit_event_focus_pos"] != "Start Time":
+            send_commd(KEY["DOWN"])
+        else:
+            start_time_list.append(expected_res_event_info[0][8:])
+            start_time_cmd = change_numbs_to_commds_list(start_time_list)
+            for i in range(len(start_time_cmd)):
+                for j in start_time_cmd[i]:
+                    send_commd(j)
+            send_commd(KEY["DOWN"])
+        # 设置Channel参数
+        logging.info("Edit Channel")
+        while rsv_kws["edit_event_focus_pos"] != "Channel":
+            send_commd(KEY["DOWN"])
+        else:
+            if rsv_kws["edit_event_ch"] == GL.choice_res_ch:
+                logging.info(f"当前节目与所选节目一致：{rsv_kws['edit_event_ch']}--{GL.choice_res_ch}")
+            else:
+                logging.info(f"警告：当前节目与所选节目不一致：{rsv_kws['edit_event_ch']}--{GL.choice_res_ch}")
+        # 退出保存
+        state["update_event_list_state"] = True
+        send_commd(KEY["EXIT"])
+        send_commd(KEY["OK"])
+        # 退回大画面
+        send_more_commds(exit_to_screen)
+
+
+def add_new_res_event_to_event_mgr_list():
+    # 添加新预约事件到事件管理列表
+    GL.res_event_mgr.extend(res_event_list)
+    logging.info(type(GL.res_event_mgr))
+    logging.info(GL.res_event_mgr)
+    state["update_event_list_state"] = False
 
 
 def add_res_event():
     # 新增预约事件
-    # 进入Timer_Setting界面
     enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
+    # 进入Timer_Setting界面
     send_more_commds(enter_timer_setting_interface)
     # 获取当前系统时间
     get_current_system_time()
-
     # 进入事件编辑界面，设置预约事件参数
-    send_commd(KEY["GREEN"])
+    edit_res_event_info()
+    # 添加新预约事件到事件管理列表
+    add_new_res_event_to_event_mgr_list()
+
+
+def goto_specified_interface_wait_for_event_triggered():
+    logging.info("goto_specified_interface_wait_for_event_triggered")
+    exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
+    # 切到指定界面
+    if TEST_CASE_INFO[5] == "Screen_diff_ch":
+        send_more_commds(exit_to_screen)
+        # 且到不同的频道等待
+        send_commd(KEY["UP"])
+        if channel_info[3] == "1":
+            send_commd(KEY["EXIT"])
+    # 等待事件响应
+    while not state["res_event_triggered_state"]:
+        logging.info("事件还没有触发，等待响应")
+        time.sleep(10)
+    else:
+        logging.info(type(current_triggered_event_info))
+        logging.info(type(GL.res_event_mgr))
+        if list(current_triggered_event_info) in GL.res_event_mgr:
+            logging.info("当前触发事件在事件列表中")
+            state["res_event_triggered_state"] = False
+        elif list(current_triggered_event_info) not in GL.res_event_mgr:
+            logging.info(f"警告：当前触发事件不在事件列表中，{GL.res_event_mgr}-{current_triggered_event_info}")
+
+
+def res_event_triggered_and_choice_jump_type():
+    unlock_cmd = [KEY["0"], KEY["0"], KEY["0"], KEY["0"]]
+    enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
+    weekly_event_mode = ["Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
+    # 事件触发后选择跳转方式
+    if TEST_CASE_INFO[6] == "Manual_jump":
+        time.sleep(5)
+        logging.info("手动选择跳转")
+        send_commd(KEY["OK"])
+        while not state["res_event_confirm_jump_state"]:
+            logging.info("请注意：没有检测到事件跳转")
+            time.sleep(1)
+        else:
+            logging.info("确认事件跳转成功")
+            time.sleep(3)
+            if channel_info[3] == 1:
+                send_more_commds(unlock_cmd)
+
+            if channel_info[1] != current_triggered_event_info[2]:
+                logging.info(f"没有正确跳转到触发事件的节目:{channel_info[1]}--{current_triggered_event_info[2]}")
+            elif channel_info[1] == current_triggered_event_info[2]:
+                logging.info(f"正确跳转到触发事件的节目:{channel_info[1]}--{current_triggered_event_info[2]}")
 
 
 
+    elif TEST_CASE_INFO[6] == "Auto_jump":
+        pass
+    elif TEST_CASE_INFO[6] == "Cancel_jump":
+        pass
+
+    logging.info("预约事件数据处理，----------------------------------------------------")
+    if current_triggered_event_info[-1] == "Once":  # Once事件触发后，需要从数据库中移除
+        logging.info(f"移除Once类型当前触发事件前的列表：{GL.res_event_mgr}")
+        GL.res_event_mgr.remove(list(current_triggered_event_info))
+        logging.info(f"移除Once类型当前触发事件后的列表：{GL.res_event_mgr}")
+
+    elif current_triggered_event_info[-1] == "Daily":
+        logging.info("Daily事件不需要从数据库中删除")
+    elif current_triggered_event_info[-1] in weekly_event_mode:
+        logging.info("Daily事件不需要从数据库中删除")
+    else:
+        pass
+
+
+def res_triggered_later_check_timer_setting_event_list():
+    # 预约事件触发后，事件列表事件检查
+    enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
+    exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
+    send_more_commds(enter_timer_setting_interface)
+    if rsv_kws["res_event_numb"] == '0':
+        if len(GL.res_event_mgr) == int(rsv_kws["res_event_numb"]):
+            logging.info("数据库与事件列表中的事件个数匹配，都为空")
+        else:
+            logging.info(f"警告：数据库与事件列表中的事件数不匹配，{len(GL.res_event_mgr)}--{int(rsv_kws['res_event_numb'])}")
+    elif rsv_kws["res_event_numb"] != '0':
+        if len(GL.res_event_mgr) == int(rsv_kws["res_event_numb"]):
+            logging.info("数据库与事件列表中的事件个数匹配，再检查事件信息是否匹配")
+            if GL.res_event_mgr == list(res_event_list):
+                logging.info(f"数据库与事件列表中的事件信息一致，{GL.res_event_mgr}--{list(res_event_list)}")
+            else:
+                logging.info(f"警告：数据库与事件列表中的事件信息不一致，{GL.res_event_mgr}--{list(res_event_list)}")
+        else:
+            logging.info("数据库与事件列表中的事件个数不匹配，请检查事件信息")
+            logging.info(f"警告：数据库与事件列表中的事件个数不一致，{GL.res_event_mgr}--{list(res_event_list)}")
+    send_more_commds(exit_to_screen)
+
+
+def before_cycle_test_clear_data_and_state():
+    # 循环测试前，清理数据和状态变量
+    logging.info("before_cycle_test_clear_data_and_state")
+    GL.res_event_mgr.clear()
+    GL.choice_res_ch = ''
+    state["clear_variate_state"] = True
+
+    GL.add_res_event_numb -= 1
+    logging.info("循环测试，延时5秒")
+    time.sleep(5)
+    logging.info(f"剩余循环次数：{GL.add_res_event_numb}")
+
+    if GL.add_res_event_numb < 0:
+        logging.info("程序结束")
+        state["receive_loop_state"] = True  # 触发结束接收进程的状态
 
 
 def receive_serial_process(
@@ -408,7 +603,7 @@ def receive_serial_process(
         "[PTD]Start Date=",
         "[PTD]Start Time=",
         "[PTD]Duration=",
-        "[PTD]=Channel="
+        "[PTD]Channel="
     ]
 
     other_kws = [
@@ -427,6 +622,23 @@ def receive_serial_process(
             data3 = "[{}]     {}\n".format(str(tt), data2)
             print(data2)
             write_log_data_to_txt(prs_data["log_file_path"], data3)
+
+            if state["clear_variate_state"]:
+                state["sys_time_mode_state"] = False
+                state["current_sys_time_state"] = False
+                state["res_event_numb_state"] = False
+                state["res_event_triggered_state"] = False
+                state["res_event_confirm_jump_state"] = False
+                state["res_event_cancel_jump_state"] = False
+                state["rec_start_state"] = False
+                state["rec_end_state"] = False
+                state["no_storage_device_state"] = False
+                state["no_enough_space_state"] = False
+                state["update_event_list_state"] = False
+                state["clear_variate_state"] = False
+                del res_event_list[:]
+                del current_triggered_event_info[:]
+                # channel_info = ['', '', '', '', '', '', '']
 
             if other_kws[0] in data2:   # 红外接收打印
                 rsv_cmd = re.split(":", data2)[-1]
@@ -456,7 +668,11 @@ def receive_serial_process(
                 event_info = ['', '', '', '', '']
                 for info in event_split_info:
                     if "Start_time" in info:
-                        event_info[0] = re.split(r"=", info)[-1]
+                        event_start_time = re.split(r"=", info)[-1]
+                        if len(event_start_time) == 5:
+                            event_info[0] = ''.join(re.split(r":", event_start_time))
+                        elif len(event_start_time) == 16:
+                            event_info[0] = ''.join(re.split(r"[/:\s]", event_start_time))
                     if "Event_type" in info:
                         event_info[1] = re.split(r"=", info)[-1]
                     if "Ch_name" in info:
@@ -465,15 +681,20 @@ def receive_serial_process(
                         event_info[3] = re.split(r"=", info)[-1]
                     if "Event_mode" in info:
                         event_info[4] = re.split(r"=", info)[-1]
-                res_event_list.append(event_info)
+                if state["update_event_list_state"]:
+                    res_event_list.append(event_info)
 
             if res_kws[4] in data2:     # 获取预约事件跳转触发信息，以及当前响应事件的信息
-                state["res_event_triggered_state"] = False
+                state["res_event_triggered_state"] = True
                 current_event_split_info = re.split(r"d:|,", data2)
                 current_event_info = ['', '', '', '', '']
                 for info in current_event_split_info:
                     if "Start_time" in info:
-                        current_event_info[0] = re.split(r"=", info)[-1]
+                        current_event_start_time = re.split(r"=", info)[-1]
+                        if len(current_event_start_time) == 5:
+                            current_event_info[0] = ''.join(re.split(r":", current_event_start_time))
+                        elif len(current_event_start_time) == 16:
+                            current_event_info[0] = ''.join(re.split(r"[/:\s]", current_event_start_time))
                     if "Event_type" in info:
                         current_event_info[1] = re.split(r"=", info)[-1]
                     if "Ch_name" in info:
@@ -531,37 +752,37 @@ def receive_serial_process(
                     if group_info_kws[1] in group_info_split[i]:  # 提取频道所属组别下的节目总数
                         rsv_kws["prog_group_total"] = re.split(r"=", group_info_split[i])[-1]
 
-            if edit_event_kws[0] in data2:
+            if edit_event_kws[0] in data2:          # 提取Mode参数
                 rsv_kws["edit_event_focus_pos"] = "Mode"
                 rsv_kws["edit_event_mode"] = re.split(r"=", data2)[-1]
 
-            if edit_event_kws[1] in data2:
+            if edit_event_kws[1] in data2:          # 提取Type参数
                 rsv_kws["edit_event_focus_pos"] = "Type"
                 rsv_kws["edit_event_type"] = re.split(r"=", data2)[-1]
 
-            if edit_event_kws[2] in data2:
+            if edit_event_kws[2] in data2:          # 提取Start Date参数
                 rsv_kws["edit_event_focus_pos"] = "Start Date"
                 rsv_kws["edit_event_date"] = re.split(r"=", data2)[-1]
 
-            if edit_event_kws[3] in data2:
+            if edit_event_kws[3] in data2:          # 提取Start Time参数
                 rsv_kws["edit_event_focus_pos"] = "Start Time"
                 rsv_kws["edit_event_time"] = re.split(r"=", data2)[-1]
 
-            if edit_event_kws[4] in data2:
+            if edit_event_kws[4] in data2:          # 提取Duration参数
                 rsv_kws["edit_event_focus_pos"] = "Duration"
                 rsv_kws["edit_event_duration"] = re.split(r"=", data2)[-1]
 
-            if edit_event_kws[5] in data2:
+            if edit_event_kws[5] in data2:          # 提取Channel参数
                 rsv_kws["edit_event_focus_pos"] = "Channel"
                 rsv_kws["edit_event_ch"] = re.split(r"=", data2)[-1]
 
 
 
 
-
 if __name__ == "__main__":
-    logging_info_setting()
 
+    GL = MyGlobal()
+    logging_info_setting()
     KEY = {
         "POWER": "A1 F1 22 DD 0A", "TV/R": "A1 F1 22 DD 42", "MUTE": "A1 F1 22 DD 10",
         "1": "A1 F1 22 DD 01", "2": "A1 F1 22 DD 02", "3": "A1 F1 22 DD 03",
@@ -578,7 +799,7 @@ if __name__ == "__main__":
         "PREVIOUS": "A1 F1 22 DD 4A", "NEXT": "A1 F1 22 DD 49", "TIME_SHIFT": "A1 F1 22 DD 48", "STOP": "A1 F1 22 DD 4D"
     }
     REVERSE_KEY = dict([val, key] for key, val in KEY.items())
-    TEST_CASE_INFO = ["23", "All", "TV", "Once", "Play", "Screen"]
+    TEST_CASE_INFO = ["23", "All", "TV", "Once", "Play", "Screen_diff_ch", "Manual_jump"]
 
     file_path = build_log_and_report_file_path()
     serial_object = build_send_and_receive_serial()
@@ -598,7 +819,8 @@ if __name__ == "__main__":
         "res_event_numb_state": False, "res_event_triggered_state": False, "res_event_confirm_jump_state": False,
         "res_event_cancel_jump_state": False, "rec_start_state": False, "rec_end_state": False,
         "no_storage_device_state": False, "no_enough_space_state": False, "sys_time_mode_state": False,
-        "current_sys_time_state": False
+        "current_sys_time_state": False, "update_event_list_state": False , "clear_variate_state": False,
+        "receive_loop_state": False
     })
 
     prs_data = Manager().dict({
@@ -609,7 +831,18 @@ if __name__ == "__main__":
         prs_data, infrared_send_cmd, rsv_kws, res_event_list, state, current_triggered_event_info, channel_info))
     rsv_p.start()
 
-    clear_timer_setting_all_events()
-    check_sys_time_mode()
-    choice_ch_for_res_event_type()
-    add_res_event()
+    while GL.add_res_event_numb >= 0:
+        clear_timer_setting_all_events()
+        check_sys_time_mode()
+        choice_ch_for_res_event_type()
+        add_res_event()
+        goto_specified_interface_wait_for_event_triggered()
+        res_event_triggered_and_choice_jump_type()
+        res_triggered_later_check_timer_setting_event_list()
+        before_cycle_test_clear_data_and_state()
+
+    if state["receive_loop_state"]:
+        rsv_p.terminate()
+        logging.info('stop receive process')
+        rsv_p.join()
+
