@@ -14,7 +14,7 @@ import re
 class MyGlobal(object):
 
     def __init__(self):
-        self.add_res_event_numb = 2     # 预约事件响应次数
+        self.add_res_event_numb = 100    # 预约事件响应次数
         self.choice_res_ch = ''         # 预约Play或PVR事件时所选预约节目
         self.res_event_mgr = []         # 预约事件管理
 
@@ -537,7 +537,7 @@ def before_cycle_test_clear_data_and_state():
     time.sleep(5)
     logging.info(f"剩余循环次数：{GL.add_res_event_numb}")
 
-    if GL.add_res_event_numb < 0:
+    if GL.add_res_event_numb < 1:
         logging.info("程序结束")
         state["receive_loop_state"] = True  # 触发结束接收进程的状态
 
@@ -831,7 +831,7 @@ if __name__ == "__main__":
         prs_data, infrared_send_cmd, rsv_kws, res_event_list, state, current_triggered_event_info, channel_info))
     rsv_p.start()
 
-    while GL.add_res_event_numb >= 0:
+    while GL.add_res_event_numb > 0:
         clear_timer_setting_all_events()
         check_sys_time_mode()
         choice_ch_for_res_event_type()
