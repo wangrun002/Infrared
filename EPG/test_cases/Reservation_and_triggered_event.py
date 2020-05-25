@@ -3,6 +3,9 @@
 
 from serial_setting import *
 from multiprocessing import Process, Manager
+from openpyxl import Workbook
+from openpyxl import load_workbook
+from openpyxl.styles import Font, colors, Alignment
 from datetime import datetime
 from random import randint
 import os
@@ -14,7 +17,7 @@ import re
 class MyGlobal(object):
 
     def __init__(self):
-        self.add_res_event_numb = 100    # 预约事件响应次数
+        self.add_res_event_numb = 1    # 预约事件响应次数
         self.choice_res_ch = ''         # 预约Play或PVR事件时所选预约节目
         self.res_event_mgr = []         # 预约事件管理
 
@@ -31,8 +34,8 @@ def hex_strs_to_bytes(strings):
     return bytes.fromhex(strings)
 
 
-def write_log_data_to_txt(file_path, write_data):
-    with open(file_path, "a+", encoding="utf-8") as fo:
+def write_log_data_to_txt(path, write_data):
+    with open(path, "a+", encoding="utf-8") as fo:
         fo.write(write_data)
 
 
@@ -131,7 +134,7 @@ def clear_timer_setting_all_events():
 
 
 def check_sys_time_mode():
-    # 检测系统事件模式
+    # 检测系统时间模式
     enter_time_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["OK"]]
     change_sys_time_mode = [KEY["RIGHT"], KEY["EXIT"], KEY["OK"]]
     exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
@@ -281,7 +284,6 @@ def calculate_expected_event_start_time():
                     expected_res_time[2] = "{0:02d}".format(swap_data[2] - nonleap_year_month)
                     expected_res_time[1] = "{0:02d}".format(sys_month + 1)
                     expected_res_time[0] = "{0:02d}".format(sys_year)
-
     elif sys_month in solar_month:
         logging.info("当前月份为大月，大月有31天")
         if swap_data[2] <= 31:
@@ -297,7 +299,6 @@ def calculate_expected_event_start_time():
             elif swap_data[1] > 12:
                 expected_res_time[1] = "{0:02d}".format(swap_data[1] - 12)
                 expected_res_time[0] = "{0:02d}".format(sys_year + 1)
-
     elif sys_month in lunar_month:
         logging.info("当前月份为小月，小月有30天")
         if swap_data[2] <= 30:
@@ -481,8 +482,6 @@ def res_event_triggered_and_choice_jump_type():
             elif channel_info[1] == current_triggered_event_info[2]:
                 logging.info(f"正确跳转到触发事件的节目:{channel_info[1]}--{current_triggered_event_info[2]}")
 
-
-
     elif TEST_CASE_INFO[6] == "Auto_jump":
         pass
     elif TEST_CASE_INFO[6] == "Cancel_jump":
@@ -524,6 +523,76 @@ def res_triggered_later_check_timer_setting_event_list():
             logging.info(f"警告：数据库与事件列表中的事件个数不一致，{GL.res_event_mgr}--{list(res_event_list)}")
     send_more_commds(exit_to_screen)
 
+
+def write_data_to_excel():
+    excel_title_0 = [
+        "报告名称",
+        "预约事件类型",
+        "预约事件模式",
+        "预约节目类型",
+        "预约等待界面",
+        "预约跳转模式"
+    ]
+    excel_title_1 = ["预约事件信息", "触发响应信息"]
+    excel_title_2 = ["起始时间", "事件类型", "节目名称", "持续时间", "事件模式", "触发时间", "是否跳转", "跳转节目", "是否录制", "录制时长"]
+
+    alignment = Alignment(horizontal="center", vertical="center", wrapText=True)
+    if not os.path.exists(file_path[1]):
+        wb = Workbook()
+        ws = wb.active
+        ws.title = file_path[2]
+        ws.column_dimensions['A'].width = 11
+        for i in range(len(excel_title_0)):
+            if i == 0:
+                ws.cell(i + 1, 1).value = excel_title_0[i]
+                ws.cell(i + 1, 1).alignment = alignment
+                ws.row_dimensions[(i + 1)].height = 27
+            else:
+                ws.cell(i + 1, 1).value = excel_title_0[i]
+                ws.cell(i + 1, 1).alignment = alignment
+        ws.column_dimensions['A'].width = 17
+        ws.cell(len(excel_title_0) + 1, 1).value = excel_title_1[0]
+        ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=1, end_row=len(excel_title_0) + 1, end_column=5)
+        # ws.cell(len(excel_title_0) + 1, 5).alignment = alignment
+        ws.cell(len(excel_title_0) + 1, 6).value = excel_title_1[1]
+        ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=6, end_row=len(excel_title_0) + 1, end_column=10)
+        # ws.cell(len(excel_title_0) + 1, 10).alignment = alignment
+        for j in range(len(excel_title_2)):
+            ws.cell(len(excel_title_0) + 2, j + 1).value = excel_title_2[j]
+            ws.cell(len(excel_title_0) + 2, j + 1).alignment = alignment
+    elif os.path.exists(file_path[1]):
+        wb = load_workbook(file_path[1])
+        sheets_name_list = wb.sheetnames
+        logging.info(sheets_name_list)
+        if file_path[2] in sheets_name_list:
+            ws = wb[file_path[2]]
+        elif file_path[2] not in sheets_name_list:
+            ws = wb.create_sheet(file_path[2])
+        for i in range(len(excel_title_0)):
+            if i == 0:
+                ws.cell(i + 1, 1).value = excel_title_0[i]
+                ws.cell(i + 1, 1).alignment = alignment
+                ws.row_dimensions[(i + 1)].height = 27
+            else:
+                ws.cell(i + 1, 1).value = excel_title_0[i]
+                ws.cell(i + 1, 1).alignment = alignment
+        ws.column_dimensions['A'].width = 17
+        ws.cell(len(excel_title_0) + 1, 1).value = excel_title_1[0]
+        # ws.cell(len(excel_title_0) + 1, 5).alignment = alignment
+        ws["A" + str(len(excel_title_0) + 1)].alignment = alignment
+        ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=1, end_row=len(excel_title_0) + 1, end_column=5)
+        # ws["A" + str(len(excel_title_0) + 1)].alignment = alignment
+        ws.cell(len(excel_title_0) + 1, 6).value = excel_title_1[1]
+        # ws.cell(len(excel_title_0) + 1, 10).alignment = alignment
+        ws["F" + str(len(excel_title_0) + 1)].alignment = alignment
+        ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=6, end_row=len(excel_title_0) + 1, end_column=10)
+        # ws["F" + str(len(excel_title_0) + 1)].alignment = alignment
+
+        for j in range(len(excel_title_2)):
+            ws.cell(len(excel_title_0) + 2, j + 1).value = excel_title_2[j]
+            ws.cell(len(excel_title_0) + 2, j + 1).alignment = alignment
+
+    wb.save(file_path[1])
 
 def before_cycle_test_clear_data_and_state():
     # 循环测试前，清理数据和状态变量
@@ -839,6 +908,7 @@ if __name__ == "__main__":
         goto_specified_interface_wait_for_event_triggered()
         res_event_triggered_and_choice_jump_type()
         res_triggered_later_check_timer_setting_event_list()
+        write_data_to_excel()
         before_cycle_test_clear_data_and_state()
 
     if state["receive_loop_state"]:
