@@ -680,7 +680,7 @@ def receive_serial_process(
     ]
 
     infrared_rsv_cmd = []
-    receive_serial = prs_data["receive_serial"]
+    receive_serial = serial.Serial(prs_data["receive_serial_name"], 115200, timeout=1)
 
     while True:
         data = receive_serial.readline()
@@ -872,9 +872,9 @@ if __name__ == "__main__":
 
     file_path = build_log_and_report_file_path()
     log_file_path = file_path[0]
-    serial_object = build_send_and_receive_serial()
-    send_serial = serial_object[0]
-    receive_ser = serial_object[1]
+    ser_name = list(check_ports())  # send_ser_name, receive_ser_name
+    send_serial = serial.Serial(ser_name[0], 9600)
+    receive_ser_name = ser_name[1]
 
     infrared_send_cmd = Manager().list([])
     res_event_list = Manager().list([])
@@ -895,7 +895,7 @@ if __name__ == "__main__":
     })
 
     prs_data = Manager().dict({
-        "log_file_path": log_file_path, "receive_serial": receive_ser,
+        "log_file_path": log_file_path, "receive_serial_name": receive_ser_name,
     })
 
     rsv_p = Process(target=receive_serial_process, args=(
