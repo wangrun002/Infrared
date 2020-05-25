@@ -871,8 +871,10 @@ if __name__ == "__main__":
     TEST_CASE_INFO = ["23", "All", "TV", "Once", "Play", "Screen_diff_ch", "Manual_jump"]
 
     file_path = build_log_and_report_file_path()
+    log_file_path = file_path[0]
     serial_object = build_send_and_receive_serial()
     send_serial = serial_object[0]
+    receive_ser = serial_object[1]
 
     infrared_send_cmd = Manager().list([])
     res_event_list = Manager().list([])
@@ -893,7 +895,7 @@ if __name__ == "__main__":
     })
 
     prs_data = Manager().dict({
-        "log_file_path": file_path[0], "receive_serial": serial_object[1],
+        "log_file_path": log_file_path, "receive_serial": receive_ser,
     })
 
     rsv_p = Process(target=receive_serial_process, args=(
