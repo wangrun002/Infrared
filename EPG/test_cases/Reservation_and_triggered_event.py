@@ -552,11 +552,15 @@ def write_data_to_excel():
                 ws.cell(i + 1, 1).alignment = alignment
         ws.column_dimensions['A'].width = 17
         ws.cell(len(excel_title_0) + 1, 1).value = excel_title_1[0]
-        ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=1, end_row=len(excel_title_0) + 1, end_column=5)
         # ws.cell(len(excel_title_0) + 1, 5).alignment = alignment
+        ws["A" + str(len(excel_title_0) + 1)].alignment = alignment
+        ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=1, end_row=len(excel_title_0) + 1, end_column=5)
+        # ws["A" + str(len(excel_title_0) + 1)].alignment = alignment
         ws.cell(len(excel_title_0) + 1, 6).value = excel_title_1[1]
-        ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=6, end_row=len(excel_title_0) + 1, end_column=10)
         # ws.cell(len(excel_title_0) + 1, 10).alignment = alignment
+        ws["F" + str(len(excel_title_0) + 1)].alignment = alignment
+        ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=6, end_row=len(excel_title_0) + 1, end_column=10)
+        # ws["F" + str(len(excel_title_0) + 1)].alignment = alignment
         for j in range(len(excel_title_2)):
             ws.cell(len(excel_title_0) + 2, j + 1).value = excel_title_2[j]
             ws.cell(len(excel_title_0) + 2, j + 1).alignment = alignment
@@ -871,7 +875,6 @@ if __name__ == "__main__":
     TEST_CASE_INFO = ["23", "All", "TV", "Once", "Play", "Screen_diff_ch", "Manual_jump"]
 
     file_path = build_log_and_report_file_path()
-    log_file_path = file_path[0]
     ser_name = list(check_ports())  # send_ser_name, receive_ser_name
     send_serial = serial.Serial(ser_name[0], 9600)
     receive_ser_name = ser_name[1]
@@ -895,7 +898,7 @@ if __name__ == "__main__":
     })
 
     prs_data = Manager().dict({
-        "log_file_path": log_file_path, "receive_serial_name": receive_ser_name,
+        "log_file_path": file_path[0], "receive_serial_name": receive_ser_name,
     })
 
     rsv_p = Process(target=receive_serial_process, args=(
