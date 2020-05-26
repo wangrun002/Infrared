@@ -5,7 +5,8 @@ from serial_setting import *
 from multiprocessing import Process, Manager
 from openpyxl import Workbook
 from openpyxl import load_workbook
-from openpyxl.styles import Font, colors, Alignment
+from openpyxl.styles import Alignment
+from openpyxl.utils import get_column_letter, column_index_from_string
 from datetime import datetime
 from random import randint
 import os
@@ -17,9 +18,13 @@ import re
 class MyGlobal(object):
 
     def __init__(self):
-        self.add_res_event_numb = 1    # 预约事件响应次数
-        self.choice_res_ch = ''         # 预约Play或PVR事件时所选预约节目
-        self.res_event_mgr = []         # 预约事件管理
+        self.add_res_event_numb = 10                     # 预约事件响应次数
+        self.choice_res_ch = ''                         # 预约Play或PVR事件时所选预约节目
+        self.res_event_mgr = []                         # 预约事件管理
+        self.report_data = [[], '', '', '', '', '']     # 报告数据汇总[[预约事件信息]，"触发时间", "是否跳转", "跳转节目", "是否录制", "录制时长"]
+        self.title_data = ['', '', '', '', '', '']      # ["报告名称", "预约事件类型", "预约事件模式", "预约节目类型", "预约等待界面", "预约跳转模式"]
+        self.start_row = 0                              # 用于每次预约事件响应后，写数据增加行数
+        self.pvr_rec_dur_time = ''                      # 用于记录PVR事件录制持续时间
 
 
 def logging_info_setting():
@@ -216,6 +221,32 @@ def choice_ch_for_res_event_type():
         GL.choice_res_ch = channel_info[1]
         logging.info(channel_info)
 
+    elif TEST_CASE_INFO[4] == "PVR":
+        choice_ch_numb.append(str(randint(1, int(group_dict[TEST_CASE_INFO[1]]))))
+        choice_ch_cmd = change_numbs_to_commds_list(choice_ch_numb)
+        for i in range(len(choice_ch_cmd)):
+            for j in choice_ch_cmd[i]:
+                send_commd(j)
+        send_commd(KEY["OK"])
+        time.sleep(2)
+        if channel_info[3] == "1":
+            send_commd(KEY["EXIT"])
+
+        while channel_info[3] != '0' and channel_info[4] != '0':
+            logging.info(f"查看所切节目信息：{channel_info}")
+            logging.info("所选节目不为免费节目，不可以进行PVR预约，继续切台")
+            send_commd(KEY["UP"])
+            time.sleep(2)
+            if channel_info[3] == "1":
+                send_commd(KEY["EXIT"])
+        else:
+            logging.info("所选节目为免费节目，可以进行PVR预约")
+            logging.info(f"所选节目频道号和所切到的节目频道号为:{choice_ch_numb}--{channel_info[0]}")
+            GL.choice_res_ch = channel_info[1]
+            logging.info(channel_info)
+
+
+
 
 def calculate_expected_event_start_time():
     # 计算期望的预约事件的时间
@@ -323,60 +354,77 @@ def calculate_expected_event_start_time():
 def create_expected_event_info():
     # 创建期望的事件信息
     expected_event_info = ['', '', '', '', '']      # [起始时间，事件响应类型，节目名称，持续时间，事件触发模式]
+    duration_time = "0001"
     if TEST_CASE_INFO[4] == "Play":
         # choice_ch_for_res_event_type()
-        if TEST_CASE_INFO[3] == "Once":
-            expected_event_full_time = calculate_expected_event_start_time()
-            expected_event_info[0] = expected_event_full_time
-            expected_event_info[1] = TEST_CASE_INFO[4]
-            expected_event_info[2] = channel_info[1]
-            expected_event_info[3] = "--:--"
-            expected_event_info[4] = TEST_CASE_INFO[3]
+        # if TEST_CASE_INFO[3] == "Once":
+        expected_event_full_time = calculate_expected_event_start_time()
+        expected_event_info[0] = expected_event_full_time
+        expected_event_info[1] = TEST_CASE_INFO[4]
+        expected_event_info[2] = channel_info[1]
+        expected_event_info[3] = "--:--"
+        expected_event_info[4] = TEST_CASE_INFO[3]
 
     elif TEST_CASE_INFO[4] == "PVR":
-        pass
+        expected_event_full_time = calculate_expected_event_start_time()
+        expected_event_info[0] = expected_event_full_time
+        expected_event_info[1] = TEST_CASE_INFO[4]
+        expected_event_info[2] = channel_info[1]
+        expected_event_info[3] = duration_time
+        expected_event_info[4] = TEST_CASE_INFO[3]
+
     elif TEST_CASE_INFO[4] == "Power Off":
-        pass
+        expected_event_full_time = calculate_expected_event_start_time()
+        expected_event_info[0] = expected_event_full_time
+        expected_event_info[1] = TEST_CASE_INFO[4]
+        expected_event_info[2] = "----"
+        expected_event_info[3] = "--:--"
+        expected_event_info[4] = TEST_CASE_INFO[3]
     return expected_event_info
 
 
 def edit_res_event_info():
     # 编辑预约事件信息
     exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
-    start_date_list = []  # 用于将开始日期由字符串转化为发送指令的列表
-    start_time_list = []  # 用于将开始时间由字符串转化为发送指令的列表
+    start_date_list = []        # 用于将开始日期由字符串转化为发送指令的列表
+    start_time_list = []        # 用于将开始时间由字符串转化为发送指令的列表
+    duration_time_list = []     # 用于将录制持续时间由字符转化为发送指令的列表
     # 进入事件编辑界面
     send_commd(KEY["GREEN"])
     # 生成预期的预约事件
     expected_res_event_info = create_expected_event_info()
     # 根据用例来编辑不同的事件
-    if TEST_CASE_INFO[4] == "Play":
-        while rsv_kws["edit_event_focus_pos"] == "":
-            time.sleep(2)       # 用于还没有进入和接收到焦点关键字时加的延时
-        # 设置Mode参数
-        logging.info("Edit Mode")
-        while rsv_kws["edit_event_focus_pos"] != "Mode":
-            send_commd(KEY["DOWN"])
+    # 检查是否进入到Timer Edit界面
+    while rsv_kws["edit_event_focus_pos"] == "":
+        time.sleep(2)       # 用于还没有进入和接收到焦点关键字时加的延时
+    # 设置Mode参数
+    logging.info("Edit Mode")
+    while rsv_kws["edit_event_focus_pos"] != "Mode":
+        send_commd(KEY["DOWN"])
+    else:
+        while rsv_kws["edit_event_mode"] != TEST_CASE_INFO[4]:
+            logging.info(f'Mode参数与预期不符:{rsv_kws["edit_event_mode"]}--{TEST_CASE_INFO[4]}')
+            send_commd(KEY["RIGHT"])
         else:
-            while rsv_kws["edit_event_mode"] != TEST_CASE_INFO[4]:
-                logging.info(f'Mode参数与预期不符:{rsv_kws["edit_event_mode"]}--{TEST_CASE_INFO[4]}')
-                send_commd(KEY["RIGHT"])
-            else:
-                logging.info(f'Mode参数与预期相符:{rsv_kws["edit_event_mode"]}--{TEST_CASE_INFO[4]}')
-                send_commd(KEY["DOWN"])
-        # 设置Type参数
-        logging.info("Edit Type")
-        while rsv_kws["edit_event_focus_pos"] != "Type":
+            logging.info(f'Mode参数与预期相符:{rsv_kws["edit_event_mode"]}--{TEST_CASE_INFO[4]}')
             send_commd(KEY["DOWN"])
+    # 设置Type参数
+    logging.info("Edit Type")
+    while rsv_kws["edit_event_focus_pos"] != "Type":
+        send_commd(KEY["DOWN"])
+    else:
+        while rsv_kws["edit_event_type"] != TEST_CASE_INFO[3]:
+            logging.info(f'Type参数与预期不符:{rsv_kws["edit_event_type"]}--{TEST_CASE_INFO[3]}')
+            send_commd(KEY["RIGHT"])
         else:
-            while rsv_kws["edit_event_type"] != TEST_CASE_INFO[3]:
-                logging.info(f'Type参数与预期不符:{rsv_kws["edit_event_type"]}--{TEST_CASE_INFO[3]}')
-                send_commd(KEY["RIGHT"])
-            else:
-                logging.info(f'Type参数与预期相符:{rsv_kws["edit_event_type"]}--{TEST_CASE_INFO[3]}')
-                send_commd(KEY["DOWN"])
-        # 设置Start_Date参数
-        logging.info("Edit Start Date")
+            logging.info(f'Type参数与预期相符:{rsv_kws["edit_event_type"]}--{TEST_CASE_INFO[3]}')
+            send_commd(KEY["DOWN"])
+    # 设置Start_Date参数
+    logging.info("Edit Start Date")
+    if TEST_CASE_INFO[3] != "Once":
+        logging.info(f"当前事件触发模式为循环模式，不需要设置Start Date：{TEST_CASE_INFO[3]}")
+    elif TEST_CASE_INFO[3] == "Once":
+        logging.info(f"当前事件触发模式为单次模式，需要设置Start Date：{TEST_CASE_INFO[3]}")
         while rsv_kws["edit_event_focus_pos"] != "Start Date":
             send_commd(KEY["DOWN"])
         else:
@@ -386,19 +434,38 @@ def edit_res_event_info():
                 for j in start_date_cmd[i]:
                     send_commd(j)
             send_commd(KEY["DOWN"])
-        # 设置Start_Time参数
-        logging.info("Edit Start Time")
-        while rsv_kws["edit_event_focus_pos"] != "Start Time":
+    # 设置Start_Time参数
+    logging.info("Edit Start Time")
+    while rsv_kws["edit_event_focus_pos"] != "Start Time":
+        send_commd(KEY["DOWN"])
+    else:
+        start_time_list.append(expected_res_event_info[0][8:])
+        start_time_cmd = change_numbs_to_commds_list(start_time_list)
+        for i in range(len(start_time_cmd)):
+            for j in start_time_cmd[i]:
+                send_commd(j)
+        send_commd(KEY["DOWN"])
+    # 设置Duration参数
+    logging.info("Edit Duration")
+    if TEST_CASE_INFO[4] != "PVR":
+        logging.info(f"当前事件类型不为PVR，不需要设置Duration：{TEST_CASE_INFO[4]}")
+    elif TEST_CASE_INFO[4] == "PVR":
+        logging.info(f"当前事件类型为PVR，需要设置Duration：{TEST_CASE_INFO[4]}")
+        while rsv_kws["edit_event_focus_pos"] != "Duration":
             send_commd(KEY["DOWN"])
         else:
-            start_time_list.append(expected_res_event_info[0][8:])
-            start_time_cmd = change_numbs_to_commds_list(start_time_list)
-            for i in range(len(start_time_cmd)):
-                for j in start_time_cmd[i]:
+            duration_time_list.append(expected_res_event_info[3])
+            duration_time_cmd = change_numbs_to_commds_list(duration_time_list)
+            for i in range(len(duration_time_cmd)):
+                for j in duration_time_cmd[i]:
                     send_commd(j)
             send_commd(KEY["DOWN"])
-        # 设置Channel参数
-        logging.info("Edit Channel")
+    # 设置Channel参数
+    logging.info("Edit Channel")
+    if TEST_CASE_INFO[4] == "Power Off":
+        logging.info(f"当前事件类型为Power Off，不需要设置Channel：{TEST_CASE_INFO[4]}")
+    elif TEST_CASE_INFO[4] != "Power Off":
+        logging.info(f"当前事件类型不为Power Off，需要设置Channel：{TEST_CASE_INFO[4]}")
         while rsv_kws["edit_event_focus_pos"] != "Channel":
             send_commd(KEY["DOWN"])
         else:
@@ -406,17 +473,19 @@ def edit_res_event_info():
                 logging.info(f"当前节目与所选节目一致：{rsv_kws['edit_event_ch']}--{GL.choice_res_ch}")
             else:
                 logging.info(f"警告：当前节目与所选节目不一致：{rsv_kws['edit_event_ch']}--{GL.choice_res_ch}")
-        # 退出保存
-        state["update_event_list_state"] = True
-        send_commd(KEY["EXIT"])
-        send_commd(KEY["OK"])
-        # 退回大画面
-        send_more_commds(exit_to_screen)
+
+    # 退出保存
+    state["update_event_list_state"] = True
+    send_commd(KEY["EXIT"])
+    send_commd(KEY["OK"])
+    # 退回大画面
+    send_more_commds(exit_to_screen)
 
 
 def add_new_res_event_to_event_mgr_list():
     # 添加新预约事件到事件管理列表
     GL.res_event_mgr.extend(res_event_list)
+    GL.report_data[0] = GL.res_event_mgr[0]
     logging.info(type(GL.res_event_mgr))
     logging.info(GL.res_event_mgr)
     state["update_event_list_state"] = False
@@ -461,31 +530,151 @@ def goto_specified_interface_wait_for_event_triggered():
 
 def res_event_triggered_and_choice_jump_type():
     unlock_cmd = [KEY["0"], KEY["0"], KEY["0"], KEY["0"]]
-    enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
     weekly_event_mode = ["Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
     # 事件触发后选择跳转方式
-    if TEST_CASE_INFO[6] == "Manual_jump":
-        time.sleep(5)
-        logging.info("手动选择跳转")
-        send_commd(KEY["OK"])
-        while not state["res_event_confirm_jump_state"]:
-            logging.info("请注意：没有检测到事件跳转")
-            time.sleep(1)
-        else:
-            logging.info("确认事件跳转成功")
-            time.sleep(3)
-            if channel_info[3] == 1:
-                send_more_commds(unlock_cmd)
+    if TEST_CASE_INFO[4] == "Play":
+        if TEST_CASE_INFO[6] == "Manual_jump":
+            time.sleep(5)
+            logging.info("选择手动跳转")
+            send_commd(KEY["OK"])
+            while not state["res_event_confirm_jump_state"]:
+                logging.info("请注意：没有检测到事件跳转")
+                time.sleep(3)
+            else:
+                logging.info("确认事件跳转成功")
+                time.sleep(3)
+                if channel_info[3] == 1:
+                    send_more_commds(unlock_cmd)
 
-            if channel_info[1] != current_triggered_event_info[2]:
-                logging.info(f"没有正确跳转到触发事件的节目:{channel_info[1]}--{current_triggered_event_info[2]}")
-            elif channel_info[1] == current_triggered_event_info[2]:
-                logging.info(f"正确跳转到触发事件的节目:{channel_info[1]}--{current_triggered_event_info[2]}")
+                if channel_info[1] != current_triggered_event_info[2]:
+                    logging.info(f"没有正确跳转到触发事件的节目:{channel_info[1]}--{current_triggered_event_info[2]}")
+                elif channel_info[1] == current_triggered_event_info[2]:
+                    logging.info(f"正确跳转到触发事件的节目:{channel_info[1]}--{current_triggered_event_info[2]}")
 
-    elif TEST_CASE_INFO[6] == "Auto_jump":
-        pass
-    elif TEST_CASE_INFO[6] == "Cancel_jump":
-        pass
+        elif TEST_CASE_INFO[6] == "Auto_jump":
+            logging.info("选择自动跳转")
+            while not state["res_event_confirm_jump_state"]:
+                logging.info("请注意：没有检测到事件跳转")
+                time.sleep(3)
+            else:
+                logging.info("确认事件跳转成功")
+                time.sleep(3)
+                if channel_info[3] == 1:
+                    send_more_commds(unlock_cmd)
+
+                if channel_info[1] != current_triggered_event_info[2]:
+                    logging.info(f"没有正确跳转到触发事件的节目:{channel_info[1]}--{current_triggered_event_info[2]}")
+                elif channel_info[1] == current_triggered_event_info[2]:
+                    logging.info(f"正确跳转到触发事件的节目:{channel_info[1]}--{current_triggered_event_info[2]}")
+
+        elif TEST_CASE_INFO[6] == "Cancel_jump":
+            time.sleep(5)
+            logging.info("选择取消跳转")
+            send_commd(KEY["LEFT"])
+            send_commd(KEY["OK"])
+            while not state["res_event_cancel_jump_state"]:
+                logging.info("请注意：没有检测到取消事件标志")
+                time.sleep(3)
+            else:
+                logging.info("事件跳转取消成功")
+                time.sleep(3)
+
+                if channel_info[1] != current_triggered_event_info[2]:
+                    logging.info(f"正确取消跳转，当前节目与触发事件的节目不一致:{channel_info[1]}--{current_triggered_event_info[2]}")
+                else:
+                    logging.info(f"警告：没有取消跳转成功，当前节目与触发事件的节目为:{channel_info[1]}--{current_triggered_event_info[2]}")
+
+    if TEST_CASE_INFO[4] == "PVR":
+        if TEST_CASE_INFO[6] == "Manual_jump":
+            time.sleep(5)
+            logging.info("选择手动跳转")
+            send_commd(KEY["OK"])
+            while not state["res_event_confirm_jump_state"]:
+                logging.info("请注意：没有检测到事件跳转")
+                time.sleep(3)
+            else:
+                logging.info("确认事件跳转成功")
+                time.sleep(1)
+                if channel_info[3] == 1:
+                    send_more_commds(unlock_cmd)
+
+                if channel_info[1] != current_triggered_event_info[2]:
+                    logging.info(f"没有正确跳转到触发事件的节目:{channel_info[1]}--{current_triggered_event_info[2]}")
+                elif channel_info[1] == current_triggered_event_info[2]:
+                    logging.info(f"正确跳转到触发事件的节目:{channel_info[1]}--{current_triggered_event_info[2]}")
+
+            while not state["rec_start_state"]:
+                logging.info("没有正确进入录制")
+                if state["no_storage_device_state"]:
+                    logging.info("警告：没有插入存储设备")
+                if state["no_enough_space_state"]:
+                    logging.info("警告：存储设备没有足够的空间")
+            else:
+                logging.info("正确进入录制")
+                rec_start_time = datetime.now()
+                n = 0
+                while not state["rec_end_state"]:
+                    if n == 0:
+                        logging.info("正在录制过程中，请等待录制结束")
+                    n += 1
+                else:
+                    logging.info("录制结束")
+                    rec_end_time = datetime.now()
+                    GL.pvr_rec_dur_time = (rec_end_time - rec_start_time).seconds
+                    logging.info(f"录制时长:{GL.pvr_rec_dur_time}")
+
+        elif TEST_CASE_INFO[6] == "Auto_jump":
+            logging.info("选择自动跳转")
+            while not state["res_event_confirm_jump_state"]:
+                logging.info("请注意：没有检测到事件跳转")
+                time.sleep(3)
+            else:
+                logging.info("确认事件跳转成功")
+                time.sleep(1)
+                if channel_info[3] == 1:
+                    send_more_commds(unlock_cmd)
+
+                if channel_info[1] != current_triggered_event_info[2]:
+                    logging.info(f"没有正确跳转到触发事件的节目:{channel_info[1]}--{current_triggered_event_info[2]}")
+                elif channel_info[1] == current_triggered_event_info[2]:
+                    logging.info(f"正确跳转到触发事件的节目:{channel_info[1]}--{current_triggered_event_info[2]}")
+
+            while not state["rec_start_state"]:
+                logging.info("没有正确进入录制")
+                if state["no_storage_device_state"]:
+                    logging.info("警告：没有插入存储设备")
+                if state["no_enough_space_state"]:
+                    logging.info("警告：存储设备没有足够的空间")
+            else:
+                logging.info("正确进入录制")
+                rec_start_time = datetime.now()
+                n = 0
+                while not state["rec_end_state"]:
+                    if n == 0:
+                        logging.info("正在录制过程中，请等待录制结束")
+                    n += 1
+                else:
+                    logging.info("录制结束")
+                    rec_end_time = datetime.now()
+                    GL.pvr_rec_dur_time = (rec_end_time - rec_start_time).seconds
+
+        elif TEST_CASE_INFO[6] == "Cancel_jump":
+            time.sleep(5)
+            logging.info("选择取消跳转和录制")
+            send_commd(KEY["LEFT"])
+            send_commd(KEY["OK"])
+            while not state["res_event_cancel_jump_state"]:
+                logging.info("请注意：没有检测到取消事件标志")
+                time.sleep(3)
+            else:
+                logging.info("事件跳转取消成功")
+                time.sleep(3)
+
+                if channel_info[1] != current_triggered_event_info[2]:
+                    logging.info(f"正确取消跳转，当前节目与触发事件的节目不一致:{channel_info[1]}--{current_triggered_event_info[2]}")
+                else:
+                    logging.info(f"警告：没有取消跳转成功，当前节目与触发事件的节目为:{channel_info[1]}--{current_triggered_event_info[2]}")
+
 
     logging.info("预约事件数据处理，----------------------------------------------------")
     if current_triggered_event_info[-1] == "Once":  # Once事件触发后，需要从数据库中移除
@@ -541,7 +730,7 @@ def write_data_to_excel():
         wb = Workbook()
         ws = wb.active
         ws.title = file_path[2]
-        ws.column_dimensions['A'].width = 11
+        ws.column_dimensions['A'].width = 17
         for i in range(len(excel_title_0)):
             if i == 0:
                 ws.cell(i + 1, 1).value = excel_title_0[i]
@@ -552,15 +741,11 @@ def write_data_to_excel():
                 ws.cell(i + 1, 1).alignment = alignment
         ws.column_dimensions['A'].width = 17
         ws.cell(len(excel_title_0) + 1, 1).value = excel_title_1[0]
-        # ws.cell(len(excel_title_0) + 1, 5).alignment = alignment
         ws["A" + str(len(excel_title_0) + 1)].alignment = alignment
         ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=1, end_row=len(excel_title_0) + 1, end_column=5)
-        # ws["A" + str(len(excel_title_0) + 1)].alignment = alignment
         ws.cell(len(excel_title_0) + 1, 6).value = excel_title_1[1]
-        # ws.cell(len(excel_title_0) + 1, 10).alignment = alignment
         ws["F" + str(len(excel_title_0) + 1)].alignment = alignment
         ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=6, end_row=len(excel_title_0) + 1, end_column=10)
-        # ws["F" + str(len(excel_title_0) + 1)].alignment = alignment
         for j in range(len(excel_title_2)):
             ws.cell(len(excel_title_0) + 2, j + 1).value = excel_title_2[j]
             ws.cell(len(excel_title_0) + 2, j + 1).alignment = alignment
@@ -582,21 +767,66 @@ def write_data_to_excel():
                 ws.cell(i + 1, 1).alignment = alignment
         ws.column_dimensions['A'].width = 17
         ws.cell(len(excel_title_0) + 1, 1).value = excel_title_1[0]
-        # ws.cell(len(excel_title_0) + 1, 5).alignment = alignment
         ws["A" + str(len(excel_title_0) + 1)].alignment = alignment
         ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=1, end_row=len(excel_title_0) + 1, end_column=5)
-        # ws["A" + str(len(excel_title_0) + 1)].alignment = alignment
         ws.cell(len(excel_title_0) + 1, 6).value = excel_title_1[1]
-        # ws.cell(len(excel_title_0) + 1, 10).alignment = alignment
         ws["F" + str(len(excel_title_0) + 1)].alignment = alignment
         ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=6, end_row=len(excel_title_0) + 1, end_column=10)
-        # ws["F" + str(len(excel_title_0) + 1)].alignment = alignment
 
         for j in range(len(excel_title_2)):
             ws.cell(len(excel_title_0) + 2, j + 1).value = excel_title_2[j]
             ws.cell(len(excel_title_0) + 2, j + 1).alignment = alignment
 
+    # 写Title数据
+    for x in range(len(GL.title_data)):
+        ws.cell(x + 1, 2).value = GL.title_data[x]
+        ws.cell(x + 1, 2).alignment = alignment
+        ws.merge_cells(start_row=x + 1, start_column=2, end_row=x + 1, end_column=10)
+
+    # 写预约事件数据
+    a_column_numb = column_index_from_string("A")
+    interval_row = len(excel_title_0) + 2
+    for d in range(len(GL.report_data)):
+        if d == 0:
+            for dd in range(len(GL.report_data[d])):
+                ws.cell(GL.start_row + interval_row + 1, dd + 1).value = GL.report_data[d][dd]
+                ws.cell(GL.start_row + interval_row + 1, dd + 1).alignment = alignment
+                ws.column_dimensions[get_column_letter(a_column_numb + dd + 1)].width = 17
+        else:
+            ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).value = GL.report_data[d]
+            ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).alignment = alignment
+            ws.column_dimensions[get_column_letter(a_column_numb + d + len(GL.report_data[0]))].width = 17
+    GL.start_row += 1
+
     wb.save(file_path[1])
+
+
+def manage_report_data_and_write_data():
+    # 整理数据以及写数据
+    GL.title_data[0] = file_path[2]
+    GL.title_data[1] = TEST_CASE_INFO[4]
+    GL.title_data[2] = TEST_CASE_INFO[3]
+    GL.title_data[3] = TEST_CASE_INFO[2]
+    GL.title_data[4] = TEST_CASE_INFO[5]
+    GL.title_data[5] = TEST_CASE_INFO[6]
+
+    if TEST_CASE_INFO[4] == "Play":
+        GL.report_data[1] = list(res_event_list)[0][0]
+        GL.report_data[2] = TEST_CASE_INFO[6]
+        GL.report_data[3] = channel_info[1]
+        GL.report_data[4] = TEST_CASE_INFO[4]
+        GL.report_data[5] = "----"
+    elif TEST_CASE_INFO[4] == "PVR":
+        GL.report_data[1] = list(res_event_list)[0][0]
+        GL.report_data[2] = TEST_CASE_INFO[6]
+        GL.report_data[3] = channel_info[1]
+        GL.report_data[4] = TEST_CASE_INFO[4]
+        GL.report_data[5] = str(GL.pvr_rec_dur_time) + 's'
+
+    logging.info(GL.title_data)
+    logging.info(GL.report_data)
+    time.sleep(2)
+
 
 def before_cycle_test_clear_data_and_state():
     # 循环测试前，清理数据和状态变量
@@ -631,7 +861,7 @@ def receive_serial_process(
         "RED": "0xbb67", "GREEN": "0xbba7", "YELLOW": "0xbb27", "BLUE": "0xbbc7",
         "F1": "0xbb9d", "F2": "0xbb5d", "F3": "0xbbdd", "RECALL": "0xbb3d",
         "REWIND": "0xbb47", "FF": "0xbb1d", "PLAY": "0xbb2f", "RECORD": "0xbbfd",
-        "PREVIOUS": "0xbbad", "NEXT": "0xbb6d", "TIMESHIFT": "0xbbed", "STOP": "0xbb4d"
+        "PREVIOUS": "0xbbad", "NEXT": "0xbb6d", "TIME_SHIFT": "0xbbed", "STOP": "0xbb4d"
     }
     reverse_rsv_key = dict([val, key] for key, val in rsv_key.items())
 
@@ -850,8 +1080,6 @@ def receive_serial_process(
                 rsv_kws["edit_event_ch"] = re.split(r"=", data2)[-1]
 
 
-
-
 if __name__ == "__main__":
 
     GL = MyGlobal()
@@ -872,7 +1100,7 @@ if __name__ == "__main__":
         "PREVIOUS": "A1 F1 22 DD 4A", "NEXT": "A1 F1 22 DD 49", "TIME_SHIFT": "A1 F1 22 DD 48", "STOP": "A1 F1 22 DD 4D"
     }
     REVERSE_KEY = dict([val, key] for key, val in KEY.items())
-    TEST_CASE_INFO = ["23", "All", "TV", "Once", "Play", "Screen_diff_ch", "Manual_jump"]
+    TEST_CASE_INFO = ["23", "All", "TV", "Once", "PVR", "Screen_diff_ch", "Manual_jump"]
 
     file_path = build_log_and_report_file_path()
     ser_name = list(check_ports())  # send_ser_name, receive_ser_name
@@ -893,7 +1121,7 @@ if __name__ == "__main__":
         "res_event_numb_state": False, "res_event_triggered_state": False, "res_event_confirm_jump_state": False,
         "res_event_cancel_jump_state": False, "rec_start_state": False, "rec_end_state": False,
         "no_storage_device_state": False, "no_enough_space_state": False, "sys_time_mode_state": False,
-        "current_sys_time_state": False, "update_event_list_state": False , "clear_variate_state": False,
+        "current_sys_time_state": False, "update_event_list_state": False, "clear_variate_state": False,
         "receive_loop_state": False
     })
 
@@ -912,12 +1140,12 @@ if __name__ == "__main__":
         add_res_event()
         goto_specified_interface_wait_for_event_triggered()
         res_event_triggered_and_choice_jump_type()
-        res_triggered_later_check_timer_setting_event_list()
+        manage_report_data_and_write_data()
         write_data_to_excel()
+        res_triggered_later_check_timer_setting_event_list()
         before_cycle_test_clear_data_and_state()
 
     if state["receive_loop_state"]:
         rsv_p.terminate()
         logging.info('stop receive process')
         rsv_p.join()
-
