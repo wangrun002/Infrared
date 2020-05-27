@@ -9,6 +9,7 @@ from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter, column_index_from_string
 from datetime import datetime
 from random import randint
+import platform
 import os
 import time
 import logging
@@ -18,7 +19,7 @@ import re
 class MyGlobal(object):
 
     def __init__(self):
-        self.add_res_event_numb = 10                     # 预约事件响应次数
+        self.add_res_event_numb = 5                     # 预约事件响应次数
         self.choice_res_ch = ''                         # 预约Play或PVR事件时所选预约节目
         self.res_event_mgr = []                         # 预约事件管理
         self.report_data = [[], '', '', '', '', '']     # 报告数据汇总[[预约事件信息]，"触发时间", "是否跳转", "跳转节目", "是否录制", "录制时长"]
@@ -591,7 +592,7 @@ def res_event_triggered_and_choice_jump_type():
             send_commd(KEY["OK"])
             while not state["res_event_confirm_jump_state"]:
                 logging.info("请注意：没有检测到事件跳转")
-                time.sleep(3)
+                time.sleep(1)
             else:
                 logging.info("确认事件跳转成功")
                 time.sleep(1)
@@ -603,12 +604,16 @@ def res_event_triggered_and_choice_jump_type():
                 elif channel_info[1] == current_triggered_event_info[2]:
                     logging.info(f"正确跳转到触发事件的节目:{channel_info[1]}--{current_triggered_event_info[2]}")
 
+            logging.info("还没有正确进入录制，请稍候...")
             while not state["rec_start_state"]:
-                logging.info("没有正确进入录制")
                 if state["no_storage_device_state"]:
                     logging.info("警告：没有插入存储设备")
+                    state["receive_loop_state"] = True
+                    break
                 if state["no_enough_space_state"]:
                     logging.info("警告：存储设备没有足够的空间")
+                    state["receive_loop_state"] = True
+                    break
             else:
                 logging.info("正确进入录制")
                 rec_start_time = datetime.now()
@@ -627,7 +632,7 @@ def res_event_triggered_and_choice_jump_type():
             logging.info("选择自动跳转")
             while not state["res_event_confirm_jump_state"]:
                 logging.info("请注意：没有检测到事件跳转")
-                time.sleep(3)
+                time.sleep(1)
             else:
                 logging.info("确认事件跳转成功")
                 time.sleep(1)
@@ -639,12 +644,16 @@ def res_event_triggered_and_choice_jump_type():
                 elif channel_info[1] == current_triggered_event_info[2]:
                     logging.info(f"正确跳转到触发事件的节目:{channel_info[1]}--{current_triggered_event_info[2]}")
 
+            logging.info("还没有正确进入录制，请稍候...")
             while not state["rec_start_state"]:
-                logging.info("没有正确进入录制")
                 if state["no_storage_device_state"]:
                     logging.info("警告：没有插入存储设备")
+                    state["receive_loop_state"] = True
+                    break
                 if state["no_enough_space_state"]:
                     logging.info("警告：存储设备没有足够的空间")
+                    state["receive_loop_state"] = True
+                    break
             else:
                 logging.info("正确进入录制")
                 rec_start_time = datetime.now()
@@ -674,6 +683,37 @@ def res_event_triggered_and_choice_jump_type():
                     logging.info(f"正确取消跳转，当前节目与触发事件的节目不一致:{channel_info[1]}--{current_triggered_event_info[2]}")
                 else:
                     logging.info(f"警告：没有取消跳转成功，当前节目与触发事件的节目为:{channel_info[1]}--{current_triggered_event_info[2]}")
+
+    if TEST_CASE_INFO[4] == "Power Off":
+        if TEST_CASE_INFO[6] == "Manual_jump":
+            time.sleep(5)
+            logging.info("选择手动跳转")
+            send_commd(KEY["OK"])
+            while not state["res_event_confirm_jump_state"]:
+                logging.info("请注意：没有检测到事件跳转")
+                time.sleep(3)
+            else:
+                logging.info("确认事件跳转成功")
+                time.sleep(3)
+            while not state["power_off_state"]:
+                logging.info("还没有进入到关机状态")
+                time.sleep(1)
+            else:
+                logging.info("进入关机状态")
+                logging.info("等待5秒后，开始唤醒操作")
+                time.sleep(5)
+                logging.info("开始唤醒操作")
+                send_commd(KEY["POWER"])
+                state["control_power_on_info_rsv_state"] = True
+            while not state["switch_total_cost_state"]:
+                logging.info("还没有获取到启动成功标志，请等候")
+                time.sleep(5)
+            else:
+                logging.info("检测到启动成功标志")
+                state["control_power_on_info_rsv_state"] = False
+
+
+
 
 
     logging.info("预约事件数据处理，----------------------------------------------------")
@@ -822,6 +862,12 @@ def manage_report_data_and_write_data():
         GL.report_data[3] = channel_info[1]
         GL.report_data[4] = TEST_CASE_INFO[4]
         GL.report_data[5] = str(GL.pvr_rec_dur_time) + 's'
+    elif TEST_CASE_INFO[4] == "Power Off":
+        GL.report_data[1] = list(res_event_list)[0][0]
+        GL.report_data[2] = TEST_CASE_INFO[6]
+        GL.report_data[3] = "----"
+        GL.report_data[4] = TEST_CASE_INFO[4]
+        GL.report_data[5] = "----"
 
     logging.info(GL.title_data)
     logging.info(GL.report_data)
@@ -834,6 +880,7 @@ def before_cycle_test_clear_data_and_state():
     GL.res_event_mgr.clear()
     GL.choice_res_ch = ''
     state["clear_variate_state"] = True
+    GL.pvr_rec_dur_time = ''
 
     GL.add_res_event_numb -= 1
     logging.info("循环测试，延时5秒")
@@ -876,7 +923,9 @@ def receive_serial_process(
         "[PTD]REC_start",           # 7     录制开始
         "[PTD]REC_end",             # 8     录制结束
         "[PTD]No_storage_device",   # 9     没有存储设备
-        "[PTD]No_enough_space"      # 10    没有足够的空间
+        "[PTD]No_enough_space",     # 10    没有足够的空间
+        "[PTD]power_cut",           # 11    进入待机
+        "[PTD]:switch totle cost"   # 12    开机解码成功
     ]
 
     switch_ch_kws = [
@@ -920,7 +969,8 @@ def receive_serial_process(
         data = receive_serial.readline()
         if data:
             tt = datetime.now()
-            data1 = data.decode("GB18030", "ignore")
+            # data1 = data.decode("GB18030", "ignore")
+            data1 = data.decode("ISO-8859-1", "ignore")
             data2 = re.compile('[\\x00-\\x08\\x0b-\\x0c\\x0e-\\x1f]').sub('', data1).strip()
             data3 = "[{}]     {}\n".format(str(tt), data2)
             print(data2)
@@ -939,6 +989,9 @@ def receive_serial_process(
                 state["no_enough_space_state"] = False
                 state["update_event_list_state"] = False
                 state["clear_variate_state"] = False
+                state["power_off_state"] = False
+                state["switch_total_cost_state"] = False
+
                 del res_event_list[:]
                 del current_triggered_event_info[:]
                 # channel_info = ['', '', '', '', '', '', '']
@@ -1026,6 +1079,13 @@ def receive_serial_process(
             if res_kws[10] in data2:    # 存储设备没有足够空间的打印信息
                 state["no_enough_space_state"] = True
 
+            if res_kws[11] in data2:    # 软关机打印信息
+                state["power_off_state"] = True
+
+            if res_kws[12] in data2:    # 开机解码成功打印信息
+                if state["control_power_on_info_rsv_state"]:
+                    state["switch_total_cost_state"] =True
+
             if switch_ch_kws[0] in data2:
                 ch_info_split = re.split(r"[\],]", data2)
                 for i in range(len(ch_info_split)):
@@ -1100,7 +1160,7 @@ if __name__ == "__main__":
         "PREVIOUS": "A1 F1 22 DD 4A", "NEXT": "A1 F1 22 DD 49", "TIME_SHIFT": "A1 F1 22 DD 48", "STOP": "A1 F1 22 DD 4D"
     }
     REVERSE_KEY = dict([val, key] for key, val in KEY.items())
-    TEST_CASE_INFO = ["23", "All", "TV", "Once", "PVR", "Screen_diff_ch", "Manual_jump"]
+    TEST_CASE_INFO = ["23", "All", "TV", "Once", "Power Off", "Screen_diff_ch", "Manual_jump"]
 
     file_path = build_log_and_report_file_path()
     ser_name = list(check_ports())  # send_ser_name, receive_ser_name
@@ -1120,9 +1180,10 @@ if __name__ == "__main__":
     state = Manager().dict({
         "res_event_numb_state": False, "res_event_triggered_state": False, "res_event_confirm_jump_state": False,
         "res_event_cancel_jump_state": False, "rec_start_state": False, "rec_end_state": False,
-        "no_storage_device_state": False, "no_enough_space_state": False, "sys_time_mode_state": False,
-        "current_sys_time_state": False, "update_event_list_state": False, "clear_variate_state": False,
-        "receive_loop_state": False
+        "no_storage_device_state": False, "no_enough_space_state": False, "power_off_state": False,
+        "sys_time_mode_state": False, "current_sys_time_state": False, "update_event_list_state": False,
+        "clear_variate_state": False, "receive_loop_state": False, "control_power_on_info_rsv_state": False,
+        "switch_total_cost_state": False
     })
 
     prs_data = Manager().dict({
@@ -1132,6 +1193,13 @@ if __name__ == "__main__":
     rsv_p = Process(target=receive_serial_process, args=(
         prs_data, infrared_send_cmd, rsv_kws, res_event_list, state, current_triggered_event_info, channel_info))
     rsv_p.start()
+
+    if platform.system() == "Windows":
+        time.sleep(5)
+        logging.info("Windows系统接受端响应慢，等待5秒")
+    elif platform.system() == "Linux":
+        time.sleep(1)
+        logging.info("Linux系统接受端响应快，但是增加一个延时保护，等待1秒")
 
     while GL.add_res_event_numb > 0:
         clear_timer_setting_all_events()
