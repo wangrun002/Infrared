@@ -520,6 +520,7 @@ def goto_specified_interface_wait_for_event_triggered():
         logging.info("事件还没有触发，等待响应")
         time.sleep(10)
     else:
+        logging.info("事件已经触发，正确跳出预约跳转选择框")
         logging.info(type(current_triggered_event_info))
         logging.info(type(GL.res_event_mgr))
         if list(current_triggered_event_info) in GL.res_event_mgr:
@@ -705,16 +706,57 @@ def res_event_triggered_and_choice_jump_type():
                 logging.info("开始唤醒操作")
                 send_commd(KEY["POWER"])
                 state["control_power_on_info_rsv_state"] = True
-            while not state["switch_total_cost_state"]:
+                power_off_start_time = datetime.now()   # 用于关机计时起始时间
+            while not state["stb_already_power_on_state"]:
                 logging.info("还没有获取到启动成功标志，请等候")
                 time.sleep(5)
+                power_off_end_time = datetime.now()  # 用于关机计时结束时间
+                if (power_off_end_time - power_off_start_time).seconds >= 30:
+                    send_commd(KEY["UP"])
             else:
                 logging.info("检测到启动成功标志")
                 state["control_power_on_info_rsv_state"] = False
 
+        elif TEST_CASE_INFO[6] == "Auto_jump":
+            logging.info("选择自动跳转")
+            while not state["res_event_confirm_jump_state"]:
+                logging.info("请注意：没有检测到事件跳转")
+                time.sleep(3)
+            else:
+                logging.info("确认事件跳转成功")
+                time.sleep(3)
+            while not state["power_off_state"]:
+                logging.info("还没有进入到关机状态")
+                time.sleep(1)
+            else:
+                logging.info("进入关机状态")
+                logging.info("等待5秒后，开始唤醒操作")
+                time.sleep(5)
+                logging.info("开始唤醒操作")
+                send_commd(KEY["POWER"])
+                state["control_power_on_info_rsv_state"] = True
+                power_off_start_time = datetime.now()   # 用于关机计时起始时间
+            while not state["stb_already_power_on_state"]:
+                logging.info("还没有获取到启动成功标志，请等候")
+                time.sleep(5)
+                power_off_end_time = datetime.now()  # 用于关机计时结束时间
+                if (power_off_end_time - power_off_start_time).seconds >= 30:
+                    send_commd(KEY["UP"])
+            else:
+                logging.info("检测到启动成功标志")
+                state["control_power_on_info_rsv_state"] = False
 
-
-
+        elif TEST_CASE_INFO[6] == "Cancel_jump":
+            time.sleep(5)
+            logging.info("选择取消跳转")
+            send_commd(KEY["LEFT"])
+            send_commd(KEY["OK"])
+            while not state["res_event_cancel_jump_state"]:
+                logging.info("请注意：没有检测到取消事件标志")
+                time.sleep(3)
+            else:
+                logging.info("事件跳转取消成功")
+                time.sleep(3)
 
     logging.info("预约事件数据处理，----------------------------------------------------")
     if current_triggered_event_info[-1] == "Once":  # Once事件触发后，需要从数据库中移除
@@ -925,7 +967,8 @@ def receive_serial_process(
         "[PTD]No_storage_device",   # 9     没有存储设备
         "[PTD]No_enough_space",     # 10    没有足够的空间
         "[PTD]power_cut",           # 11    进入待机
-        "[PTD]:switch totle cost"   # 12    开机解码成功
+        "[PTD]:switch totle cost",  # 12    开机解码成功
+        "[PTD][HOTPLUG] PLUG_IN",   # 13    存储设备插入成功
     ]
 
     switch_ch_kws = [
@@ -990,7 +1033,7 @@ def receive_serial_process(
                 state["update_event_list_state"] = False
                 state["clear_variate_state"] = False
                 state["power_off_state"] = False
-                state["switch_total_cost_state"] = False
+                state["stb_already_power_on_state"] = False
 
                 del res_event_list[:]
                 del current_triggered_event_info[:]
@@ -1006,6 +1049,8 @@ def receive_serial_process(
                         infrared_send_cmd[-1], reverse_rsv_key[infrared_rsv_cmd[-1]]))
                     logging.info("红外次数统计(发送和接受):{}--{}".format(
                         len(infrared_send_cmd), len(infrared_rsv_cmd)))
+                if state["control_power_on_info_rsv_state"]:    # 用于Power Off事件触发后，软开机没有检测到开机关键字用来避免死循环
+                    state["stb_already_power_on_state"] = True
 
             if res_kws[0] in data2:     # 获取系统时间模式（自动还是手动）
                 state["sys_time_mode_state"] = True
@@ -1082,9 +1127,9 @@ def receive_serial_process(
             if res_kws[11] in data2:    # 软关机打印信息
                 state["power_off_state"] = True
 
-            if res_kws[12] in data2:    # 开机解码成功打印信息
+            if res_kws[12] in data2 or res_kws[13] in data2:    # 开机解码成功打印信息,或开机存储设备挂载成功信息
                 if state["control_power_on_info_rsv_state"]:
-                    state["switch_total_cost_state"] =True
+                    state["stb_already_power_on_state"] = True
 
             if switch_ch_kws[0] in data2:
                 ch_info_split = re.split(r"[\],]", data2)
@@ -1160,7 +1205,7 @@ if __name__ == "__main__":
         "PREVIOUS": "A1 F1 22 DD 4A", "NEXT": "A1 F1 22 DD 49", "TIME_SHIFT": "A1 F1 22 DD 48", "STOP": "A1 F1 22 DD 4D"
     }
     REVERSE_KEY = dict([val, key] for key, val in KEY.items())
-    TEST_CASE_INFO = ["23", "All", "TV", "Once", "Power Off", "Screen_diff_ch", "Manual_jump"]
+    TEST_CASE_INFO = ["23", "All", "TV", "Once", "Power Off", "Screen_diff_ch", "Auto_jump"]
 
     file_path = build_log_and_report_file_path()
     ser_name = list(check_ports())  # send_ser_name, receive_ser_name
@@ -1183,7 +1228,7 @@ if __name__ == "__main__":
         "no_storage_device_state": False, "no_enough_space_state": False, "power_off_state": False,
         "sys_time_mode_state": False, "current_sys_time_state": False, "update_event_list_state": False,
         "clear_variate_state": False, "receive_loop_state": False, "control_power_on_info_rsv_state": False,
-        "switch_total_cost_state": False
+        "stb_already_power_on_state": False
     })
 
     prs_data = Manager().dict({
