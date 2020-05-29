@@ -7,8 +7,9 @@ from openpyxl import Workbook
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter, column_index_from_string
-from datetime import datetime
+from datetime import datetime, timedelta, date
 from random import randint
+import math
 import platform
 import os
 import time
@@ -26,6 +27,7 @@ class MyGlobal(object):
         self.title_data = ['', '', '', '', '', '']      # ["报告名称", "预约事件类型", "预约事件模式", "预约节目类型", "预约等待界面", "预约跳转模式"]
         self.start_row = 0                              # 用于每次预约事件响应后，写数据增加行数
         self.pvr_rec_dur_time = ''                      # 用于记录PVR事件录制持续时间
+        self.event_already_triggered_numb = 0           # 用于控制循环事件第二次前后的运行代码界限
 
 
 def logging_info_setting():
@@ -43,14 +45,6 @@ def hex_strs_to_bytes(strings):
 def write_log_data_to_txt(path, write_data):
     with open(path, "a+", encoding="utf-8") as fo:
         fo.write(write_data)
-
-
-def build_send_and_receive_serial():
-    # 创建发送和接受串口
-    ser_name = list(check_ports())  # send_ser_name, receive_ser_name
-    send_ser = serial.Serial(ser_name[0], 9600)
-    receive_ser = serial.Serial(ser_name[1], 115200, timeout=1)
-    return send_ser, receive_ser
 
 
 def send_commd(commd):
@@ -113,6 +107,7 @@ def build_log_and_report_file_path():
 
 
 def clear_timer_setting_all_events():
+    logging.info("clear_timer_setting_all_events")
     # logging_info_setting()
     # 清除Timer_setting界面所有的事件
     enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
@@ -140,6 +135,7 @@ def clear_timer_setting_all_events():
 
 
 def check_sys_time_mode():
+    logging.info("check_sys_time_mode")
     # 检测系统时间模式
     enter_time_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["OK"]]
     change_sys_time_mode = [KEY["RIGHT"], KEY["EXIT"], KEY["OK"]]
@@ -163,6 +159,7 @@ def check_sys_time_mode():
 
 
 def get_current_system_time():
+    logging.info("get_current_system_time")
     # 获取当前系统时间
     time.sleep(1)
     while not state["current_sys_time_state"]:
@@ -184,6 +181,7 @@ def get_exist_event_info():
 
 
 def choice_ch_for_res_event_type():
+    logging.info("choice_ch_for_res_event_type")
     # 根据预约事件类型来选择节目
     group_dict = {}
     choice_ch_numb = []
@@ -246,10 +244,12 @@ def choice_ch_for_res_event_type():
             GL.choice_res_ch = channel_info[1]
             logging.info(channel_info)
 
-
+    elif TEST_CASE_INFO[4] == "Power Off":
+        logging.info(f"当前用例为{TEST_CASE_INFO[4]}，不需要切换节目")
 
 
 def calculate_expected_event_start_time():
+    logging.info("calculate_expected_event_start_time")
     # 计算期望的预约事件的时间
     expected_res_time = ['', '', '', '', '']        # 期望的预约事件时间信息[年，月，日，时，分]
     swap_data = [0, 0, 0, 0, 0]                     # 用于交换处理的时间信息[年，月，日，时，分]
@@ -353,6 +353,7 @@ def calculate_expected_event_start_time():
 
 
 def create_expected_event_info():
+    logging.info("create_expected_event_info")
     # 创建期望的事件信息
     expected_event_info = ['', '', '', '', '']      # [起始时间，事件响应类型，节目名称，持续时间，事件触发模式]
     duration_time = "0001"
@@ -385,6 +386,7 @@ def create_expected_event_info():
 
 
 def edit_res_event_info():
+    logging.info("edit_res_event_info")
     # 编辑预约事件信息
     exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
     start_date_list = []        # 用于将开始日期由字符串转化为发送指令的列表
@@ -484,15 +486,19 @@ def edit_res_event_info():
 
 
 def add_new_res_event_to_event_mgr_list():
+    logging.info("add_new_res_event_to_event_mgr_list")
     # 添加新预约事件到事件管理列表
-    GL.res_event_mgr.extend(res_event_list)
+    if res_event_list not in GL.res_event_mgr:
+        GL.res_event_mgr.extend(res_event_list)
     GL.report_data[0] = GL.res_event_mgr[0]
     logging.info(type(GL.res_event_mgr))
     logging.info(GL.res_event_mgr)
+    logging.info(list(res_event_list))
     state["update_event_list_state"] = False
 
 
 def add_res_event():
+    logging.info("add_res_event")
     # 新增预约事件
     enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
     # 进入Timer_Setting界面
@@ -503,6 +509,147 @@ def add_res_event():
     edit_res_event_info()
     # 添加新预约事件到事件管理列表
     add_new_res_event_to_event_mgr_list()
+
+
+def get_cycle_event_start_time_and_sys_date():
+    logging.info("get_cycle_event_start_time_and_sys_date")
+    # 获取循环事件的起始时间和系统时间的日期，组成完整的时间
+    enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
+    exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
+    cycle_event_start_time = ''
+    # 进入Timer_Setting界面
+    state["update_event_list_state"] = True
+    send_more_commds(enter_timer_setting_interface)
+    # 获取当前系统时间的date
+    get_current_system_time()
+    sys_time = rsv_kws['current_sys_time']
+    logging.info(sys_time)
+    sys_time_split = re.split(r"[\s:/]", sys_time)
+    fmt_sys_time = ''.join(sys_time_split)
+    sys_time_date = fmt_sys_time[:8]
+    # 获取预约事件的起始时间
+    while not state["res_event_numb_state"]:
+        logging.info("还没有获取到预约事件个数")
+        time.sleep(1)
+    else:
+        logging.info(rsv_kws["res_event_numb"])
+        logging.info(res_event_list)
+        if int(rsv_kws["res_event_numb"]) == 1:
+            logging.info("当前事件列表中只有一个事件")
+        else:
+            logging.info("警告：循环预约事件个数与预期不符，请检查")
+    # 查看预约事件列表时间信息
+    time.sleep(1)
+    logging.info(res_event_list)
+    if len(list(res_event_list)[0][0]) == 4:
+        logging.info("当前循环时间起始时间为4位数")
+        cycle_event_start_time = list(res_event_list)[0][0]
+        logging.info(f"cycle_event_start_time:{cycle_event_start_time}")
+    elif len(list(res_event_list)[0][0]) == 12:
+        logging.info("当前循环时间起始时间为12位数")
+        cycle_event_start_time = list(res_event_list)[0][0][8:]
+        logging.info(f"cycle_event_start_time:{cycle_event_start_time}")
+    # 处理系统日期和事件时间，合并为一个完整的12位时间
+    full_cycle_event_date_time = sys_time_date + cycle_event_start_time
+    logging.info(f"系统日期和事件时间合并后的时间为：{full_cycle_event_date_time}")
+    # 退回大画面
+    send_more_commds(exit_to_screen)
+    # 将获取信息的状态变量恢复默认
+    state["current_sys_time_state"] = False
+    state["res_event_numb_state"] = False
+    state["update_event_list_state"] = False
+    return full_cycle_event_date_time
+
+
+def calc_modify_system_time():
+    logging.info("calc_modify_system_time")
+    # 计算循环事件下次响应的系统时间
+    # w = (d + 1 + 2 * m + 3 * (m + 1) / 5 + y + y / 4 - y / 100 + y / 400) % 7
+    weekly_event_mode = ["Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
+    weekday_num_dict = {"Mon.": 0, "Tues.": 1, "Wed.": 2, "Thurs.": 3, "Fri.": 4, "Sat.": 5, "Sun.": 6}
+    full_cyc_event_date_time = get_cycle_event_start_time_and_sys_date()
+    fmt_next_sys_date_time = ''
+    cur_year = int(full_cyc_event_date_time[:4])
+    cur_month = int(full_cyc_event_date_time[4:6])
+    cur_day = int(full_cyc_event_date_time[6:8])
+    cur_hour = int(full_cyc_event_date_time[8:10])
+    cur_minute = int(full_cyc_event_date_time[10:12])
+    cur_date = datetime(cur_year, cur_month, cur_day, cur_hour, cur_minute)
+    if TEST_CASE_INFO[3] == "Daily":
+        next_date = cur_date + timedelta(days=1)
+        next_sys_date_time = next_date - timedelta(minutes=2)
+        next_sys_date_time_split = re.split(r"[-\s:]", str(next_sys_date_time))
+        fmt_next_sys_date_time = ''.join(next_sys_date_time_split)[:12]     # 去掉末尾的秒钟信息
+
+    elif TEST_CASE_INFO[3] in weekly_event_mode:
+        cur_weekday = date(cur_year, cur_month, cur_day).weekday()
+        res_event_weekday = weekday_num_dict[TEST_CASE_INFO[3]]
+        if cur_weekday == res_event_weekday:
+            next_triggered_date = cur_date + timedelta(days=7)
+            next_triggered_date_time = next_triggered_date - timedelta(minutes=2)
+            next_triggered_date_time_split = re.split(r"[-\s:]", str(next_triggered_date_time))
+            fmt_next_sys_date_time = ''.join(next_triggered_date_time_split)[:12]     # 去掉末尾的秒钟信息
+        elif cur_weekday != res_event_weekday:
+            if cur_weekday > res_event_weekday:
+                interval_day = 7 - cur_weekday + res_event_weekday
+                next_triggered_date = cur_date + timedelta(days=interval_day)
+                next_triggered_date_time = next_triggered_date - timedelta(minutes=2)
+                next_triggered_date_time_split = re.split(r"[-\s:]", str(next_triggered_date_time))
+                fmt_next_sys_date_time = ''.join(next_triggered_date_time_split)[:12]  # 去掉末尾的秒钟信息
+            elif cur_weekday < res_event_weekday:
+                interval_day = res_event_weekday - cur_weekday
+                next_triggered_date = cur_date + timedelta(days=interval_day)
+                next_triggered_date_time = next_triggered_date - timedelta(minutes=2)
+                next_triggered_date_time_split = re.split(r"[-\s:]", str(next_triggered_date_time))
+                fmt_next_sys_date_time = ''.join(next_triggered_date_time_split)[:12]  # 去掉末尾的秒钟信息
+    logging.info(f"fmt_next_sys_date_time:{fmt_next_sys_date_time}")
+    return fmt_next_sys_date_time
+
+
+def set_system_time():
+    logging.info("set_system_time")
+    # 根据计算出的下次等待预约时间触发的系统时间来设置系统时间
+    enter_time_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["OK"]]
+    change_sys_time_mode = [KEY["RIGHT"], KEY["EXIT"], KEY["OK"]]
+    exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
+    sys_date_list = []      # 用于将系统日期由字符串转化为发送指令的列表
+    sys_time_list = []      # 用于将系统时间由字符串转化为发送指令的列表
+    sys_date_time = calc_modify_system_time()
+    # 进入时间设置界面
+    send_more_commds(enter_time_setting_interface)
+    # 对当前系统时间模式进行判断
+    while not state["sys_time_mode_state"]:
+        logging.info("还没有获取到系统时间模式信息")
+        time.sleep(1)
+    else:
+        if rsv_kws["sys_time_mode"] == "Auto":
+            send_more_commds(change_sys_time_mode)
+            # 重新进入Time Setting界面
+            send_commd(KEY["OK"])
+        elif rsv_kws["sys_time_mode"] == "Manual":
+            logging.info("系统时间模式已经为手动模式")
+        else:
+            logging.debug("警告：系统时间模式获取错误！！！")
+        state["sys_time_mode_state"] = False
+    # 移动到Date选项
+    send_commd(KEY["DOWN"])
+    sys_date_list.append(sys_date_time[:8])
+    sys_date_cmd = change_numbs_to_commds_list(sys_date_list)
+    for i in range(len(sys_date_cmd)):
+        for j in sys_date_cmd[i]:
+            send_commd(j)
+    # 移动到Time选项
+    send_commd(KEY["DOWN"])
+    sys_time_list.append(sys_date_time[8:])
+    sys_time_cmd = change_numbs_to_commds_list(sys_time_list)
+    for i in range(len(sys_time_cmd)):
+        for j in sys_time_cmd[i]:
+            send_commd(j)
+    # 退出保存
+    send_commd(KEY["EXIT"])
+    send_commd(KEY["OK"])
+    # 退回大画面
+    send_more_commds(exit_to_screen)
 
 
 def goto_specified_interface_wait_for_event_triggered():
@@ -531,6 +678,7 @@ def goto_specified_interface_wait_for_event_triggered():
 
 
 def res_event_triggered_and_choice_jump_type():
+    logging.info("res_event_triggered_and_choice_jump_type")
     unlock_cmd = [KEY["0"], KEY["0"], KEY["0"], KEY["0"]]
     weekly_event_mode = ["Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
     # 事件触发后选择跳转方式
@@ -759,12 +907,14 @@ def res_event_triggered_and_choice_jump_type():
                 time.sleep(3)
 
     logging.info("预约事件数据处理，----------------------------------------------------")
+
     if current_triggered_event_info[-1] == "Once":  # Once事件触发后，需要从数据库中移除
         logging.info(f"移除Once类型当前触发事件前的列表：{GL.res_event_mgr}")
         GL.res_event_mgr.remove(list(current_triggered_event_info))
         logging.info(f"移除Once类型当前触发事件后的列表：{GL.res_event_mgr}")
 
     elif current_triggered_event_info[-1] == "Daily":
+        GL.event_already_triggered_numb += 1  # 预约时间触发后，次数加1
         logging.info("Daily事件不需要从数据库中删除")
     elif current_triggered_event_info[-1] in weekly_event_mode:
         logging.info("Daily事件不需要从数据库中删除")
@@ -773,6 +923,7 @@ def res_event_triggered_and_choice_jump_type():
 
 
 def res_triggered_later_check_timer_setting_event_list():
+    logging.info("res_triggered_later_check_timer_setting_event_list")
     # 预约事件触发后，事件列表事件检查
     enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
     exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
@@ -796,6 +947,7 @@ def res_triggered_later_check_timer_setting_event_list():
 
 
 def write_data_to_excel():
+    logging.info("write_data_to_excel")
     excel_title_0 = [
         "报告名称",
         "预约事件类型",
@@ -884,6 +1036,7 @@ def write_data_to_excel():
 
 
 def manage_report_data_and_write_data():
+    logging.info("manage_report_data_and_write_data")
     # 整理数据以及写数据
     GL.title_data[0] = file_path[2]
     GL.title_data[1] = TEST_CASE_INFO[4]
@@ -919,7 +1072,7 @@ def manage_report_data_and_write_data():
 def before_cycle_test_clear_data_and_state():
     # 循环测试前，清理数据和状态变量
     logging.info("before_cycle_test_clear_data_and_state")
-    GL.res_event_mgr.clear()
+    # GL.res_event_mgr.clear()
     GL.choice_res_ch = ''
     state["clear_variate_state"] = True
     GL.pvr_rec_dur_time = ''
@@ -1205,7 +1358,7 @@ if __name__ == "__main__":
         "PREVIOUS": "A1 F1 22 DD 4A", "NEXT": "A1 F1 22 DD 49", "TIME_SHIFT": "A1 F1 22 DD 48", "STOP": "A1 F1 22 DD 4D"
     }
     REVERSE_KEY = dict([val, key] for key, val in KEY.items())
-    TEST_CASE_INFO = ["23", "All", "TV", "Once", "Power Off", "Screen_diff_ch", "Auto_jump"]
+    TEST_CASE_INFO = ["23", "All", "TV", "Daily", "Play", "Screen_diff_ch", "Manual_jump"]
 
     file_path = build_log_and_report_file_path()
     ser_name = list(check_ports())  # send_ser_name, receive_ser_name
@@ -1246,17 +1399,40 @@ if __name__ == "__main__":
         time.sleep(1)
         logging.info("Linux系统接受端响应快，但是增加一个延时保护，等待1秒")
 
+    clear_timer_setting_all_events()
     while GL.add_res_event_numb > 0:
-        clear_timer_setting_all_events()
-        check_sys_time_mode()
-        choice_ch_for_res_event_type()
-        add_res_event()
-        goto_specified_interface_wait_for_event_triggered()
-        res_event_triggered_and_choice_jump_type()
-        manage_report_data_and_write_data()
-        write_data_to_excel()
-        res_triggered_later_check_timer_setting_event_list()
-        before_cycle_test_clear_data_and_state()
+        if TEST_CASE_INFO[3] == "Once":
+            check_sys_time_mode()
+            choice_ch_for_res_event_type()
+            add_res_event()
+            goto_specified_interface_wait_for_event_triggered()
+            res_event_triggered_and_choice_jump_type()
+            manage_report_data_and_write_data()
+            write_data_to_excel()
+            res_triggered_later_check_timer_setting_event_list()
+            before_cycle_test_clear_data_and_state()
+        elif TEST_CASE_INFO[3] == "Daily":
+            while GL.event_already_triggered_numb < 1:
+                check_sys_time_mode()
+                choice_ch_for_res_event_type()
+                add_res_event()
+                # set_system_time()
+                goto_specified_interface_wait_for_event_triggered()
+                res_event_triggered_and_choice_jump_type()
+                manage_report_data_and_write_data()
+                write_data_to_excel()
+                res_triggered_later_check_timer_setting_event_list()
+                before_cycle_test_clear_data_and_state()
+                break
+            while GL.event_already_triggered_numb >= 1:
+                set_system_time()
+                goto_specified_interface_wait_for_event_triggered()
+                res_event_triggered_and_choice_jump_type()
+                manage_report_data_and_write_data()
+                write_data_to_excel()
+                res_triggered_later_check_timer_setting_event_list()
+                before_cycle_test_clear_data_and_state()
+                break
 
     if state["receive_loop_state"]:
         rsv_p.terminate()
