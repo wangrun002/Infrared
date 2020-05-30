@@ -20,7 +20,7 @@ import re
 class MyGlobal(object):
 
     def __init__(self):
-        self.add_res_event_numb = 5                     # 预约事件响应次数
+        self.add_res_event_numb = 10                     # 预约事件响应次数
         self.choice_res_ch = ''                         # 预约Play或PVR事件时所选预约节目
         self.res_event_mgr = []                         # 预约事件管理
         self.report_data = [[], '', '', '', '', '']     # 报告数据汇总[[预约事件信息]，"触发时间", "是否跳转", "跳转节目", "是否录制", "录制时长"]
@@ -248,106 +248,127 @@ def choice_ch_for_res_event_type():
         logging.info(f"当前用例为{TEST_CASE_INFO[4]}，不需要切换节目")
 
 
+# def calculate_expected_event_start_time():
+#     logging.info("calculate_expected_event_start_time")
+#     # 计算期望的预约事件的时间
+#     expected_res_time = ['', '', '', '', '']        # 期望的预约事件时间信息[年，月，日，时，分]
+#     swap_data = [0, 0, 0, 0, 0]                     # 用于交换处理的时间信息[年，月，日，时，分]
+#     time_interval = 3
+#     leap_year_month = 29
+#     nonleap_year_month = 28
+#     solar_month = [1, 3, 5, 7, 8, 10, 12]
+#     lunar_month = [4, 6, 9, 11]
+#     sys_time = rsv_kws['current_sys_time']
+#     logging.info(sys_time)
+#     sys_time_split = re.split(r"[\s:/]", sys_time)
+#     sys_year = int(sys_time_split[0])
+#     sys_month = int(sys_time_split[1])
+#     sys_day = int(sys_time_split[2])
+#     sys_hour = int(sys_time_split[3])
+#     sys_minute = int(sys_time_split[4])
+#
+#     swap_data[4] = sys_minute + time_interval
+#     # 计算分钟和进位到小时
+#     if swap_data[4] < 60:
+#         expected_res_time[4] = "{0:02d}".format(swap_data[4])
+#         swap_data[3] = sys_hour
+#     elif swap_data[4] >= 60:
+#         expected_res_time[4] = "{0:02d}".format(swap_data[4] - 60)
+#         swap_data[3] = sys_hour + 1
+#     # 计算小时和进位到天数
+#     if swap_data[3] < 24:
+#         expected_res_time[3] = "{0:02d}".format(swap_data[3])
+#         swap_data[2] = sys_day
+#     elif swap_data[3] >= 24:
+#         expected_res_time[3] = "{0:02d}".format(swap_data[3] - 24)
+#         swap_data[2] = sys_day + 1
+#     # 按照闰年、平年，月份来计算天数和是否进位月份
+#     if sys_month == 2:
+#         logging.info("当前月份为二月")
+#         if sys_year % 100 == 0 and sys_year % 400 == 0:
+#             logging.info("当前年份为世纪闰年，二月有29天")
+#             if swap_data[2] <= leap_year_month:
+#                 expected_res_time[2] = "{0:02d}".format(swap_data[2])
+#                 expected_res_time[1] = "{0:02d}".format(sys_month)
+#                 expected_res_time[0] = "{0:02d}".format(sys_year)
+#             elif swap_data[2] > leap_year_month:
+#                 expected_res_time[2] = "{0:02d}".format(swap_data[2] - leap_year_month)
+#                 expected_res_time[1] = "{0:02d}".format(sys_month + 1)
+#                 expected_res_time[0] = "{0:02d}".format(sys_year)
+#         elif sys_year % 100 != 0 and sys_year % 4 == 0:
+#             logging.info("当前年份为普通闰年，二月有29天")
+#             if swap_data[2] <= leap_year_month:
+#                 expected_res_time[2] = "{0:02d}".format(swap_data[2])
+#                 expected_res_time[1] = "{0:02d}".format(sys_month)
+#                 expected_res_time[0] = "{0:02d}".format(sys_year)
+#             elif swap_data[2] > leap_year_month:
+#                 expected_res_time[2] = "{0:02d}".format(swap_data[2] - leap_year_month)
+#                 expected_res_time[1] = "{0:02d}".format(sys_month + 1)
+#                 expected_res_time[0] = "{0:02d}".format(sys_year)
+#         else:
+#             logging.info("当前年份为平年，二月有28天")
+#             if sys_month == 2:
+#                 if swap_data[2] <= nonleap_year_month:
+#                     expected_res_time[2] = "{0:02d}".format(swap_data[2])
+#                     expected_res_time[1] = "{0:02d}".format(sys_month)
+#                     expected_res_time[0] = "{0:02d}".format(sys_year)
+#                 elif swap_data[2] > nonleap_year_month:
+#                     expected_res_time[2] = "{0:02d}".format(swap_data[2] - nonleap_year_month)
+#                     expected_res_time[1] = "{0:02d}".format(sys_month + 1)
+#                     expected_res_time[0] = "{0:02d}".format(sys_year)
+#     elif sys_month in solar_month:
+#         logging.info("当前月份为大月，大月有31天")
+#         if swap_data[2] <= 31:
+#             expected_res_time[2] = "{0:02d}".format(swap_data[2])
+#             expected_res_time[1] = "{0:02d}".format(sys_month)
+#             expected_res_time[0] = "{0:02d}".format(sys_year)
+#         elif swap_data[2] > 31:
+#             expected_res_time[2] = "{0:02d}".format(swap_data[2] - 31)
+#             swap_data[1] = sys_month + 1
+#             if swap_data[1] <= 12:
+#                 expected_res_time[1] = "{0:02d}".format(swap_data[1])
+#                 expected_res_time[0] = "{0:02d}".format(sys_year)
+#             elif swap_data[1] > 12:
+#                 expected_res_time[1] = "{0:02d}".format(swap_data[1] - 12)
+#                 expected_res_time[0] = "{0:02d}".format(sys_year + 1)
+#     elif sys_month in lunar_month:
+#         logging.info("当前月份为小月，小月有30天")
+#         if swap_data[2] <= 30:
+#             expected_res_time[2] = "{0:02d}".format(swap_data[2])
+#             expected_res_time[1] = "{0:02d}".format(sys_month)
+#             expected_res_time[0] = "{0:02d}".format(sys_year)
+#         elif swap_data[2] > 30:
+#             expected_res_time[2] = "{0:02d}".format(swap_data[2] - 30)
+#             swap_data[1] = sys_month + 1
+#             if swap_data[1] <= 12:
+#                 expected_res_time[1] = "{0:02d}".format(swap_data[1])
+#                 expected_res_time[0] = "{0:02d}".format(sys_year)
+#             elif swap_data[1] > 12:
+#                 expected_res_time[1] = "{0:02d}".format(swap_data[1] - 12)
+#                 expected_res_time[0] = "{0:02d}".format(sys_year + 1)
+#
+#     str_expected_res_time = ''.join(expected_res_time)
+#     logging.info(f"期望的完整的预约事件时间为{str_expected_res_time}")
+#     return str_expected_res_time
+
+
 def calculate_expected_event_start_time():
     logging.info("calculate_expected_event_start_time")
-    # 计算期望的预约事件的时间
-    expected_res_time = ['', '', '', '', '']        # 期望的预约事件时间信息[年，月，日，时，分]
-    swap_data = [0, 0, 0, 0, 0]                     # 用于交换处理的时间信息[年，月，日，时，分]
     time_interval = 3
-    leap_year_month = 29
-    nonleap_year_month = 28
-    solar_month = [1, 3, 5, 7, 8, 10, 12]
-    lunar_month = [4, 6, 9, 11]
     sys_time = rsv_kws['current_sys_time']
-    logging.info(sys_time)
     sys_time_split = re.split(r"[\s:/]", sys_time)
     sys_year = int(sys_time_split[0])
     sys_month = int(sys_time_split[1])
     sys_day = int(sys_time_split[2])
     sys_hour = int(sys_time_split[3])
     sys_minute = int(sys_time_split[4])
+    dt_time = datetime(sys_year, sys_month, sys_day, sys_hour, sys_minute)
+    logging.info(dt_time)
+    expected_res_time = dt_time + timedelta(minutes=time_interval)
+    logging.info(expected_res_time)
+    expected_res_time_split = re.split(r"[-\s:]", str(expected_res_time))
+    str_expected_res_time = ''.join(expected_res_time_split)[:12]
 
-    swap_data[4] = sys_minute + time_interval
-    # 计算分钟和进位到小时
-    if swap_data[4] < 60:
-        expected_res_time[4] = "{0:02d}".format(swap_data[4])
-        swap_data[3] = sys_hour
-    elif swap_data[4] >= 60:
-        expected_res_time[4] = "{0:02d}".format(swap_data[4] - 60)
-        swap_data[3] = sys_hour + 1
-    # 计算小时和进位到天数
-    if swap_data[3] < 24:
-        expected_res_time[3] = "{0:02d}".format(swap_data[3])
-        swap_data[2] = sys_day
-    elif swap_data[3] >= 24:
-        expected_res_time[3] = "{0:02d}".format(swap_data[3] - 24)
-        swap_data[2] = sys_day + 1
-    # 按照闰年、平年，月份来计算天数和是否进位月份
-    if sys_month == 2:
-        logging.info("当前月份为二月")
-        if sys_year % 100 == 0 and sys_year % 400 == 0:
-            logging.info("当前年份为世纪闰年，二月有29天")
-            if swap_data[2] <= leap_year_month:
-                expected_res_time[2] = "{0:02d}".format(swap_data[2])
-                expected_res_time[1] = "{0:02d}".format(sys_month)
-                expected_res_time[0] = "{0:02d}".format(sys_year)
-            elif swap_data[2] > leap_year_month:
-                expected_res_time[2] = "{0:02d}".format(swap_data[2] - leap_year_month)
-                expected_res_time[1] = "{0:02d}".format(sys_month + 1)
-                expected_res_time[0] = "{0:02d}".format(sys_year)
-        elif sys_year % 100 != 0 and sys_year % 4 == 0:
-            logging.info("当前年份为普通闰年，二月有29天")
-            if swap_data[2] <= leap_year_month:
-                expected_res_time[2] = "{0:02d}".format(swap_data[2])
-                expected_res_time[1] = "{0:02d}".format(sys_month)
-                expected_res_time[0] = "{0:02d}".format(sys_year)
-            elif swap_data[2] > leap_year_month:
-                expected_res_time[2] = "{0:02d}".format(swap_data[2] - leap_year_month)
-                expected_res_time[1] = "{0:02d}".format(sys_month + 1)
-                expected_res_time[0] = "{0:02d}".format(sys_year)
-        else:
-            logging.info("当前年份为平年，二月有28天")
-            if sys_month == 2:
-                if swap_data[2] <= nonleap_year_month:
-                    expected_res_time[2] = "{0:02d}".format(swap_data[2])
-                    expected_res_time[1] = "{0:02d}".format(sys_month)
-                    expected_res_time[0] = "{0:02d}".format(sys_year)
-                elif swap_data[2] > nonleap_year_month:
-                    expected_res_time[2] = "{0:02d}".format(swap_data[2] - nonleap_year_month)
-                    expected_res_time[1] = "{0:02d}".format(sys_month + 1)
-                    expected_res_time[0] = "{0:02d}".format(sys_year)
-    elif sys_month in solar_month:
-        logging.info("当前月份为大月，大月有31天")
-        if swap_data[2] <= 31:
-            expected_res_time[2] = "{0:02d}".format(swap_data[2])
-            expected_res_time[1] = "{0:02d}".format(sys_month)
-            expected_res_time[0] = "{0:02d}".format(sys_year)
-        elif swap_data[2] > 31:
-            expected_res_time[2] = "{0:02d}".format(swap_data[2] - 31)
-            swap_data[1] = sys_month + 1
-            if swap_data[1] <= 12:
-                expected_res_time[1] = "{0:02d}".format(swap_data[1])
-                expected_res_time[0] = "{0:02d}".format(sys_year)
-            elif swap_data[1] > 12:
-                expected_res_time[1] = "{0:02d}".format(swap_data[1] - 12)
-                expected_res_time[0] = "{0:02d}".format(sys_year + 1)
-    elif sys_month in lunar_month:
-        logging.info("当前月份为小月，小月有30天")
-        if swap_data[2] <= 30:
-            expected_res_time[2] = "{0:02d}".format(swap_data[2])
-            expected_res_time[1] = "{0:02d}".format(sys_month)
-            expected_res_time[0] = "{0:02d}".format(sys_year)
-        elif swap_data[2] > 30:
-            expected_res_time[2] = "{0:02d}".format(swap_data[2] - 30)
-            swap_data[1] = sys_month + 1
-            if swap_data[1] <= 12:
-                expected_res_time[1] = "{0:02d}".format(swap_data[1])
-                expected_res_time[0] = "{0:02d}".format(sys_year)
-            elif swap_data[1] > 12:
-                expected_res_time[1] = "{0:02d}".format(swap_data[1] - 12)
-                expected_res_time[0] = "{0:02d}".format(sys_year + 1)
-
-    str_expected_res_time = ''.join(expected_res_time)
     logging.info(f"期望的完整的预约事件时间为{str_expected_res_time}")
     return str_expected_res_time
 
@@ -1394,10 +1415,10 @@ if __name__ == "__main__":
 
     if platform.system() == "Windows":
         time.sleep(5)
-        logging.info("Windows系统接受端响应慢，等待5秒")
+        logging.info("Windows系统接收端响应慢，等待5秒")
     elif platform.system() == "Linux":
         time.sleep(1)
-        logging.info("Linux系统接受端响应快，但是增加一个延时保护，等待1秒")
+        logging.info("Linux系统接收端响应快，但是增加一个延时保护，等待1秒")
 
     clear_timer_setting_all_events()
     while GL.add_res_event_numb > 0:
