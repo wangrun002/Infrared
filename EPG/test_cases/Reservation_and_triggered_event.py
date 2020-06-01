@@ -9,7 +9,6 @@ from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter, column_index_from_string
 from datetime import datetime, timedelta, date
 from random import randint
-import math
 import platform
 import os
 import time
@@ -20,7 +19,7 @@ import re
 class MyGlobal(object):
 
     def __init__(self):
-        self.add_res_event_numb = 10                     # 预约事件响应次数
+        self.add_res_event_numb = 5                     # 预约事件响应次数
         self.choice_res_ch = ''                         # 预约Play或PVR事件时所选预约节目
         self.res_event_mgr = []                         # 预约事件管理
         self.report_data = [[], '', '', '', '', '']     # 报告数据汇总[[预约事件信息]，"触发时间", "是否跳转", "跳转节目", "是否录制", "录制时长"]
@@ -95,14 +94,14 @@ def build_log_and_report_file_path():
         os.mkdir(report_directory_path)
     # 创建打印和报告文件的名称和路径
     time_info = re.sub(r"[-: ]", "_", str(datetime.now())[:19])
-    fmt_name = "{}_{}_{}_{}_event_{}_triggered".format(
+    fmt_name = "{}_{}_{}_{}_{}_event_{}_triggered_{}".format(
         TEST_CASE_INFO[0], TEST_CASE_INFO[1], TEST_CASE_INFO[2],
-        TEST_CASE_INFO[3], TEST_CASE_INFO[4], TEST_CASE_INFO[5])
+        TEST_CASE_INFO[4], TEST_CASE_INFO[3], TEST_CASE_INFO[5], TEST_CASE_INFO[6])
     log_file_name = "Log_{}_{}.txt".format(fmt_name, time_info)
     log_file_path = os.path.join(log_directory_path, log_file_name)
     report_file_name = "{}_{}.xlsx".format(fmt_name, time_info)
     report_file_path = os.path.join(report_directory_path, report_file_name)
-    sheet_name = "{}_{}".format(TEST_CASE_INFO[2], TEST_CASE_INFO[4])
+    sheet_name = "{}_{}_{}".format(TEST_CASE_INFO[2], TEST_CASE_INFO[4], TEST_CASE_INFO[3])
     return log_file_path, report_file_path, sheet_name
 
 
@@ -246,110 +245,6 @@ def choice_ch_for_res_event_type():
 
     elif TEST_CASE_INFO[4] == "Power Off":
         logging.info(f"当前用例为{TEST_CASE_INFO[4]}，不需要切换节目")
-
-
-# def calculate_expected_event_start_time():
-#     logging.info("calculate_expected_event_start_time")
-#     # 计算期望的预约事件的时间
-#     expected_res_time = ['', '', '', '', '']        # 期望的预约事件时间信息[年，月，日，时，分]
-#     swap_data = [0, 0, 0, 0, 0]                     # 用于交换处理的时间信息[年，月，日，时，分]
-#     time_interval = 3
-#     leap_year_month = 29
-#     nonleap_year_month = 28
-#     solar_month = [1, 3, 5, 7, 8, 10, 12]
-#     lunar_month = [4, 6, 9, 11]
-#     sys_time = rsv_kws['current_sys_time']
-#     logging.info(sys_time)
-#     sys_time_split = re.split(r"[\s:/]", sys_time)
-#     sys_year = int(sys_time_split[0])
-#     sys_month = int(sys_time_split[1])
-#     sys_day = int(sys_time_split[2])
-#     sys_hour = int(sys_time_split[3])
-#     sys_minute = int(sys_time_split[4])
-#
-#     swap_data[4] = sys_minute + time_interval
-#     # 计算分钟和进位到小时
-#     if swap_data[4] < 60:
-#         expected_res_time[4] = "{0:02d}".format(swap_data[4])
-#         swap_data[3] = sys_hour
-#     elif swap_data[4] >= 60:
-#         expected_res_time[4] = "{0:02d}".format(swap_data[4] - 60)
-#         swap_data[3] = sys_hour + 1
-#     # 计算小时和进位到天数
-#     if swap_data[3] < 24:
-#         expected_res_time[3] = "{0:02d}".format(swap_data[3])
-#         swap_data[2] = sys_day
-#     elif swap_data[3] >= 24:
-#         expected_res_time[3] = "{0:02d}".format(swap_data[3] - 24)
-#         swap_data[2] = sys_day + 1
-#     # 按照闰年、平年，月份来计算天数和是否进位月份
-#     if sys_month == 2:
-#         logging.info("当前月份为二月")
-#         if sys_year % 100 == 0 and sys_year % 400 == 0:
-#             logging.info("当前年份为世纪闰年，二月有29天")
-#             if swap_data[2] <= leap_year_month:
-#                 expected_res_time[2] = "{0:02d}".format(swap_data[2])
-#                 expected_res_time[1] = "{0:02d}".format(sys_month)
-#                 expected_res_time[0] = "{0:02d}".format(sys_year)
-#             elif swap_data[2] > leap_year_month:
-#                 expected_res_time[2] = "{0:02d}".format(swap_data[2] - leap_year_month)
-#                 expected_res_time[1] = "{0:02d}".format(sys_month + 1)
-#                 expected_res_time[0] = "{0:02d}".format(sys_year)
-#         elif sys_year % 100 != 0 and sys_year % 4 == 0:
-#             logging.info("当前年份为普通闰年，二月有29天")
-#             if swap_data[2] <= leap_year_month:
-#                 expected_res_time[2] = "{0:02d}".format(swap_data[2])
-#                 expected_res_time[1] = "{0:02d}".format(sys_month)
-#                 expected_res_time[0] = "{0:02d}".format(sys_year)
-#             elif swap_data[2] > leap_year_month:
-#                 expected_res_time[2] = "{0:02d}".format(swap_data[2] - leap_year_month)
-#                 expected_res_time[1] = "{0:02d}".format(sys_month + 1)
-#                 expected_res_time[0] = "{0:02d}".format(sys_year)
-#         else:
-#             logging.info("当前年份为平年，二月有28天")
-#             if sys_month == 2:
-#                 if swap_data[2] <= nonleap_year_month:
-#                     expected_res_time[2] = "{0:02d}".format(swap_data[2])
-#                     expected_res_time[1] = "{0:02d}".format(sys_month)
-#                     expected_res_time[0] = "{0:02d}".format(sys_year)
-#                 elif swap_data[2] > nonleap_year_month:
-#                     expected_res_time[2] = "{0:02d}".format(swap_data[2] - nonleap_year_month)
-#                     expected_res_time[1] = "{0:02d}".format(sys_month + 1)
-#                     expected_res_time[0] = "{0:02d}".format(sys_year)
-#     elif sys_month in solar_month:
-#         logging.info("当前月份为大月，大月有31天")
-#         if swap_data[2] <= 31:
-#             expected_res_time[2] = "{0:02d}".format(swap_data[2])
-#             expected_res_time[1] = "{0:02d}".format(sys_month)
-#             expected_res_time[0] = "{0:02d}".format(sys_year)
-#         elif swap_data[2] > 31:
-#             expected_res_time[2] = "{0:02d}".format(swap_data[2] - 31)
-#             swap_data[1] = sys_month + 1
-#             if swap_data[1] <= 12:
-#                 expected_res_time[1] = "{0:02d}".format(swap_data[1])
-#                 expected_res_time[0] = "{0:02d}".format(sys_year)
-#             elif swap_data[1] > 12:
-#                 expected_res_time[1] = "{0:02d}".format(swap_data[1] - 12)
-#                 expected_res_time[0] = "{0:02d}".format(sys_year + 1)
-#     elif sys_month in lunar_month:
-#         logging.info("当前月份为小月，小月有30天")
-#         if swap_data[2] <= 30:
-#             expected_res_time[2] = "{0:02d}".format(swap_data[2])
-#             expected_res_time[1] = "{0:02d}".format(sys_month)
-#             expected_res_time[0] = "{0:02d}".format(sys_year)
-#         elif swap_data[2] > 30:
-#             expected_res_time[2] = "{0:02d}".format(swap_data[2] - 30)
-#             swap_data[1] = sys_month + 1
-#             if swap_data[1] <= 12:
-#                 expected_res_time[1] = "{0:02d}".format(swap_data[1])
-#                 expected_res_time[0] = "{0:02d}".format(sys_year)
-#             elif swap_data[1] > 12:
-#                 expected_res_time[1] = "{0:02d}".format(swap_data[1] - 12)
-#                 expected_res_time[0] = "{0:02d}".format(sys_year + 1)
-#
-#     str_expected_res_time = ''.join(expected_res_time)
-#     logging.info(f"期望的完整的预约事件时间为{str_expected_res_time}")
-#     return str_expected_res_time
 
 
 def calculate_expected_event_start_time():
@@ -539,7 +434,7 @@ def get_cycle_event_start_time_and_sys_date():
     exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
     cycle_event_start_time = ''
     # 进入Timer_Setting界面
-    state["update_event_list_state"] = True
+    # state["update_event_list_state"] = True
     send_more_commds(enter_timer_setting_interface)
     # 获取当前系统时间的date
     get_current_system_time()
@@ -560,7 +455,10 @@ def get_cycle_event_start_time_and_sys_date():
         else:
             logging.info("警告：循环预约事件个数与预期不符，请检查")
     # 查看预约事件列表时间信息
-    time.sleep(1)
+    # while not state["res_event_info_state"]:
+    #     logging.info("还没有获取到预约事件个数")
+    #     time.sleep(1)
+    # else:
     logging.info(res_event_list)
     if len(list(res_event_list)[0][0]) == 4:
         logging.info("当前循环时间起始时间为4位数")
@@ -935,10 +833,11 @@ def res_event_triggered_and_choice_jump_type():
         logging.info(f"移除Once类型当前触发事件后的列表：{GL.res_event_mgr}")
 
     elif current_triggered_event_info[-1] == "Daily":
-        GL.event_already_triggered_numb += 1  # 预约时间触发后，次数加1
-        logging.info("Daily事件不需要从数据库中删除")
+        GL.event_already_triggered_numb += 1  # 预约事件触发后，次数加1
+        logging.info(f"{current_triggered_event_info[-1]}事件不需要从数据库中删除")
     elif current_triggered_event_info[-1] in weekly_event_mode:
-        logging.info("Daily事件不需要从数据库中删除")
+        GL.event_already_triggered_numb += 1    # 预约事件触发后，次数加1
+        logging.info(f"{current_triggered_event_info[-1]}事件不需要从数据库中删除")
     else:
         pass
 
@@ -969,6 +868,7 @@ def res_triggered_later_check_timer_setting_event_list():
 
 def write_data_to_excel():
     logging.info("write_data_to_excel")
+    wb = ''
     excel_title_0 = [
         "报告名称",
         "预约事件类型",
@@ -1109,7 +1009,7 @@ def before_cycle_test_clear_data_and_state():
 
 
 def receive_serial_process(
-        prs_data, infrared_send_cmd, rsv_kws, res_event_list, state, current_triggered_event_info, channel_info):
+        prs_data: object, infrared_send_cmd, rsv_kws, res_event_list, state, current_triggered_event_info, channel_info):
     logging_info_setting()
     rsv_key = {
         "POWER": "0xbbaf", "TV/R": "0xbbbd", "MUTE": "0xbbf7",
@@ -1209,8 +1109,10 @@ def receive_serial_process(
                 state["power_off_state"] = False
                 state["stb_already_power_on_state"] = False
 
-                del res_event_list[:]
+                # del res_event_list[:]
                 del current_triggered_event_info[:]
+                if TEST_CASE_INFO[3] == "Once":
+                    del res_event_list[:]
                 # channel_info = ['', '', '', '', '', '', '']
 
             if other_kws[0] in data2:   # 红外接收打印
@@ -1239,6 +1141,7 @@ def receive_serial_process(
                 rsv_kws["res_event_numb"] = re.split(r"=", data2)[-1]
 
             if res_kws[3] in data2:     # 获取预约事件信息
+                # state["res_event_info_state"] = True
                 event_split_info = re.split(r"t:|,", data2)
                 event_info = ['', '', '', '', '']
                 for info in event_split_info:
@@ -1379,7 +1282,8 @@ if __name__ == "__main__":
         "PREVIOUS": "A1 F1 22 DD 4A", "NEXT": "A1 F1 22 DD 49", "TIME_SHIFT": "A1 F1 22 DD 48", "STOP": "A1 F1 22 DD 4D"
     }
     REVERSE_KEY = dict([val, key] for key, val in KEY.items())
-    TEST_CASE_INFO = ["23", "All", "TV", "Daily", "Play", "Screen_diff_ch", "Manual_jump"]
+    WEEKLY_EVENT_MODE = ["Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
+    TEST_CASE_INFO = ["23", "All", "TV", "Thurs.", "Power Off", "Screen_diff_ch", "Cancel_jump"]
 
     file_path = build_log_and_report_file_path()
     ser_name = list(check_ports())  # send_ser_name, receive_ser_name
@@ -1402,7 +1306,7 @@ if __name__ == "__main__":
         "no_storage_device_state": False, "no_enough_space_state": False, "power_off_state": False,
         "sys_time_mode_state": False, "current_sys_time_state": False, "update_event_list_state": False,
         "clear_variate_state": False, "receive_loop_state": False, "control_power_on_info_rsv_state": False,
-        "stb_already_power_on_state": False
+        "stb_already_power_on_state": False, "res_event_info_state": False,
     })
 
     prs_data = Manager().dict({
@@ -1454,7 +1358,28 @@ if __name__ == "__main__":
                 res_triggered_later_check_timer_setting_event_list()
                 before_cycle_test_clear_data_and_state()
                 break
-
+        elif TEST_CASE_INFO[3] in WEEKLY_EVENT_MODE:
+            while GL.event_already_triggered_numb < 1:
+                check_sys_time_mode()
+                choice_ch_for_res_event_type()
+                add_res_event()
+                set_system_time()
+                goto_specified_interface_wait_for_event_triggered()
+                res_event_triggered_and_choice_jump_type()
+                manage_report_data_and_write_data()
+                write_data_to_excel()
+                res_triggered_later_check_timer_setting_event_list()
+                before_cycle_test_clear_data_and_state()
+                break
+            while GL.event_already_triggered_numb >= 1:
+                set_system_time()
+                goto_specified_interface_wait_for_event_triggered()
+                res_event_triggered_and_choice_jump_type()
+                manage_report_data_and_write_data()
+                write_data_to_excel()
+                res_triggered_later_check_timer_setting_event_list()
+                before_cycle_test_clear_data_and_state()
+                break
     if state["receive_loop_state"]:
         rsv_p.terminate()
         logging.info('stop receive process')
