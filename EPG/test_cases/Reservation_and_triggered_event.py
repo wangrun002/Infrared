@@ -19,11 +19,11 @@ import re
 class MyGlobal(object):
 
     def __init__(self):
-        self.add_res_event_numb = 5                     # 预约事件响应次数
+        self.res_triggered_numb = 5                     # 预约事件响应次数
         self.choice_res_ch = ''                         # 预约Play或PVR事件时所选预约节目
         self.res_event_mgr = []                         # 预约事件管理
-        self.report_data = [[], '', '', '', '', '']     # 报告数据汇总[[预约事件信息]，"触发时间", "是否跳转", "跳转节目", "是否录制", "录制时长"]
-        self.title_data = ['', '', '', '', '', '']      # ["报告名称", "预约事件类型", "预约事件模式", "预约节目类型", "预约等待界面", "预约跳转模式"]
+        self.report_data = [[], '', '', '', '']         # 报告数据汇总[[预约事件信息]，"触发时间", "等待节目", "跳转节目", "录制时长"]
+        self.title_data = ['', '', '', '', '', '', '']      # ["报告名称", "预约事件类型", "预约事件模式", "预约节目类型", "预约等待界面", "预约跳转模式", "预约执行次数"]
         self.start_row = 0                              # 用于每次预约事件响应后，写数据增加行数
         self.pvr_rec_dur_time = ''                      # 用于记录PVR事件录制持续时间
         self.event_already_triggered_numb = 0           # 用于控制循环事件第二次前后的运行代码界限
@@ -573,14 +573,62 @@ def set_system_time():
 
 def goto_specified_interface_wait_for_event_triggered():
     logging.info("goto_specified_interface_wait_for_event_triggered")
+    # WAIT_INTERFACE = ["TVScreenDiffCH", "RadioScreenDiffCH", "ChannelList", "Menu", "EPG", "ChannelEdit"]
     exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
+    menu_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["DOWN"], KEY["DOWN"], KEY["OK"], KEY["OK"]]
+    channel_edit_interface = [KEY["MENU"], KEY["LEFT"], KEY["LEFT"], KEY["OK"]]
     # 切到指定界面
-    if TEST_CASE_INFO[5] == "Screen_diff_ch":
+    if TEST_CASE_INFO[5] == "TVScreenDiffCH":
         send_more_commds(exit_to_screen)
-        # 且到不同的频道等待
+        if channel_info[5] != "TV":
+            send_commd(KEY["TV/R"])
+        # 切到不同的频道等待
         send_commd(KEY["UP"])
-        if channel_info[3] == "1":
+        if channel_info[3] == "1":  # 加锁节目判断
             send_commd(KEY["EXIT"])
+    elif TEST_CASE_INFO[5] == "RadioScreenDiffCH":
+        send_more_commds(exit_to_screen)
+        if channel_info[5] != "Radio":
+            send_commd(KEY["TV/R"])
+        # 切到不同的频道等待
+        send_commd(KEY["UP"])
+        if channel_info[3] == "1":  # 加锁节目判断
+            send_commd(KEY["EXIT"])
+    elif TEST_CASE_INFO[5] == "ChannelList":
+        send_more_commds(exit_to_screen)
+        # 切到不同的频道等待
+        send_commd(KEY["UP"])
+        if channel_info[3] == "1":  # 加锁节目判断
+            send_commd(KEY["EXIT"])
+        # 调出频道列表
+        send_commd(KEY["OK"])
+    elif TEST_CASE_INFO[5] == "Menu":
+        send_more_commds(exit_to_screen)
+        # 切到不同的频道等待
+        send_commd(KEY["UP"])
+        if channel_info[3] == "1":  # 加锁节目判断
+            send_commd(KEY["EXIT"])
+        # 进入Menu指定子菜单界面
+        send_more_commds(menu_interface)
+    elif TEST_CASE_INFO[5] == "EPG":
+        send_more_commds(exit_to_screen)
+        # 切到不同的频道等待
+        send_commd(KEY["UP"])
+        if channel_info[3] == "1":  # 加锁节目判断
+            send_commd(KEY["EXIT"])
+        # 进入EPG界面
+        send_commd(KEY["EPG"])
+    elif TEST_CASE_INFO[5] == "ChannelEdit":
+        send_more_commds(exit_to_screen)
+        # 切到不同的频道等待
+        send_commd(KEY["UP"])
+        if channel_info[3] == "1":  # 加锁节目判断
+            send_commd(KEY["EXIT"])
+        # 进入节目编辑界面
+        send_more_commds(channel_edit_interface)
+    # 等待节目信息赋值
+    time.sleep(2)
+    GL.report_data[2] = channel_info[1]
     # 等待事件响应
     while not state["res_event_triggered_state"]:
         logging.info("事件还没有触发，等待响应")
@@ -875,10 +923,11 @@ def write_data_to_excel():
         "预约事件模式",
         "预约节目类型",
         "预约等待界面",
-        "预约跳转模式"
+        "预约跳转模式",
+        "预约执行次数",
     ]
-    excel_title_1 = ["预约事件信息", "触发响应信息"]
-    excel_title_2 = ["起始时间", "事件类型", "节目名称", "持续时间", "事件模式", "触发时间", "是否跳转", "跳转节目", "是否录制", "录制时长"]
+    excel_title_1 = ["预约事件信息", "触发响应结果"]
+    excel_title_2 = ["起始时间", "事件类型", "节目名称", "持续时间", "事件模式", "触发时间", "等待节目", "跳转节目", "录制时长"]
 
     alignment = Alignment(horizontal="center", vertical="center", wrapText=True)
     if not os.path.exists(file_path[1]):
@@ -886,24 +935,33 @@ def write_data_to_excel():
         ws = wb.active
         ws.title = file_path[2]
         ws.column_dimensions['A'].width = 17
+        # 写excel_title_0的内容
         for i in range(len(excel_title_0)):
             if i == 0:
                 ws.cell(i + 1, 1).value = excel_title_0[i]
                 ws.cell(i + 1, 1).alignment = alignment
                 ws.row_dimensions[(i + 1)].height = 27
-            else:
+            else:       # 主要是第一项的行高设置
                 ws.cell(i + 1, 1).value = excel_title_0[i]
                 ws.cell(i + 1, 1).alignment = alignment
-        ws.column_dimensions['A'].width = 17
+        # ws.column_dimensions['A'].width = 17
+        # 写excel_title_1的内容
         ws.cell(len(excel_title_0) + 1, 1).value = excel_title_1[0]
         ws["A" + str(len(excel_title_0) + 1)].alignment = alignment
         ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=1, end_row=len(excel_title_0) + 1, end_column=5)
         ws.cell(len(excel_title_0) + 1, 6).value = excel_title_1[1]
         ws["F" + str(len(excel_title_0) + 1)].alignment = alignment
-        ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=6, end_row=len(excel_title_0) + 1, end_column=10)
+        ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=6, end_row=len(excel_title_0) + 1, end_column=9)
+        # 写excel_title_2的内容
         for j in range(len(excel_title_2)):
             ws.cell(len(excel_title_0) + 2, j + 1).value = excel_title_2[j]
             ws.cell(len(excel_title_0) + 2, j + 1).alignment = alignment
+        # 写Title数据
+        for x in range(len(GL.title_data)):
+            ws.cell(x + 1, 2).value = GL.title_data[x]
+            ws.cell(x + 1, 2).alignment = alignment
+            ws.merge_cells(start_row=x + 1, start_column=2, end_row=x + 1, end_column=9)
+
     elif os.path.exists(file_path[1]):
         wb = load_workbook(file_path[1])
         sheets_name_list = wb.sheetnames
@@ -912,31 +970,27 @@ def write_data_to_excel():
             ws = wb[file_path[2]]
         elif file_path[2] not in sheets_name_list:
             ws = wb.create_sheet(file_path[2])
-        for i in range(len(excel_title_0)):
-            if i == 0:
-                ws.cell(i + 1, 1).value = excel_title_0[i]
-                ws.cell(i + 1, 1).alignment = alignment
-                ws.row_dimensions[(i + 1)].height = 27
-            else:
-                ws.cell(i + 1, 1).value = excel_title_0[i]
-                ws.cell(i + 1, 1).alignment = alignment
-        ws.column_dimensions['A'].width = 17
-        ws.cell(len(excel_title_0) + 1, 1).value = excel_title_1[0]
-        ws["A" + str(len(excel_title_0) + 1)].alignment = alignment
-        ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=1, end_row=len(excel_title_0) + 1, end_column=5)
-        ws.cell(len(excel_title_0) + 1, 6).value = excel_title_1[1]
-        ws["F" + str(len(excel_title_0) + 1)].alignment = alignment
-        ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=6, end_row=len(excel_title_0) + 1, end_column=10)
-
-        for j in range(len(excel_title_2)):
-            ws.cell(len(excel_title_0) + 2, j + 1).value = excel_title_2[j]
-            ws.cell(len(excel_title_0) + 2, j + 1).alignment = alignment
-
-    # 写Title数据
-    for x in range(len(GL.title_data)):
-        ws.cell(x + 1, 2).value = GL.title_data[x]
-        ws.cell(x + 1, 2).alignment = alignment
-        ws.merge_cells(start_row=x + 1, start_column=2, end_row=x + 1, end_column=10)
+    #     ws.column_dimensions['A'].width = 17
+    #     # 写excel_title_0的内容
+    #     for i in range(len(excel_title_0)):
+    #         if i == 0:
+    #             ws.cell(i + 1, 1).value = excel_title_0[i]
+    #             ws.cell(i + 1, 1).alignment = alignment
+    #             ws.row_dimensions[(i + 1)].height = 27
+    #         else:       # 主要是第一项的行高设置
+    #             ws.cell(i + 1, 1).value = excel_title_0[i]
+    #             ws.cell(i + 1, 1).alignment = alignment
+    #     # 写excel_title_1的内容
+    #     ws.cell(len(excel_title_0) + 1, 1).value = excel_title_1[0]
+    #     ws["A" + str(len(excel_title_0) + 1)].alignment = alignment
+    #     ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=1, end_row=len(excel_title_0) + 1, end_column=5)
+    #     ws.cell(len(excel_title_0) + 1, 6).value = excel_title_1[1]
+    #     ws["F" + str(len(excel_title_0) + 1)].alignment = alignment
+    #     ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=6, end_row=len(excel_title_0) + 1, end_column=9)
+    #     # 写excel_title_2的内容
+    #     for j in range(len(excel_title_2)):
+    #         ws.cell(len(excel_title_0) + 2, j + 1).value = excel_title_2[j]
+    #         ws.cell(len(excel_title_0) + 2, j + 1).alignment = alignment
 
     # 写预约事件数据
     a_column_numb = column_index_from_string("A")
@@ -965,25 +1019,23 @@ def manage_report_data_and_write_data():
     GL.title_data[3] = TEST_CASE_INFO[2]
     GL.title_data[4] = TEST_CASE_INFO[5]
     GL.title_data[5] = TEST_CASE_INFO[6]
+    GL.title_data[6] = GL.res_triggered_numb
 
     if TEST_CASE_INFO[4] == "Play":
         GL.report_data[1] = list(res_event_list)[0][0]
-        GL.report_data[2] = TEST_CASE_INFO[6]
-        GL.report_data[3] = channel_info[1]
-        GL.report_data[4] = TEST_CASE_INFO[4]
-        GL.report_data[5] = "----"
+        # GL.report_data[2] = TEST_CASE_INFO[6]   # 等待节目
+        GL.report_data[3] = channel_info[1]     # 跳转节目
+        GL.report_data[4] = "----"              # 录制时长
     elif TEST_CASE_INFO[4] == "PVR":
         GL.report_data[1] = list(res_event_list)[0][0]
-        GL.report_data[2] = TEST_CASE_INFO[6]
+        # GL.report_data[2] = TEST_CASE_INFO[6]
         GL.report_data[3] = channel_info[1]
-        GL.report_data[4] = TEST_CASE_INFO[4]
-        GL.report_data[5] = str(GL.pvr_rec_dur_time) + 's'
+        GL.report_data[4] = str(GL.pvr_rec_dur_time) + 's'
     elif TEST_CASE_INFO[4] == "Power Off":
         GL.report_data[1] = list(res_event_list)[0][0]
-        GL.report_data[2] = TEST_CASE_INFO[6]
+        # GL.report_data[2] = TEST_CASE_INFO[6]
         GL.report_data[3] = "----"
-        GL.report_data[4] = TEST_CASE_INFO[4]
-        GL.report_data[5] = "----"
+        GL.report_data[4] = "----"
 
     logging.info(GL.title_data)
     logging.info(GL.report_data)
@@ -998,12 +1050,12 @@ def before_cycle_test_clear_data_and_state():
     state["clear_variate_state"] = True
     GL.pvr_rec_dur_time = ''
 
-    GL.add_res_event_numb -= 1
+    GL.res_triggered_numb -= 1
     logging.info("循环测试，延时5秒")
     time.sleep(5)
-    logging.info(f"剩余循环次数：{GL.add_res_event_numb}")
+    logging.info(f"剩余循环次数：{GL.res_triggered_numb}")
 
-    if GL.add_res_event_numb < 1:
+    if GL.res_triggered_numb < 1:
         logging.info("程序结束")
         state["receive_loop_state"] = True  # 触发结束接收进程的状态
 
@@ -1282,8 +1334,9 @@ if __name__ == "__main__":
         "PREVIOUS": "A1 F1 22 DD 4A", "NEXT": "A1 F1 22 DD 49", "TIME_SHIFT": "A1 F1 22 DD 48", "STOP": "A1 F1 22 DD 4D"
     }
     REVERSE_KEY = dict([val, key] for key, val in KEY.items())
+    # WAIT_INTERFACE = ["TVScreenDiffCH", "RadioScreenDiffCH", "ChannelList", "Menu", "EPG", "ChannelEdit"]
     WEEKLY_EVENT_MODE = ["Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
-    TEST_CASE_INFO = ["23", "All", "TV", "Thurs.", "Power Off", "Screen_diff_ch", "Cancel_jump"]
+    TEST_CASE_INFO = ["23", "All", "TV", "Thurs.", "PVR", "ChannelEdit", "Auto_jump"]
 
     file_path = build_log_and_report_file_path()
     ser_name = list(check_ports())  # send_ser_name, receive_ser_name
@@ -1325,7 +1378,7 @@ if __name__ == "__main__":
         logging.info("Linux系统接收端响应快，但是增加一个延时保护，等待1秒")
 
     clear_timer_setting_all_events()
-    while GL.add_res_event_numb > 0:
+    while GL.res_triggered_numb > 0:
         if TEST_CASE_INFO[3] == "Once":
             check_sys_time_mode()
             choice_ch_for_res_event_type()
