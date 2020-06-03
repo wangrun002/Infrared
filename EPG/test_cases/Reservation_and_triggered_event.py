@@ -6,7 +6,7 @@ from multiprocessing import Process, Manager
 from openpyxl import Workbook
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Font
-from openpyxl.styles.colors import RED, GREEN
+from openpyxl.styles.colors import RED, GREEN, BLUE
 from openpyxl.utils import get_column_letter, column_index_from_string
 from datetime import datetime, timedelta, date
 from random import randint
@@ -653,6 +653,7 @@ def goto_specified_interface_wait_for_event_triggered():
 def res_event_triggered_and_choice_jump_type():
     logging.info("res_event_triggered_and_choice_jump_type")
     unlock_cmd = [KEY["0"], KEY["0"], KEY["0"], KEY["0"]]
+    exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
     weekly_event_mode = ["Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
     # 事件触发后选择跳转方式
     if TEST_CASE_INFO[4] == "Play":
@@ -788,6 +789,7 @@ def res_event_triggered_and_choice_jump_type():
                     logging.info("录制结束")
                     rec_end_time = datetime.now()
                     GL.pvr_rec_dur_time = (rec_end_time - rec_start_time).seconds
+                    logging.info(f"录制时长:{GL.pvr_rec_dur_time}")
 
         elif TEST_CASE_INFO[6] == "Cancel_jump":
             time.sleep(5)
@@ -805,6 +807,7 @@ def res_event_triggered_and_choice_jump_type():
                     logging.info(f"正确取消跳转，当前节目与触发事件的节目不一致:{channel_info[1]}--{current_triggered_event_info[2]}")
                 else:
                     logging.info(f"警告：没有取消跳转成功，当前节目与触发事件的节目为:{channel_info[1]}--{current_triggered_event_info[2]}")
+            GL.pvr_rec_dur_time = 0     # 取消跳转时，录制持续时长为0
 
     if TEST_CASE_INFO[4] == "Power Off":
         if TEST_CASE_INFO[6] == "Manual_jump":
@@ -892,8 +895,9 @@ def res_event_triggered_and_choice_jump_type():
     elif current_triggered_event_info[-1] in weekly_event_mode:
         GL.event_already_triggered_numb += 1    # 预约事件触发后，次数加1
         logging.info(f"{current_triggered_event_info[-1]}事件不需要从数据库中删除")
-    else:
-        pass
+
+    if TEST_CASE_INFO[6] == "Cancel_jump":
+        send_more_commds(exit_to_screen)
 
 
 def res_triggered_later_check_timer_setting_event_list():
@@ -937,7 +941,7 @@ def write_data_to_excel():
                      "系统时间日期", "触发时间", "等待节目", "跳转节目", "录制时长"]
 
     alignment = Alignment(horizontal="center", vertical="center", wrapText=True)
-    green_font = Font(color=GREEN)
+    blue_font = Font(color=BLUE)
     red_font = Font(color=RED)
     if not os.path.exists(file_path[1]):
         wb = Workbook()
@@ -983,15 +987,68 @@ def write_data_to_excel():
     # 写预约事件数据
     a_column_numb = column_index_from_string("A")
     interval_row = len(excel_title_0) + 2
-    if TEST_CASE_INFO[4] == "Play" or TEST_CASE_INFO[4] == "PVR":
-        if TEST_CASE_INFO[6] == "Manual_jump" or TEST_CASE_INFO[6] == "Auto_jump":
-            pass
     for d in range(len(GL.report_data)):
         if d == 0:
             for dd in range(len(GL.report_data[d])):
                 ws.cell(GL.start_row + interval_row + 1, dd + 1).value = GL.report_data[d][dd]
                 ws.cell(GL.start_row + interval_row + 1, dd + 1).alignment = alignment
                 ws.column_dimensions[get_column_letter(a_column_numb + dd + 1)].width = 17
+        # elif d == 1:    # 系统时间日期
+        #     ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).value = GL.report_data[d]
+        #     ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).alignment = alignment
+        #     ws.column_dimensions[get_column_letter(a_column_numb + d + len(GL.report_data[0]))].width = 17
+        elif d == 2:  # 触发时间
+            ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).value = GL.report_data[d]
+            ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).alignment = alignment
+            ws.column_dimensions[get_column_letter(a_column_numb + d + len(GL.report_data[0]))].width = 17
+        # elif d == 3:    # 等待节目
+        #     ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).value = GL.report_data[d]
+        #     ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).alignment = alignment
+        #     ws.column_dimensions[get_column_letter(a_column_numb + d + len(GL.report_data[0]))].width = 17
+        elif d == 4:  # 跳转节目
+            ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).value = GL.report_data[d]
+            ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).alignment = alignment
+            ws.column_dimensions[get_column_letter(a_column_numb + d + len(GL.report_data[0]))].width = 17
+            if TEST_CASE_INFO[4] == "Play" or TEST_CASE_INFO[4] == "PVR":
+                if TEST_CASE_INFO[6] == "Manual_jump" or TEST_CASE_INFO[6] == "Auto_jump":
+                    if GL.report_data[d] == GL.report_data[0][2]:
+                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
+                    elif GL.report_data[d] != GL.report_data[0][2]:
+                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
+                elif TEST_CASE_INFO[6] == "Cancel_jump":
+                    if GL.report_data[d] != GL.report_data[0][2]:
+                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
+                    else:
+                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
+            elif TEST_CASE_INFO[4] == "Power Off":
+                if GL.report_data[d] == "----":
+                    ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
+                else:
+                    ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
+
+        elif d == 5:  # 录制时长
+            ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).value = GL.report_data[d]
+            ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).alignment = alignment
+            ws.column_dimensions[get_column_letter(a_column_numb + d + len(GL.report_data[0]))].width = 17
+            if TEST_CASE_INFO[4] == "PVR":
+                if TEST_CASE_INFO[6] == "Manual_jump" or TEST_CASE_INFO[6] == "Auto_jump":
+                    res_dur_split = re.split(":", GL.report_data[0][3])
+                    res_dur_sec_time = int(res_dur_split[0]) * 3600 + int(res_dur_split[1]) * 60 # 换算录制时常信息与预约时间的Duration时长信息对比值
+                    actual_rec_time = int(GL.report_data[d][:-1])
+                    if (res_dur_sec_time - 5) <= actual_rec_time <= (res_dur_sec_time + 5):
+                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
+                    else:
+                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
+                elif TEST_CASE_INFO[6] == "Cancel_jump":
+                    if GL.report_data[d] == "--:--":
+                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
+                    else:
+                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
+            elif TEST_CASE_INFO[4] == "Play" or TEST_CASE_INFO[4] == "Power Off":
+                if GL.report_data[d] == "--:--":
+                    ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
+                else:
+                    ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
         else:
             ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).value = GL.report_data[d]
             ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).alignment = alignment
@@ -1017,7 +1074,7 @@ def manage_report_data_and_write_data():
         GL.report_data[2] = list(res_event_list)[0][0]      # 事件响应时间（跳出跳转提示框的时间）
         # GL.report_data[3] = TEST_CASE_INFO[6]   # 等待节目
         GL.report_data[4] = channel_info[1]     # 跳转节目
-        GL.report_data[5] = "----"              # 录制时长
+        GL.report_data[5] = "--:--"              # 录制时长
     elif TEST_CASE_INFO[4] == "PVR":
         GL.report_data[2] = list(res_event_list)[0][0]
         # GL.report_data[3] = TEST_CASE_INFO[6]
@@ -1025,9 +1082,9 @@ def manage_report_data_and_write_data():
         GL.report_data[5] = str(GL.pvr_rec_dur_time) + 's'
     elif TEST_CASE_INFO[4] == "Power Off":
         GL.report_data[2] = list(res_event_list)[0][0]
-        # GL.report_data[3] = TEST_CASE_INFO[6]
+        GL.report_data[3] = "----"
         GL.report_data[4] = "----"
-        GL.report_data[5] = "----"
+        GL.report_data[5] = "--:--"
 
     logging.info(GL.title_data)
     logging.info(GL.report_data)
@@ -1328,7 +1385,7 @@ if __name__ == "__main__":
     REVERSE_KEY = dict([val, key] for key, val in KEY.items())
     # WAIT_INTERFACE = ["TVScreenDiffCH", "RadioScreenDiffCH", "ChannelList", "Menu", "EPG", "ChannelEdit"]
     WEEKLY_EVENT_MODE = ["Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
-    TEST_CASE_INFO = ["23", "All", "TV", "Sun.", "Play", "ChannelEdit", "Manual_jump"]
+    TEST_CASE_INFO = ["23", "All", "TV", "Daily", "PVR", "EPG", "Manual_jump"]
 
     file_path = build_log_and_report_file_path()
     ser_name = list(check_ports())  # send_ser_name, receive_ser_name
