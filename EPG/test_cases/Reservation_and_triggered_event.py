@@ -1212,7 +1212,7 @@ def receive_serial_process(
 
                 # del res_event_list[:]
                 del current_triggered_event_info[:]
-                if TEST_CASE_INFO[3] == "Once":
+                if prs_data["case_res_event_mode"] == "Once":
                     del res_event_list[:]
                 # channel_info = ['', '', '', '', '', '', '']
 
@@ -1412,7 +1412,7 @@ if __name__ == "__main__":
     })
 
     prs_data = Manager().dict({
-        "log_file_path": file_path[0], "receive_serial_name": receive_ser_name,
+        "log_file_path": file_path[0], "receive_serial_name": receive_ser_name, "case_res_event_mode": TEST_CASE_INFO[3],
     })
 
     rsv_p = Process(target=receive_serial_process, args=(
