@@ -638,9 +638,11 @@ def goto_specified_interface_wait_for_event_triggered():
     # 等待事件响应
     logging.info("事件还没有触发，等待响应")
     while not state["res_event_triggered_state"]:
-        time.sleep(1)
+        time.sleep(0.1)
     else:
         logging.info("事件已经触发，正确跳出预约跳转选择框")
+        logging.info(f"触发事件时，系统时间信息为：{rsv_kws['res_triggered_sys_time']}")
+        GL.report_data[2] = rsv_kws['res_triggered_sys_time']
         logging.info(type(current_triggered_event_info))
         logging.info(type(GL.res_event_mgr))
         if list(current_triggered_event_info) in GL.res_event_mgr:
@@ -737,6 +739,10 @@ def res_event_triggered_and_choice_jump_type():
                     logging.info("警告：存储设备没有足够的空间")
                     state["receive_loop_state"] = True
                     break
+                if state["pvr_not_supported_state"]:
+                    logging.info("警告：当前录制节目为加密节目，或加锁节目，或无信号，请检查")
+                    state["receive_loop_state"] = True
+                    break
             else:
                 logging.info("正确进入录制")
                 rec_start_time = datetime.now()
@@ -775,6 +781,10 @@ def res_event_triggered_and_choice_jump_type():
                     break
                 if state["no_enough_space_state"]:
                     logging.info("警告：存储设备没有足够的空间")
+                    state["receive_loop_state"] = True
+                    break
+                if state["pvr_not_supported_state"]:
+                    logging.info("警告：当前录制节目为加密节目，或加锁节目，或无信号，请检查")
                     state["receive_loop_state"] = True
                     break
             else:
@@ -924,14 +934,30 @@ def res_triggered_later_check_timer_setting_event_list():
     send_more_commds(exit_to_screen)
 
 
+def change_str_time_and_fmt_time(str_time):
+    # 字符串时间和格式化事件之间转换
+    str_new_fmt_date = ''
+    if len(str_time) == 12:
+        fmt_year = int(str_time[:4])
+        fmt_month = int(str_time[4:6])
+        fmt_day = int(str_time[6:8])
+        fmt_hour = int(str_time[8:10])
+        fmt_minute = int(str_time[10:12])
+        fmt_date = datetime(fmt_year, fmt_month, fmt_day, fmt_hour, fmt_minute)
+        new_fmt_date = fmt_date + timedelta(minutes=1)
+        new_fmt_date_split = re.split(r"[-\s:]", str(new_fmt_date))
+        str_new_fmt_date = ''.join(new_fmt_date_split)[:12]     # 去掉末尾的秒钟信息
+    return str_new_fmt_date
+
+
 def write_data_to_excel():
     logging.info("write_data_to_excel")
     wb = ''
     excel_title_0 = [
         "报告名称",
+        "预约节目类型",
         "预约事件类型",
         "预约事件模式",
-        "预约节目类型",
         "预约等待界面",
         "预约跳转模式",
         "预约执行次数",
@@ -1001,6 +1027,23 @@ def write_data_to_excel():
             ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).value = GL.report_data[d]
             ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).alignment = alignment
             ws.column_dimensions[get_column_letter(a_column_numb + d + len(GL.report_data[0]))].width = 17
+
+            str_triggered_time = change_str_time_and_fmt_time(GL.report_data[2][:12])  # 加1分钟后的触发时间
+            if TEST_CASE_INFO[3] == "Once":     # （触发时间+1）后与预约事件起始时间进行比对
+                if str_triggered_time == GL.report_data[0][0]:
+                    ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
+                elif str_triggered_time != GL.report_data[0][0]:
+                    ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
+            elif TEST_CASE_INFO[3] == "Daily":  # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
+                if str_triggered_time == GL.report_data[1] + GL.report_data[0][0]:
+                    ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
+                elif str_triggered_time != GL.report_data[1] + GL.report_data[0][0]:
+                    ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
+            elif TEST_CASE_INFO[3] in WEEKLY_EVENT_MODE:    # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
+                if str_triggered_time == GL.report_data[1] + GL.report_data[0][0]:
+                    ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
+                elif str_triggered_time != GL.report_data[1] + GL.report_data[0][0]:
+                    ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
         # elif d == 3:    # 等待节目
         #     ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).value = GL.report_data[d]
         #     ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).alignment = alignment
@@ -1033,14 +1076,15 @@ def write_data_to_excel():
             if TEST_CASE_INFO[4] == "PVR":
                 if TEST_CASE_INFO[6] == "Manual_jump" or TEST_CASE_INFO[6] == "Auto_jump":
                     res_dur_split = re.split(":", GL.report_data[0][3])
-                    res_dur_sec_time = int(res_dur_split[0]) * 3600 + int(res_dur_split[1]) * 60 # 换算录制时常信息与预约时间的Duration时长信息对比值
+                    # 换算录制时常信息与预约时间的Duration时长信息对比值
+                    res_dur_sec_time = int(res_dur_split[0]) * 3600 + int(res_dur_split[1]) * 60
                     actual_rec_time = int(GL.report_data[d][:-1])
                     if (res_dur_sec_time - 5) <= actual_rec_time <= (res_dur_sec_time + 5):
                         ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
                     else:
                         ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
                 elif TEST_CASE_INFO[6] == "Cancel_jump":
-                    if GL.report_data[d] == "--:--":
+                    if GL.report_data[d] == "0s":
                         ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
                     else:
                         ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
@@ -1062,26 +1106,26 @@ def manage_report_data_and_write_data():
     logging.info("manage_report_data_and_write_data")
     # 整理数据以及写数据
     GL.title_data[0] = file_path[2]
-    GL.title_data[1] = TEST_CASE_INFO[4]
-    GL.title_data[2] = TEST_CASE_INFO[3]
-    GL.title_data[3] = TEST_CASE_INFO[2]
+    GL.title_data[1] = TEST_CASE_INFO[2]
+    GL.title_data[2] = TEST_CASE_INFO[4]
+    GL.title_data[3] = TEST_CASE_INFO[3]
     GL.title_data[4] = TEST_CASE_INFO[5]
     GL.title_data[5] = TEST_CASE_INFO[6]
     GL.title_data[6] = str(GL.res_triggered_numb)
 
     if TEST_CASE_INFO[4] == "Play":
         # GL.report_data[1] = "pass"                # 系统时间日期
-        GL.report_data[2] = list(res_event_list)[0][0]      # 事件响应时间（跳出跳转提示框的时间）
+        # GL.report_data[2] = list(res_event_list)[0][0]      # 事件响应时间（跳出跳转提示框的时间）
         # GL.report_data[3] = TEST_CASE_INFO[6]   # 等待节目
         GL.report_data[4] = channel_info[1]     # 跳转节目
         GL.report_data[5] = "--:--"              # 录制时长
     elif TEST_CASE_INFO[4] == "PVR":
-        GL.report_data[2] = list(res_event_list)[0][0]
+        # GL.report_data[2] = list(res_event_list)[0][0]
         # GL.report_data[3] = TEST_CASE_INFO[6]
         GL.report_data[4] = channel_info[1]
         GL.report_data[5] = str(GL.pvr_rec_dur_time) + 's'
     elif TEST_CASE_INFO[4] == "Power Off":
-        GL.report_data[2] = list(res_event_list)[0][0]
+        # GL.report_data[2] = list(res_event_list)[0][0]
         GL.report_data[3] = "----"
         GL.report_data[4] = "----"
         GL.report_data[5] = "--:--"
@@ -1110,7 +1154,7 @@ def before_cycle_test_clear_data_and_state():
 
 
 def receive_serial_process(
-        prs_data: object, infrared_send_cmd, rsv_kws, res_event_list, state, current_triggered_event_info, channel_info):
+        prs_data, infrared_send_cmd, rsv_kws, res_event_list, state, current_triggered_event_info, channel_info):
     logging_info_setting()
     rsv_key = {
         "POWER": "0xbbaf", "TV/R": "0xbbbd", "MUTE": "0xbbf7",
@@ -1130,20 +1174,22 @@ def receive_serial_process(
     reverse_rsv_key = dict([val, key] for key, val in rsv_key.items())
 
     res_kws = [
-        "[PTD]Time_mode=",          # 0     获取系统时间模式
-        "[PTD]System_time=",        # 1     系统时间
-        "[PTD]Res_event_numb=",     # 2     预约事件数量
-        "[PTD]Res_event:",          # 3     预约事件信息
-        "[PTD]Res_triggered:",      # 4     预约事件触发和当前响应事件的信息
-        "[PTD]Res_confirm_jump",    # 5     预约事件确认跳转
-        "[PTD]Res_cancel_jump",     # 6     预约事件取消跳转
-        "[PTD]REC_start",           # 7     录制开始
-        "[PTD]REC_end",             # 8     录制结束
-        "[PTD]No_storage_device",   # 9     没有存储设备
-        "[PTD]No_enough_space",     # 10    没有足够的空间
-        "[PTD]power_cut",           # 11    进入待机
-        "[PTD]:switch totle cost",  # 12    开机解码成功
-        "[PTD][HOTPLUG] PLUG_IN",   # 13    存储设备插入成功
+        "[PTD]Time_mode=",              # 0     获取系统时间模式
+        "[PTD]System_time=",            # 1     系统时间
+        "[PTD]Res_event_numb=",         # 2     预约事件数量
+        "[PTD]Res_event:",              # 3     预约事件信息
+        "[PTD]Res_triggered:",          # 4     预约事件触发和当前响应事件的信息
+        "[PTD]Res_confirm_jump",        # 5     预约事件确认跳转
+        "[PTD]Res_cancel_jump",         # 6     预约事件取消跳转
+        "[PTD]REC_start",               # 7     录制开始
+        "[PTD]REC_end",                 # 8     录制结束
+        "[PTD]No_storage_device",       # 9     没有存储设备
+        "[PTD]No_enough_space",         # 10    没有足够的空间
+        "[PTD]power_cut",               # 11    进入待机
+        "[PTD]:switch totle cost",      # 12    开机解码成功
+        "[PTD][HOTPLUG] PLUG_IN",       # 13    存储设备插入成功
+        "[PTD]PVR_is_not_supported",    # 14    录制无信号、加锁节目、加密节目，跳出PVR is not supported!提示
+        "[PTD]Current_sys_time",        # 15    预约事件触发时，检测触发时间信息
     ]
 
     switch_ch_kws = [
@@ -1205,6 +1251,7 @@ def receive_serial_process(
                 state["rec_end_state"] = False
                 state["no_storage_device_state"] = False
                 state["no_enough_space_state"] = False
+                state["pvr_not_supported_state"] = False
                 state["update_event_list_state"] = False
                 state["clear_variate_state"] = False
                 state["power_off_state"] = False
@@ -1309,6 +1356,14 @@ def receive_serial_process(
                 if state["control_power_on_info_rsv_state"]:
                     state["stb_already_power_on_state"] = True
 
+            if res_kws[14] in data2:    # 录制无信号、加锁节目、加密节目，跳出PVR is not supported!提示
+                state["pvr_not_supported_state"] = True
+
+            if res_kws[15] in data2:    # 预约事件触发时系统时间信息
+                cur_sys_time = re.split(r"=", data2)[-1]
+                cur_sys_time_split = re.split(r"[/\s:]", cur_sys_time)
+                rsv_kws["res_triggered_sys_time"] = ''.join(cur_sys_time_split)
+
             if switch_ch_kws[0] in data2:
                 ch_info_split = re.split(r"[\],]", data2)
                 for i in range(len(ch_info_split)):
@@ -1385,7 +1440,7 @@ if __name__ == "__main__":
     REVERSE_KEY = dict([val, key] for key, val in KEY.items())
     # WAIT_INTERFACE = ["TVScreenDiffCH", "RadioScreenDiffCH", "ChannelList", "Menu", "EPG", "ChannelEdit"]
     WEEKLY_EVENT_MODE = ["Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
-    TEST_CASE_INFO = ["23", "All", "TV", "Daily", "PVR", "EPG", "Manual_jump"]
+    TEST_CASE_INFO = ["23", "All", "TV", "Daily", "Play", "EPG", "Manual_jump"]
 
     file_path = build_log_and_report_file_path()
     ser_name = list(check_ports())  # send_ser_name, receive_ser_name
@@ -1399,7 +1454,8 @@ if __name__ == "__main__":
     rsv_kws = Manager().dict({
         "sys_time_mode": '', "current_sys_time": '', "res_event_numb": '', "prog_group_name": '',
         "prog_group_total": '', "edit_event_focus_pos": '', "edit_event_mode": '', "edit_event_type": '',
-        "edit_event_date": '', "edit_event_time": '', "edit_event_duration": '', "edit_event_ch": ''
+        "edit_event_date": '', "edit_event_time": '', "edit_event_duration": '', "edit_event_ch": '',
+        "res_triggered_sys_time": '',
     })
 
     state = Manager().dict({
@@ -1408,11 +1464,11 @@ if __name__ == "__main__":
         "no_storage_device_state": False, "no_enough_space_state": False, "power_off_state": False,
         "sys_time_mode_state": False, "current_sys_time_state": False, "update_event_list_state": False,
         "clear_variate_state": False, "receive_loop_state": False, "control_power_on_info_rsv_state": False,
-        "stb_already_power_on_state": False, "res_event_info_state": False,
+        "stb_already_power_on_state": False, "res_event_info_state": False, "pvr_not_supported_state": False
     })
 
     prs_data = Manager().dict({
-        "log_file_path": file_path[0], "receive_serial_name": receive_ser_name, "case_res_event_mode": TEST_CASE_INFO[3],
+        "log_file_path": file_path[0], "receive_serial_name": receive_ser_name, "case_res_event_mode": TEST_CASE_INFO[3]
     })
 
     rsv_p = Process(target=receive_serial_process, args=(
