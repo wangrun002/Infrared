@@ -4,6 +4,7 @@
 import os
 import re
 import time
+import platform
 
 test_cast_list = []
 
@@ -22,5 +23,8 @@ test_cast_list.sort(key=get_case_numb)     # 按照文件名称中的数字进�
 print(test_cast_list)
 
 for i in range(len(test_cast_list)):
-    os.system("python3 %s" % test_cast_list[i])
+    if platform.system() == "Windows":
+        os.system("python %s" % test_cast_list[i])
+    elif platform.system() == "Linux":
+        os.system("python3 %s" % test_cast_list[i])
     time.sleep(10)
