@@ -5,14 +5,14 @@ screen_test_numb = 20
 other_interface_test_numb = 50
 total_list = []
 n = 0
-res_type = ["Play", "PVR", "Power 0ff"]
+res_type = ["Play", "PVR", "Power Off"]
 res_mode = ["Once", "Daily", "Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
 jump_mode = ["Manual_jump", "Auto_jump", "Cancel_jump"]
 
 for i in res_type:
     for j in res_mode:
         for k in jump_mode:
-            if i == "Power 0ff":
+            if i == "Power Off":
                 if j == "Once" or j == "Daily" or j == "Mon.":
                     single_list = ["", "All", "TV", "", "", "TVScreenDiffCH", "", "screen_test_numb"]
                     single_list[0] = "{0:02d}".format(n)
