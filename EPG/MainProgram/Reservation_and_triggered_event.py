@@ -48,7 +48,7 @@ def logging_info_setting():
     # 配置logging输出格式
     LOG_FORMAT = "%(asctime)s %(name)s %(levelname)s %(message)s"  # 配置输出日志的格式
     DATE_FORMAT = "%Y-%m-%d %H:%M:%S %a"  # 配置输出时间的格式
-    logging.basicConfig(level=logging.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
+    logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
 
 
 def hex_strs_to_bytes(strings):
