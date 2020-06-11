@@ -91,9 +91,15 @@ with open("example_file.py","r") as f:
 
 def build_x_numb_python_file():
     for i in range(len(all_test_case)):
-        python_file_path = "test_{}_{}_{}_{}_{}_{}.py".format(all_test_case[i][0], all_test_case[i][2],
-                                                              all_test_case[i][3], all_test_case[i][4],
-                                                              all_test_case[i][5], all_test_case[i][6])
+        if all_test_case[i][4] == "Power Off":      # 这里要注意py文件的名称不能有空格，会导致python3 xxx.py执行错误
+            python_file_path = "test_{}_{}_{}_{}_{}_{}.py".format(
+                all_test_case[i][0], all_test_case[i][2],
+                all_test_case[i][3], all_test_case[i][4].replace(" ", ''),
+                all_test_case[i][5], all_test_case[i][6])
+        else:
+            python_file_path = "test_{}_{}_{}_{}_{}_{}.py".format(all_test_case[i][0], all_test_case[i][2],
+                                                                  all_test_case[i][3], all_test_case[i][4],
+                                                                  all_test_case[i][5], all_test_case[i][6])
         with open(python_file_path,"a+") as fo:
             for j in range(len(read_data)):
                 if "choice_case_numb =" in read_data[j]:
