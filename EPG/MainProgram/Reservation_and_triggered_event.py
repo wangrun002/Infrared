@@ -264,7 +264,7 @@ def choice_ch_for_res_event_type():
 
 def calculate_expected_event_start_time():
     logging.info("calculate_expected_event_start_time")
-    time_interval = 2
+    time_interval = 3
     sys_time = rsv_kws['current_sys_time']
     sys_time_split = re.split(r"[\s:/]", sys_time)
     sys_year = int(sys_time_split[0])
