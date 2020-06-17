@@ -83,7 +83,7 @@ all_test_case = [
 
 read_data = []
 
-with open("example_file.py","r") as f:
+with open("res_event_example_file.py","r") as f:
     for line in f.readlines():
         print(line, end='')
         read_data.append(line)
