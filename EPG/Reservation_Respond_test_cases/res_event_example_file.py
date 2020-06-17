@@ -8,7 +8,7 @@ import platform
 choice_case_numb = 0
 
 parent_path = os.path.dirname(os.getcwd())
-main_file_path = os.path.join(parent_path, "MainProgram","Reservation_and_triggered_event.py")
+main_file_path = os.path.join(parent_path, "MainProgram", "Reservation_and_triggered_event.py")
 test_file_path = os.path.join(os.getcwd(), "Reservation_and_triggered_event.py")
 
 shutil.copy(main_file_path, os.getcwd())
@@ -97,4 +97,3 @@ all_test_case = [
     ['75', 'All', 'TV', 'Fri.', 'Play', 'EPG', 'Manual_jump', 'other_interface_test_numb'],
     ['76', 'All', 'TV', 'Once', 'Play', 'ChannelEdit', 'Manual_jump', 'other_interface_test_numb']
 ]
-
