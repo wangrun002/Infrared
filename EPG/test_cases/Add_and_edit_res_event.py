@@ -19,19 +19,12 @@ import sys
 
 
 # choice_case_numb = int(sys.argv[1])
-# TEST_CASE_INFO = all_test_case[choice_case_numb]
+# choice_case_numb = 89
+# TEST_CASE_INFO = edit_res_case[choice_case_numb]
 # print(TEST_CASE_INFO)
-TEST_CASE_INFO = ["23",                 # 0
-                  "All",                # 1
-                  "TV",                 # 2
-                  "Tues.",              # 3
-                  "Power Off",               # 4
-                  "TVScreenDiffCH",     # 5
-                  "Manual_jump",        # 6
-                  "ModifyTime",         # 7
-                  "Tues.",              # 8
-                  "Power Off",               # 9
-                  "screen_test_numb"]   # 10
+
+
+TEST_CASE_INFO = ["29", "All", "TV", "Daily", "PVR", "TVScreenDiffCH", "Manual_jump", "ModifyMode", "Mon.", "PVR", "screen_test_numb"]
 
 
 class MyGlobal(object):
@@ -119,14 +112,14 @@ def build_log_and_report_file_path():
         os.mkdir(report_directory_path)
     # 创建打印和报告文件的名称和路径
     time_info = re.sub(r"[-: ]", "_", str(datetime.now())[:19])
-    fmt_name = "{}_{}_{}_{}_{}_event_{}_triggered_{}".format(
-        TEST_CASE_INFO[0], TEST_CASE_INFO[1], TEST_CASE_INFO[2],
-        TEST_CASE_INFO[4], TEST_CASE_INFO[3], TEST_CASE_INFO[5], TEST_CASE_INFO[6])
+    fmt_name = "{}_{}_{}_{}_{}_{}_{}_{}".format(
+        TEST_CASE_INFO[0], TEST_CASE_INFO[1], TEST_CASE_INFO[2], TEST_CASE_INFO[4],
+        TEST_CASE_INFO[3], TEST_CASE_INFO[7], TEST_CASE_INFO[9], TEST_CASE_INFO[8])
     log_file_name = "Log_{}_{}.txt".format(fmt_name, time_info)
     log_file_path = os.path.join(log_directory_path, log_file_name)
     report_file_name = "{}_{}.xlsx".format(fmt_name, time_info)
     report_file_path = os.path.join(report_directory_path, report_file_name)
-    sheet_name = "{}_{}_{}".format(TEST_CASE_INFO[2], TEST_CASE_INFO[4], TEST_CASE_INFO[3])
+    sheet_name = "{}_{}_{}_{}".format(TEST_CASE_INFO[2], TEST_CASE_INFO[4], TEST_CASE_INFO[3], TEST_CASE_INFO[7])
     return log_file_path, report_file_path, sheet_name
 
 
@@ -230,7 +223,7 @@ def choice_ch_for_res_event_type():
     # 退出频道列表,回到大画面界面
     send_commd(KEY["EXIT"])
     # 根据用例指定的事件类型来选择节目
-    if TEST_CASE_INFO[4] == "Play":
+    if TEST_CASE_INFO[9] == "Play":
         choice_ch_numb.append(str(randint(1, int(group_dict[TEST_CASE_INFO[1]]))))
         choice_ch_cmd = change_numbs_to_commds_list(choice_ch_numb)
         for i in range(len(choice_ch_cmd)):
@@ -244,7 +237,7 @@ def choice_ch_for_res_event_type():
         GL.choice_res_ch = channel_info[1]
         logging.info(channel_info)
 
-    elif TEST_CASE_INFO[4] == "PVR":
+    elif TEST_CASE_INFO[9] == "PVR":
         choice_ch_numb.append(str(randint(1, int(group_dict[TEST_CASE_INFO[1]]))))
         choice_ch_cmd = change_numbs_to_commds_list(choice_ch_numb)
         for i in range(len(choice_ch_cmd)):
@@ -268,7 +261,7 @@ def choice_ch_for_res_event_type():
             GL.choice_res_ch = channel_info[1]
             logging.info(channel_info)
 
-    elif TEST_CASE_INFO[4] == "Power Off":
+    elif TEST_CASE_INFO[9] == "Power Off":
         logging.info(f"当前用例为{TEST_CASE_INFO[4]}，不需要切换节目")
 
 
@@ -521,12 +514,12 @@ def calc_modify_system_time():
     cur_hour = int(full_cyc_event_date_time[8:10])
     cur_minute = int(full_cyc_event_date_time[10:12])
     cur_date = datetime(cur_year, cur_month, cur_day, cur_hour, cur_minute)
-    if TEST_CASE_INFO[3] == "Once":
+    if TEST_CASE_INFO[8] == "Once":
         next_triggered_time = cur_date - timedelta(minutes=ahead_of_time)
         next_triggered_time_split = re.split(r"[-\s:]", str(next_triggered_time))
         fmt_next_sys_date_time = ''.join(next_triggered_time_split)[:12]  # 去掉末尾的秒钟信息
 
-    elif TEST_CASE_INFO[3] == "Daily":
+    elif TEST_CASE_INFO[8] == "Daily":
         if GL.event_already_triggered_numb == 0:
             next_triggered_time = cur_date - timedelta(minutes=ahead_of_time)
             next_triggered_time_split = re.split(r"[-\s:]", str(next_triggered_time))
@@ -537,9 +530,9 @@ def calc_modify_system_time():
             next_sys_date_time_split = re.split(r"[-\s:]", str(next_sys_date_time))
             fmt_next_sys_date_time = ''.join(next_sys_date_time_split)[:12]     # 去掉末尾的秒钟信息
 
-    elif TEST_CASE_INFO[3] in weekly_event_mode:
+    elif TEST_CASE_INFO[8] in weekly_event_mode:
         cur_weekday = date(cur_year, cur_month, cur_day).weekday()
-        res_event_weekday = weekday_num_dict[TEST_CASE_INFO[3]]
+        res_event_weekday = weekday_num_dict[TEST_CASE_INFO[8]]
         if cur_weekday == res_event_weekday:
             if GL.event_already_triggered_numb == 0:
                 next_triggered_time = cur_date - timedelta(minutes=ahead_of_time)
@@ -695,7 +688,7 @@ def res_event_triggered_and_choice_jump_type():
     exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
     weekly_event_mode = ["Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
     # 事件触发后选择跳转方式
-    if TEST_CASE_INFO[4] == "Play":
+    if TEST_CASE_INFO[9] == "Play":
         if TEST_CASE_INFO[6] == "Manual_jump":
             time.sleep(5)
             logging.info("选择手动跳转")
@@ -747,7 +740,7 @@ def res_event_triggered_and_choice_jump_type():
                 else:
                     logging.info(f"警告：没有取消跳转成功，当前节目与触发事件的节目为:{channel_info[1]}--{current_triggered_event_info[2]}")
 
-    if TEST_CASE_INFO[4] == "PVR":
+    if TEST_CASE_INFO[9] == "PVR":
         if TEST_CASE_INFO[6] == "Manual_jump":
             time.sleep(5)
             logging.info("选择手动跳转")
@@ -770,14 +763,17 @@ def res_event_triggered_and_choice_jump_type():
             while not state["rec_start_state"]:
                 if state["no_storage_device_state"]:
                     logging.info("警告：没有插入存储设备")
+                    GL.pvr_rec_dur_time = 0
                     state["receive_loop_state"] = True
                     break
                 if state["no_enough_space_state"]:
                     logging.info("警告：存储设备没有足够的空间")
+                    GL.pvr_rec_dur_time = 0
                     state["receive_loop_state"] = True
                     break
                 if state["pvr_not_supported_state"]:
                     logging.info("警告：当前录制节目为加密节目，或加锁节目，或无信号，请检查")
+                    GL.pvr_rec_dur_time = 0
                     state["receive_loop_state"] = True
                     break
             else:
@@ -859,7 +855,7 @@ def res_event_triggered_and_choice_jump_type():
                     logging.info(f"警告：没有取消跳转成功，当前节目与触发事件的节目为:{channel_info[1]}--{current_triggered_event_info[2]}")
             GL.pvr_rec_dur_time = 0     # 取消跳转时，录制持续时长为0
 
-    if TEST_CASE_INFO[4] == "Power Off":
+    if TEST_CASE_INFO[9] == "Power Off":
         if TEST_CASE_INFO[6] == "Manual_jump":
             time.sleep(5)
             logging.info("选择手动跳转")
@@ -1080,17 +1076,17 @@ def write_data_to_excel():
             ws.column_dimensions[get_column_letter(a_column_numb + len_total + (d - 1))].width = 15
 
             str_triggered_time = change_str_time_and_fmt_time(GL.report_data[3][:12])  # 加1分钟后的触发时间
-            if TEST_CASE_INFO[3] == "Once":     # （触发时间+1）后与预约事件起始时间进行比对
+            if TEST_CASE_INFO[8] == "Once":     # （触发时间+1）后与预约事件起始时间进行比对
                 if str_triggered_time == GL.report_data[1][0]:
                     ws.cell(GL.start_row + interval_row + 1, d + len_total).font = blue_font
                 elif str_triggered_time != GL.report_data[1][0]:
                     ws.cell(GL.start_row + interval_row + 1, d + len_total).font = red_font
-            elif TEST_CASE_INFO[3] == "Daily":  # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
+            elif TEST_CASE_INFO[8] == "Daily":  # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
                 if str_triggered_time == GL.report_data[2] + GL.report_data[1][0]:
                     ws.cell(GL.start_row + interval_row + 1, d + len_total).font = blue_font
                 elif str_triggered_time != GL.report_data[2] + GL.report_data[1][0]:
                     ws.cell(GL.start_row + interval_row + 1, d + len_total).font = red_font
-            elif TEST_CASE_INFO[3] in WEEKLY_EVENT_MODE:    # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
+            elif TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:    # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
                 if str_triggered_time == GL.report_data[2] + GL.report_data[1][0]:
                     ws.cell(GL.start_row + interval_row + 1, d + len_total).font = blue_font
                 elif str_triggered_time != GL.report_data[2] + GL.report_data[1][0]:
@@ -1100,7 +1096,7 @@ def write_data_to_excel():
             ws.cell(GL.start_row + interval_row + 1, d + len_total).value = GL.report_data[d]
             ws.cell(GL.start_row + interval_row + 1, d + len_total).alignment = alignment
             ws.column_dimensions[get_column_letter(a_column_numb + len_total + (d - 1))].width = 15
-            if TEST_CASE_INFO[4] == "Play" or TEST_CASE_INFO[4] == "PVR":
+            if TEST_CASE_INFO[9] == "Play" or TEST_CASE_INFO[9] == "PVR":
                 if TEST_CASE_INFO[6] == "Manual_jump" or TEST_CASE_INFO[6] == "Auto_jump":
                     if GL.report_data[d] == GL.report_data[1][2]:
                         ws.cell(GL.start_row + interval_row + 1, d + len_total).font = blue_font
@@ -1111,7 +1107,7 @@ def write_data_to_excel():
                         ws.cell(GL.start_row + interval_row + 1, d + len_total).font = blue_font
                     else:
                         ws.cell(GL.start_row + interval_row + 1, d + len_total).font = red_font
-            elif TEST_CASE_INFO[4] == "Power Off":
+            elif TEST_CASE_INFO[9] == "Power Off":
                 if GL.report_data[d] == "----":
                     ws.cell(GL.start_row + interval_row + 1, d + len_total).font = blue_font
                 else:
@@ -1121,7 +1117,7 @@ def write_data_to_excel():
             ws.cell(GL.start_row + interval_row + 1, d + len_total).value = GL.report_data[d]
             ws.cell(GL.start_row + interval_row + 1, d + len_total).alignment = alignment
             ws.column_dimensions[get_column_letter(a_column_numb + len_total + (d - 1))].width = 15
-            if TEST_CASE_INFO[4] == "PVR":
+            if TEST_CASE_INFO[9] == "PVR":
                 if TEST_CASE_INFO[6] == "Manual_jump" or TEST_CASE_INFO[6] == "Auto_jump":
                     res_dur_split = re.split(":", GL.report_data[1][3])
                     # 换算录制时常信息与预约时间的Duration时长信息对比值
@@ -1136,7 +1132,7 @@ def write_data_to_excel():
                         ws.cell(GL.start_row + interval_row + 1, d + len_total).font = blue_font
                     else:
                         ws.cell(GL.start_row + interval_row + 1, d + len_total).font = red_font
-            elif TEST_CASE_INFO[4] == "Play" or TEST_CASE_INFO[4] == "Power Off":
+            elif TEST_CASE_INFO[9] == "Play" or TEST_CASE_INFO[9] == "Power Off":
                 if GL.report_data[d] == "--:--":
                     ws.cell(GL.start_row + interval_row + 1, d + len_total).font = blue_font
                 else:
@@ -1156,24 +1152,24 @@ def manage_report_data_and_write_data():
     # 整理数据以及写数据
     GL.title_data[0] = file_path[2]
     GL.title_data[1] = TEST_CASE_INFO[2]
-    GL.title_data[2] = TEST_CASE_INFO[4]
-    GL.title_data[3] = TEST_CASE_INFO[3]
+    GL.title_data[2] = TEST_CASE_INFO[9]
+    GL.title_data[3] = TEST_CASE_INFO[8]
     GL.title_data[4] = TEST_CASE_INFO[5]
     GL.title_data[5] = TEST_CASE_INFO[6]
     GL.title_data[6] = str(GL.res_triggered_numb)
 
-    if TEST_CASE_INFO[4] == "Play":
+    if TEST_CASE_INFO[9] == "Play":
         # GL.report_data[2] = "pass"                # 系统时间日期
         # GL.report_data[3] = list(res_event_list)[0][0]      # 事件响应时间（跳出跳转提示框的时间）
         # GL.report_data[4] = TEST_CASE_INFO[6]   # 等待节目
         GL.report_data[5] = channel_info[1]     # 跳转节目
         GL.report_data[6] = "--:--"              # 录制时长
-    elif TEST_CASE_INFO[4] == "PVR":
+    elif TEST_CASE_INFO[9] == "PVR":
         # GL.report_data[3] = list(res_event_list)[0][0]
         # GL.report_data[4] = TEST_CASE_INFO[6]
         GL.report_data[5] = channel_info[1]
         GL.report_data[6] = str(GL.pvr_rec_dur_time) + 's'
-    elif TEST_CASE_INFO[4] == "Power Off":
+    elif TEST_CASE_INFO[9] == "Power Off":
         # GL.report_data[3] = list(res_event_list)[0][0]
         GL.report_data[4] = "----"
         GL.report_data[5] = "----"
@@ -1238,14 +1234,14 @@ def calculate_expected_edit_event_start_time():
             expected_res_time = "{0:02d}".format(new_hour) + "{0:02d}".format(new_minute)
             str_expected_res_time = expected_res_time
     elif TEST_CASE_INFO[7] == "ModifyMode":
-        if TEST_CASE_INFO[3] == "Once":
-            if TEST_CASE_INFO[8] == "Daily" or TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:
+        if TEST_CASE_INFO[3] == "Once":     # 原事件Mode
+            if TEST_CASE_INFO[8] == "Daily" or TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:  # 新事件Mode
                 logging.info(f"单次事件:{TEST_CASE_INFO[3]}--改循环事件{TEST_CASE_INFO[8]}")
                 str_expected_res_time = start_time[8:]
-            elif TEST_CASE_INFO[8] == "Once":
+            elif TEST_CASE_INFO[8] == "Once":   # 新事件Mode
                 str_expected_res_time = start_time
-        elif TEST_CASE_INFO[3] == "Daily" or TEST_CASE_INFO[3] in WEEKLY_EVENT_MODE:
-            if TEST_CASE_INFO[8] == "Daily" or TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:
+        elif TEST_CASE_INFO[3] == "Daily" or TEST_CASE_INFO[3] in WEEKLY_EVENT_MODE:    # 原事件Mode
+            if TEST_CASE_INFO[8] == "Daily" or TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:  # 新事件Mode
                 logging.info(f"循环事件:{TEST_CASE_INFO[3]}--改循环事件{TEST_CASE_INFO[8]}")
                 old_hour = int(start_time[:2])
                 old_minute = int(start_time[2:])
@@ -1262,7 +1258,7 @@ def calculate_expected_edit_event_start_time():
                         new_hour = (old_hour + 1) - 24
                 expected_res_time = "{0:02d}".format(new_hour) + "{0:02d}".format(new_minute)
                 str_expected_res_time = expected_res_time
-            elif TEST_CASE_INFO[8] == "Once":
+            elif TEST_CASE_INFO[8] == "Once":   # 新事件Mode
                 logging.info(f"循环事件:{TEST_CASE_INFO[3]}--改单次事件{TEST_CASE_INFO[8]}")
                 sys_time = rsv_kws['current_sys_time']
                 logging.info(sys_time)
@@ -1281,11 +1277,44 @@ def calculate_expected_edit_event_start_time():
     return str_expected_res_time
 
 
+def calculate_expected_edit_event_duration_time():
+    logging.info("calculate_expected_edit_event_duration_time")
+    dur_time = ''
+    interval_dur = 1        # 更改录制时长的变量
+    if TEST_CASE_INFO[4] == "PVR":
+        dur_time = GL.res_event_mgr[0][3]  # 原新增预约事件的起始时间
+    else:
+        logging.info(f"请注意，当前事件不是PVR事件，而是{TEST_CASE_INFO[4]}事件")
+
+    if TEST_CASE_INFO[7] == "ModifyDuration":
+        res_dur_split = re.split(":", dur_time)
+        res_dur_hour_info = int(res_dur_split[0])
+        res_dur_minute_info = int(res_dur_split[1])
+        new_hour = 0
+        new_minute = 0
+        if res_dur_minute_info + interval_dur < 60:
+            new_minute = res_dur_minute_info + interval_dur
+            new_hour = res_dur_hour_info
+        elif res_dur_minute_info + interval_dur >= 60:
+            new_minute = (res_dur_minute_info + interval_dur) - 60
+            if res_dur_hour_info + 1 < 24:
+                new_hour = res_dur_hour_info + 1
+            elif res_dur_hour_info + 1 >= 24:       # 等于24的情况可能会出现问题，但是目前的用例应该不会遇到
+                new_hour = (res_dur_hour_info + 1) - 24
+        new_dur_time = "{0:02d}".format(new_hour) + "{0:02d}".format(new_minute)
+        str_expected_dur_time = new_dur_time
+
+    else:
+        logging.info("当前事件不需要更改Duration，保持默认值")
+        str_expected_dur_time = "0001"
+    return str_expected_dur_time
+
+
 def create_expected_edit_event_info():
     logging.info("create_expected_edit_event_info")
-    # 创建期望的事件信息
+    # 创建修改后的期望的事件信息
     expected_edit_event_info = ['', '', '', '', '']      # [起始时间，事件响应类型，节目名称，持续时间，事件触发模式]
-    duration_time = "0001"
+    duration_time = calculate_expected_edit_event_duration_time()
     if TEST_CASE_INFO[9] == "Play":
         # choice_ch_for_res_event_type()
         # if TEST_CASE_INFO[3] == "Once":
@@ -1720,8 +1749,9 @@ if __name__ == "__main__":
 
     GL = MyGlobal()
     logging_info_setting()
-    msg = "现在开始执行的是:{}_{}_{}_{}_{}_{}".format(TEST_CASE_INFO[0], TEST_CASE_INFO[2], TEST_CASE_INFO[3],
-                                              TEST_CASE_INFO[4], TEST_CASE_INFO[5], TEST_CASE_INFO[6])
+    msg = "现在开始执行的是:{}_{}_{}_{}_{}_{}_{}_{}".format(
+        TEST_CASE_INFO[0], TEST_CASE_INFO[1], TEST_CASE_INFO[2], TEST_CASE_INFO[4],
+        TEST_CASE_INFO[3], TEST_CASE_INFO[7], TEST_CASE_INFO[9], TEST_CASE_INFO[8])
     logging.critical(format(msg, '*^150'))
     KEY = {
         "POWER": "A1 F1 22 DD 0A", "TV/R": "A1 F1 22 DD 42", "MUTE": "A1 F1 22 DD 10",
@@ -1770,7 +1800,7 @@ if __name__ == "__main__":
     })
 
     prs_data = Manager().dict({
-        "log_file_path": file_path[0], "receive_serial_name": receive_ser_name, "case_res_event_mode": TEST_CASE_INFO[3]
+        "log_file_path": file_path[0], "receive_serial_name": receive_ser_name, "case_res_event_mode": TEST_CASE_INFO[8]
     })
 
     rsv_p = Process(target=receive_serial_process, args=(
