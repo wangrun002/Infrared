@@ -23,8 +23,20 @@ import sys
 # TEST_CASE_INFO = edit_res_case[choice_case_numb]
 # print(TEST_CASE_INFO)
 
+Modify_list = [
+    "ModifyTime",
+    "ModifyType",
+    "ModifyDuration",
+    "ModifyMode",
+    "ModifyTime+ModifyType",
+    "ModifyTime+ModifyDuration",
+    "ModifyTime+ModifyMode",
+    "ModifyType+ModifyDuration",
+    "ModifyType+ModifyMode",
+    "ModifyDuration+ModifyMode",
+]
 
-TEST_CASE_INFO = ["29", "All", "TV", "Daily", "PVR", "TVScreenDiffCH", "Manual_jump", "ModifyMode", "Mon.", "PVR", "screen_test_numb"]
+TEST_CASE_INFO = ["35", "All", "TV", "Once", "Play", "TVScreenDiffCH", "Manual_jump", "ModifyType+ModifyDuration", "Once", "PVR", "screen_test_numb"]
 
 
 class MyGlobal(object):
@@ -1204,7 +1216,7 @@ def calculate_expected_edit_event_start_time():
     time_interval = 5
     str_expected_res_time = ''
     start_time = GL.res_event_mgr[0][0]       # 原新增预约事件的起始时间
-    if TEST_CASE_INFO[7] == "ModifyTime":
+    if TEST_CASE_INFO[7] == "ModifyTime" or "ModifyTime" in TEST_CASE_INFO[7]:
         if len(start_time) == 12:     # 原事件为Once事件
             old_year = int(start_time[:4])
             old_month = int(start_time[4:6])
@@ -1233,7 +1245,7 @@ def calculate_expected_edit_event_start_time():
                     new_hour = (old_hour + 1) - 24
             expected_res_time = "{0:02d}".format(new_hour) + "{0:02d}".format(new_minute)
             str_expected_res_time = expected_res_time
-    elif TEST_CASE_INFO[7] == "ModifyMode":
+    elif TEST_CASE_INFO[7] == "ModifyMode" or "ModifyMode" in TEST_CASE_INFO[7]:
         if TEST_CASE_INFO[3] == "Once":     # 原事件Mode
             if TEST_CASE_INFO[8] == "Daily" or TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:  # 新事件Mode
                 logging.info(f"单次事件:{TEST_CASE_INFO[3]}--改循环事件{TEST_CASE_INFO[8]}")
@@ -1243,21 +1255,22 @@ def calculate_expected_edit_event_start_time():
         elif TEST_CASE_INFO[3] == "Daily" or TEST_CASE_INFO[3] in WEEKLY_EVENT_MODE:    # 原事件Mode
             if TEST_CASE_INFO[8] == "Daily" or TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:  # 新事件Mode
                 logging.info(f"循环事件:{TEST_CASE_INFO[3]}--改循环事件{TEST_CASE_INFO[8]}")
-                old_hour = int(start_time[:2])
-                old_minute = int(start_time[2:])
-                new_hour = 0
-                new_minute = 0
-                if old_minute + time_interval < 60:
-                    new_minute = old_minute + time_interval
-                    new_hour = old_hour
-                elif old_minute + time_interval >= 60:
-                    new_minute = (old_minute + time_interval) - 60
-                    if old_hour + 1 < 24:
-                        new_hour = old_hour + 1
-                    elif old_hour + 1 >= 24:
-                        new_hour = (old_hour + 1) - 24
-                expected_res_time = "{0:02d}".format(new_hour) + "{0:02d}".format(new_minute)
-                str_expected_res_time = expected_res_time
+                # old_hour = int(start_time[:2])
+                # old_minute = int(start_time[2:])
+                # new_hour = 0
+                # new_minute = 0
+                # if old_minute + time_interval < 60:
+                #     new_minute = old_minute + time_interval
+                #     new_hour = old_hour
+                # elif old_minute + time_interval >= 60:
+                #     new_minute = (old_minute + time_interval) - 60
+                #     if old_hour + 1 < 24:
+                #         new_hour = old_hour + 1
+                #     elif old_hour + 1 >= 24:
+                #         new_hour = (old_hour + 1) - 24
+                # expected_res_time = "{0:02d}".format(new_hour) + "{0:02d}".format(new_minute)
+                # str_expected_res_time = expected_res_time
+                str_expected_res_time = start_time
             elif TEST_CASE_INFO[8] == "Once":   # 新事件Mode
                 logging.info(f"循环事件:{TEST_CASE_INFO[3]}--改单次事件{TEST_CASE_INFO[8]}")
                 sys_time = rsv_kws['current_sys_time']
@@ -1279,30 +1292,35 @@ def calculate_expected_edit_event_start_time():
 
 def calculate_expected_edit_event_duration_time():
     logging.info("calculate_expected_edit_event_duration_time")
-    dur_time = ''
+    str_expected_dur_time = ''
     interval_dur = 1        # 更改录制时长的变量
-    if TEST_CASE_INFO[4] == "PVR":
-        dur_time = GL.res_event_mgr[0][3]  # 原新增预约事件的起始时间
-    else:
-        logging.info(f"请注意，当前事件不是PVR事件，而是{TEST_CASE_INFO[4]}事件")
+    specified_dur_time = "0002"   # ModifyType+ModifyDuration时会出现无Dur_time改有Dur_time的情况，直接指定时间
 
-    if TEST_CASE_INFO[7] == "ModifyDuration":
-        res_dur_split = re.split(":", dur_time)
-        res_dur_hour_info = int(res_dur_split[0])
-        res_dur_minute_info = int(res_dur_split[1])
-        new_hour = 0
-        new_minute = 0
-        if res_dur_minute_info + interval_dur < 60:
-            new_minute = res_dur_minute_info + interval_dur
-            new_hour = res_dur_hour_info
-        elif res_dur_minute_info + interval_dur >= 60:
-            new_minute = (res_dur_minute_info + interval_dur) - 60
-            if res_dur_hour_info + 1 < 24:
-                new_hour = res_dur_hour_info + 1
-            elif res_dur_hour_info + 1 >= 24:       # 等于24的情况可能会出现问题，但是目前的用例应该不会遇到
-                new_hour = (res_dur_hour_info + 1) - 24
-        new_dur_time = "{0:02d}".format(new_hour) + "{0:02d}".format(new_minute)
-        str_expected_dur_time = new_dur_time
+    if TEST_CASE_INFO[7] == "ModifyDuration" or "ModifyDuration" in TEST_CASE_INFO[7]:
+        if TEST_CASE_INFO[4] == "PVR" and TEST_CASE_INFO[9] == "PVR":   # 单项ModifyDuration
+            dur_time = GL.res_event_mgr[0][3]  # 原新增预约事件的持续时间
+            res_dur_split = re.split(":", dur_time)
+            res_dur_hour_info = int(res_dur_split[0])
+            res_dur_minute_info = int(res_dur_split[1])
+            new_hour = 0
+            new_minute = 0
+            if res_dur_minute_info + interval_dur < 60:
+                new_minute = res_dur_minute_info + interval_dur
+                new_hour = res_dur_hour_info
+            elif res_dur_minute_info + interval_dur >= 60:
+                new_minute = (res_dur_minute_info + interval_dur) - 60
+                if res_dur_hour_info + 1 < 24:
+                    new_hour = res_dur_hour_info + 1
+                elif res_dur_hour_info + 1 >= 24:  # 等于24的情况可能会出现问题，但是目前的用例应该不会遇到
+                    new_hour = (res_dur_hour_info + 1) - 24
+            new_dur_time = "{0:02d}".format(new_hour) + "{0:02d}".format(new_minute)
+            str_expected_dur_time = new_dur_time
+        elif TEST_CASE_INFO[4] != "PVR" and TEST_CASE_INFO[9] == "PVR":   # 多项修改且包含ModifyDuration
+            dur_time = GL.res_event_mgr[0][3]  # 原新增预约事件的持续时间
+            if dur_time == "--:--":
+                str_expected_dur_time = specified_dur_time
+        else:
+            logging.info(f"请注意，当前事件不是PVR事件，而是{TEST_CASE_INFO[4]}事件")
 
     else:
         logging.info("当前事件不需要更改Duration，保持默认值")
