@@ -18,10 +18,10 @@ import re
 import sys
 
 
-# choice_case_numb = int(sys.argv[1])
-# choice_case_numb = 89
-# TEST_CASE_INFO = edit_res_case[choice_case_numb]
-# print(TEST_CASE_INFO)
+choice_case_numb = int(sys.argv[1])
+# choice_case_numb = 1844
+TEST_CASE_INFO = edit_res_case[choice_case_numb]
+print(TEST_CASE_INFO)
 
 Modify_list = [
     "ModifyTime",
@@ -34,16 +34,20 @@ Modify_list = [
     "ModifyType+ModifyDuration",
     "ModifyType+ModifyMode",
     "ModifyDuration+ModifyMode",
+    "ModifyTime+ModifyType+ModifyDuration",
+    "ModifyTime+ModifyType+ModifyMode",
+    "ModifyType+ModifyDuration+ModifyMode",
+    "ModifyTime+ModifyType+ModifyDuration+ModifyMode"
 ]
 
-TEST_CASE_INFO = ["35", "All", "TV", "Once", "Play", "TVScreenDiffCH", "Manual_jump", "ModifyType+ModifyDuration", "Once", "PVR", "screen_test_numb"]
+# TEST_CASE_INFO = ["35", "All", "TV", "Once", "Play", "TVScreenDiffCH", "Manual_jump", "ModifyType+ModifyDuration", "Once", "PVR", "screen_test_numb"]
 
 
 class MyGlobal(object):
 
     def __init__(self):
         if TEST_CASE_INFO[-1] == "screen_test_numb":
-            self.res_triggered_numb = 2                 # 大画面预约响应的次数
+            self.res_triggered_numb = 1                 # 大画面预约响应的次数
         elif TEST_CASE_INFO[-1] == "other_interface_test_numb":
             self.res_triggered_numb = 1                 # 其他界面预约响应的次数
 
@@ -124,14 +128,17 @@ def build_log_and_report_file_path():
         os.mkdir(report_directory_path)
     # 创建打印和报告文件的名称和路径
     time_info = re.sub(r"[-: ]", "_", str(datetime.now())[:19])
+    rename_modify_type = TEST_CASE_INFO[7].replace('Modify', '')        # 用于提取TEST_CASE_INFO[7]中重复的Modify
+    sheet_name = f"Modify({rename_modify_type})"
+
     fmt_name = "{}_{}_{}_{}_{}_{}_{}_{}".format(
         TEST_CASE_INFO[0], TEST_CASE_INFO[1], TEST_CASE_INFO[2], TEST_CASE_INFO[4],
-        TEST_CASE_INFO[3], TEST_CASE_INFO[7], TEST_CASE_INFO[9], TEST_CASE_INFO[8])
+        TEST_CASE_INFO[3], sheet_name, TEST_CASE_INFO[9], TEST_CASE_INFO[8])
     log_file_name = "Log_{}_{}.txt".format(fmt_name, time_info)
     log_file_path = os.path.join(log_directory_path, log_file_name)
     report_file_name = "{}_{}.xlsx".format(fmt_name, time_info)
     report_file_path = os.path.join(report_directory_path, report_file_name)
-    sheet_name = "{}_{}_{}_{}".format(TEST_CASE_INFO[2], TEST_CASE_INFO[4], TEST_CASE_INFO[3], TEST_CASE_INFO[7])
+    # sheet_name = "{}_{}_{}_{}".format(TEST_CASE_INFO[2], TEST_CASE_INFO[4], TEST_CASE_INFO[3], TEST_CASE_INFO[7])
     return log_file_path, report_file_path, sheet_name
 
 
