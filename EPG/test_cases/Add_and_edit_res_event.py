@@ -19,7 +19,7 @@ import sys
 
 
 choice_case_numb = int(sys.argv[1])
-# choice_case_numb = 1844
+# choice_case_numb = 306
 TEST_CASE_INFO = edit_res_case[choice_case_numb]
 print(TEST_CASE_INFO)
 
@@ -989,7 +989,7 @@ def res_triggered_later_check_timer_setting_event_list():
     send_more_commds(exit_to_screen)
 
 
-def change_str_time_and_fmt_time(str_time):
+def change_str_time_and_fmt_time(str_time, interval_time):
     # 字符串时间和格式化事件之间转换
     str_new_fmt_date = ''
     if len(str_time) == 12:
@@ -999,9 +999,24 @@ def change_str_time_and_fmt_time(str_time):
         fmt_hour = int(str_time[8:10])
         fmt_minute = int(str_time[10:12])
         fmt_date = datetime(fmt_year, fmt_month, fmt_day, fmt_hour, fmt_minute)
-        new_fmt_date = fmt_date + timedelta(minutes=1)
+        new_fmt_date = fmt_date + timedelta(minutes=interval_time)
         new_fmt_date_split = re.split(r"[-\s:]", str(new_fmt_date))
         str_new_fmt_date = ''.join(new_fmt_date_split)[:12]     # 去掉末尾的秒钟信息
+    elif len(str_time) == 4:
+        old_hour = int(str_time[:2])
+        old_minute = int(str_time[2:])
+        new_hour = 0
+        new_minute = 0
+        if old_minute + interval_time < 60:
+            new_minute = old_minute + interval_time
+            new_hour = old_hour
+        elif old_minute + interval_time >= 60:
+            new_minute = (old_minute + interval_time) - 60
+            if old_hour + 1 < 24:
+                new_hour = old_hour + 1
+            elif old_hour + 1 >= 24:
+                new_hour = (old_hour + 1) - 24
+        str_new_fmt_date = "{0:02d}".format(new_hour) + "{0:02d}".format(new_minute)
     return str_new_fmt_date
 
 
@@ -1070,7 +1085,7 @@ def write_data_to_excel():
         elif file_path[2] not in sheets_name_list:
             ws = wb.create_sheet(file_path[2])
 
-    # 写新增的预约事件数据
+    # 写新增和编辑后的预约事件数据
     a_column_numb = column_index_from_string("A")
     interval_row = len(excel_title_0) + 2
     len_res_1 = len(GL.report_data[0])          # 新增预约事件的长度
@@ -1088,13 +1103,155 @@ def write_data_to_excel():
                 ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).value = GL.report_data[d][dd]
                 ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).alignment = alignment
                 ws.column_dimensions[get_column_letter(a_column_numb + len_res_1 + dd)].width = 15
+                if dd == 0:     # start time
+                    # 包含ModifyTime，且时间需要+5的
+                    if TEST_CASE_INFO[7] == "ModifyTime" or TEST_CASE_INFO[7] == "ModifyTime+ModifyType" or \
+                            TEST_CASE_INFO[7] == "ModifyTime+ModifyDuration" or \
+                            TEST_CASE_INFO[7] == "ModifyTime+ModifyType+ModifyDuration":
+                        contrast_time = change_str_time_and_fmt_time(GL.report_data[0][0], 5)  # 新增预约事件起始时间加5分钟
+                        if GL.report_data[d][dd] == contrast_time:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                        elif GL.report_data[d][dd] != contrast_time:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                    elif TEST_CASE_INFO[7] == "ModifyTime+ModifyMode" or \
+                            TEST_CASE_INFO[7] == "ModifyTime+ModifyType+ModifyMode" or \
+                            TEST_CASE_INFO[7] == "ModifyTime+ModifyType+ModifyDuration+ModifyMode":
+                        if TEST_CASE_INFO[3] == "Once":  # 原事件Mode
+                            if TEST_CASE_INFO[8] == "Daily" or TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:  # 新事件Mode
+                                str_time = GL.report_data[0][0][8:]
+                                contrast_time = change_str_time_and_fmt_time(str_time, 5)  # 新增预约事件起始时间加5分钟
+                                if GL.report_data[d][dd] == contrast_time:
+                                    ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                                elif GL.report_data[d][dd] != contrast_time:
+                                    ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                        elif TEST_CASE_INFO[3] == "Daily" or TEST_CASE_INFO[3] in WEEKLY_EVENT_MODE:  # 原事件Mode
+                            if TEST_CASE_INFO[8] == "Daily" or TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:  # 新事件Mode
+                                str_time = GL.report_data[0][0]
+                                contrast_time = change_str_time_and_fmt_time(str_time, 5)  # 新增预约事件起始时间加5分钟
+                                if GL.report_data[d][dd] == contrast_time:
+                                    ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                                elif GL.report_data[d][dd] != contrast_time:
+                                    ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                            elif TEST_CASE_INFO[8] == "Once":  # 新事件Mode
+                                str_time = GL.report_data[2] + GL.report_data[0][0]
+                                contrast_time = change_str_time_and_fmt_time(str_time, 5)  # 新增预约事件起始时间加5分钟
+                                if GL.report_data[d][dd] == contrast_time:
+                                    ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                                elif GL.report_data[d][dd] != contrast_time:
+                                    ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                    # 不包含ModifyTime，涉及到ModifyType，但是时间位数有变化的
+                    elif TEST_CASE_INFO[7] == "ModifyMode" or TEST_CASE_INFO[7] == "ModifyType+ModifyMode" or \
+                            TEST_CASE_INFO[7] == "ModifyDuration+ModifyMode" or \
+                            TEST_CASE_INFO[7] == "ModifyType+ModifyDuration+ModifyMode":
+                        if TEST_CASE_INFO[3] == "Once":  # 原事件Mode
+                            if TEST_CASE_INFO[8] == "Daily" or TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:  # 新事件Mode
+                                contrast_time = GL.report_data[0][0][8:]    # 对比时间，用于验证是否正确
+                                if GL.report_data[d][dd] == contrast_time:
+                                    ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                                elif GL.report_data[d][dd] != contrast_time:
+                                    ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                        elif TEST_CASE_INFO[3] == "Daily" or TEST_CASE_INFO[3] in WEEKLY_EVENT_MODE:  # 原事件Mode
+                            if TEST_CASE_INFO[8] == "Daily" or TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:  # 新事件Mode
+                                contrast_time = GL.report_data[0][0]    # 对比时间，用于验证是否正确
+                                if GL.report_data[d][dd] == contrast_time:
+                                    ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                                elif GL.report_data[d][dd] != contrast_time:
+                                    ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                            elif TEST_CASE_INFO[8] == "Once":  # 新事件Mode
+                                contrast_time = GL.report_data[2] + GL.report_data[0][0]    # 对比时间，用于验证是否正确
+                                if GL.report_data[d][dd] == contrast_time:
+                                    ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                                elif GL.report_data[d][dd] != contrast_time:
+                                    ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                    else:
+                        if GL.report_data[d][dd] == GL.report_data[0][0]:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                        elif GL.report_data[d][dd] != GL.report_data[0][0]:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+
+                elif dd == 1:   # event type
+                    if TEST_CASE_INFO[7] == "ModifyType" or "ModifyType" in TEST_CASE_INFO[7]:
+                        if GL.report_data[d][dd] != GL.report_data[0][1] and GL.report_data[d][dd] == TEST_CASE_INFO[9]:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                        else:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                    else:
+                        if GL.report_data[d][dd] == GL.report_data[0][1] and GL.report_data[d][dd] == TEST_CASE_INFO[9]:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                        else:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+
+                elif dd == 2:   # ch
+                    if TEST_CASE_INFO[4] != "Power Off" and TEST_CASE_INFO[9] != "Power Off":
+                        if GL.report_data[d][dd] == GL.report_data[0][2]:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                        elif GL.report_data[d][dd] != GL.report_data[0][2]:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                    elif TEST_CASE_INFO[4] == "Power Off" and TEST_CASE_INFO[9] != "Power Off":
+                        if GL.report_data[d][dd] != GL.report_data[0][2]:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                        else:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                    elif TEST_CASE_INFO[4] != "Power Off" and TEST_CASE_INFO[9] == "Power Off":
+                        if GL.report_data[d][dd] != GL.report_data[0][2] and GL.report_data[d][dd] == "--:--":
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                        else:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                    elif TEST_CASE_INFO[4] == "Power Off" and TEST_CASE_INFO[9] == "Power Off":
+                        if GL.report_data[d][dd] == GL.report_data[0][2] == "--:--":
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                        else:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+
+
+                elif dd == 3:   # duration
+                    if TEST_CASE_INFO[7] == "ModifyDuration":
+                        contrast_dur_time = change_str_time_and_fmt_time(GL.report_data[0][3], 1)   # PVR事件dur时间加1
+                        if GL.report_data[d][dd] == contrast_dur_time and TEST_CASE_INFO[4] == TEST_CASE_INFO[9] == "PVR":
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                        elif GL.report_data[d][dd] != contrast_dur_time:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                    elif "ModifyType" in TEST_CASE_INFO[7] and "ModifyDuration" in TEST_CASE_INFO[7]:
+                        if TEST_CASE_INFO[4] != "PVR" and TEST_CASE_INFO[9] == "PVR" and \
+                                GL.report_data[0][3] == "--:--" and GL.report_data[d][dd] == "00:02":
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                        else:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                    elif "ModifyType" in TEST_CASE_INFO[7] and "ModifyDuration" not in TEST_CASE_INFO[7]:
+                        if TEST_CASE_INFO[9] == "PVR":
+                            if GL.report_data[d][dd] == "00:01":
+                                ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                            else:
+                                ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                        elif TEST_CASE_INFO[9] != "PVR":
+                            if GL.report_data[d][dd] == "--:--":
+                                ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                            else:
+                                ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                    else:
+                        if GL.report_data[d][dd] == GL.report_data[0][3]:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                        else:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+
+                elif dd == 4:   # event mode
+                    if TEST_CASE_INFO[7] == "ModifyMode" or "ModifyMode" in TEST_CASE_INFO[7]:
+                        if GL.report_data[d][dd] != GL.report_data[0][4] and GL.report_data[d][dd] == TEST_CASE_INFO[8]:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                        else:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                    else:
+                        if GL.report_data[d][dd] == GL.report_data[0][4] and GL.report_data[d][dd] == TEST_CASE_INFO[8]:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
+                        else:
+                            ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
 
         elif d == 3:  # 触发时间
             ws.cell(GL.start_row + interval_row + 1, d + len_total).value = GL.report_data[d]
             ws.cell(GL.start_row + interval_row + 1, d + len_total).alignment = alignment
             ws.column_dimensions[get_column_letter(a_column_numb + len_total + (d - 1))].width = 15
 
-            str_triggered_time = change_str_time_and_fmt_time(GL.report_data[3][:12])  # 加1分钟后的触发时间
+            str_triggered_time = change_str_time_and_fmt_time(GL.report_data[3][:12], 1)  # 加1分钟后的触发时间
             if TEST_CASE_INFO[8] == "Once":     # （触发时间+1）后与预约事件起始时间进行比对
                 if str_triggered_time == GL.report_data[1][0]:
                     ws.cell(GL.start_row + interval_row + 1, d + len_total).font = blue_font
@@ -1711,7 +1868,7 @@ def receive_serial_process(
             if res_kws[14] in data2:    # 录制无信号、加锁节目、加密节目，跳出PVR is not supported!提示
                 state["pvr_not_supported_state"] = True
 
-            if res_kws[15] in data2:    # 预约事件触发时系统时间信息
+            if res_kws[15] in data2:    # 预约事件触发时系统时间信息(备注：此系统时间为年月日 时分秒信息)
                 cur_sys_time = re.split(r"=", data2)[-1]
                 cur_sys_time_split = re.split(r"[/\s:]", cur_sys_time)
                 rsv_kws["res_triggered_sys_time"] = ''.join(cur_sys_time_split)
