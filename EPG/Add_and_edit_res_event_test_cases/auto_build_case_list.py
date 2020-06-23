@@ -110,10 +110,10 @@ for j in res_type:
                 single_list = ["", "All", "TV", "", "", "TVScreenDiffCH", "Manual_jump",
                                "ModifyType+ModifyDuration", "", "", "screen_test_numb"]
                 single_list[0] = "{0:02d}".format(n)
-                single_list[3] = j
-                single_list[4] = h
-                single_list[8] = k
-                single_list[9] = h
+                single_list[3] = h
+                single_list[4] = j
+                single_list[8] = h
+                single_list[9] = k
                 total_list.append(single_list)
                 n += 1
 # ModifyType+ModifyMode
@@ -125,10 +125,10 @@ for j in res_type:
                     single_list = ["", "All", "TV", "", "", "TVScreenDiffCH", "Manual_jump",
                                    "ModifyType+ModifyMode", "", "", "screen_test_numb"]
                     single_list[0] = "{0:02d}".format(n)
-                    single_list[3] = j
-                    single_list[4] = h
-                    single_list[8] = k
-                    single_list[9] = i
+                    single_list[3] = h
+                    single_list[4] = j
+                    single_list[8] = i
+                    single_list[9] = k
                     total_list.append(single_list)
                     n += 1
 # ModifyDuration+ModifyMode
