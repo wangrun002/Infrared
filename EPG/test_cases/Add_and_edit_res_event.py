@@ -1131,7 +1131,7 @@ def write_data_to_excel():
                 ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).alignment = alignment
                 ws.column_dimensions[get_column_letter(a_column_numb + len_res_1 + dd)].width = 15
                 if dd == 0:     # start time
-                    # 包含ModifyTime，且时间需要+5的
+                    # 包含ModifyTime，不包含ModifyMode，且时间需要+5的
                     if TEST_CASE_INFO[7] == "ModifyTime" or TEST_CASE_INFO[7] == "ModifyTime+ModifyType" or \
                             TEST_CASE_INFO[7] == "ModifyTime+ModifyDuration" or \
                             TEST_CASE_INFO[7] == "ModifyTime+ModifyType+ModifyDuration":
@@ -1140,6 +1140,7 @@ def write_data_to_excel():
                             ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
                         elif GL.report_data[d][dd] != contrast_time:
                             ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                    # 包含ModifyTime，包含ModifyMode，且时间需要+5的
                     elif TEST_CASE_INFO[7] == "ModifyTime+ModifyMode" or \
                             TEST_CASE_INFO[7] == "ModifyTime+ModifyType+ModifyMode" or \
                             TEST_CASE_INFO[7] == "ModifyTime+ModifyType+ModifyDuration+ModifyMode":
@@ -1166,7 +1167,7 @@ def write_data_to_excel():
                                     ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
                                 elif GL.report_data[d][dd] != contrast_time:
                                     ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
-                    # 不包含ModifyTime，涉及到ModifyType，但是时间位数有变化的
+                    # 不包含ModifyTime，但是包含ModifyMode，时间位数有变化的，但是不需要+5分钟
                     elif TEST_CASE_INFO[7] == "ModifyMode" or TEST_CASE_INFO[7] == "ModifyType+ModifyMode" or \
                             TEST_CASE_INFO[7] == "ModifyDuration+ModifyMode" or \
                             TEST_CASE_INFO[7] == "ModifyType+ModifyDuration+ModifyMode":
@@ -1190,6 +1191,7 @@ def write_data_to_excel():
                                     ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
                                 elif GL.report_data[d][dd] != contrast_time:
                                     ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
+                    # 既不包含ModifyTime，也不包含ModifyMode，时间不变
                     else:
                         if GL.report_data[d][dd] == GL.report_data[0][0]:
                             ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
@@ -1229,7 +1231,6 @@ def write_data_to_excel():
                             ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
                         else:
                             ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
-
 
                 elif dd == 3:   # duration
                     if TEST_CASE_INFO[7] == "ModifyDuration":
@@ -1407,62 +1408,44 @@ def calculate_expected_edit_event_start_time():
     time_interval = 5
     str_expected_res_time = ''
     start_time = GL.res_event_mgr[0][0]       # 原新增预约事件的起始时间
-    if TEST_CASE_INFO[7] == "ModifyTime" or "ModifyTime" in TEST_CASE_INFO[7]:
-        if len(start_time) == 12:     # 原事件为Once事件
-            old_year = int(start_time[:4])
-            old_month = int(start_time[4:6])
-            old_day = int(start_time[6:8])
-            old_hour = int(start_time[8:10])
-            old_minute = int(start_time[10:12])
-            old_date = datetime(old_year, old_month, old_day, old_hour, old_minute)
-            logging.info(old_date)
-            expected_res_time = old_date + timedelta(minutes=time_interval)
-            logging.info(expected_res_time)
-            expected_res_time_split = re.split(r"[-\s:]", str(expected_res_time))
-            str_expected_res_time = ''.join(expected_res_time_split)[:12]
-        elif len(start_time) == 4:    # 原事件为Daily或Weekly事件
-            old_hour = int(start_time[:2])
-            old_minute = int(start_time[2:])
-            new_hour = 0
-            new_minute = 0
-            if old_minute + time_interval < 60:
-                new_minute = old_minute + time_interval
-                new_hour = old_hour
-            elif old_minute + time_interval >= 60:
-                new_minute = (old_minute + time_interval) - 60
-                if old_hour + 1 < 24:
-                    new_hour = old_hour + 1
-                elif old_hour + 1 >= 24:
-                    new_hour = (old_hour + 1) - 24
-            expected_res_time = "{0:02d}".format(new_hour) + "{0:02d}".format(new_minute)
-            str_expected_res_time = expected_res_time
-    elif TEST_CASE_INFO[7] == "ModifyMode" or "ModifyMode" in TEST_CASE_INFO[7]:
-        if TEST_CASE_INFO[3] == "Once":     # 原事件Mode
+    # 包含ModifyTime，但是不包含ModifyMode，且时间需要+5的
+    if TEST_CASE_INFO[7] == "ModifyTime" or TEST_CASE_INFO[7] == "ModifyTime+ModifyType" or \
+                            TEST_CASE_INFO[7] == "ModifyTime+ModifyDuration" or \
+                            TEST_CASE_INFO[7] == "ModifyTime+ModifyType+ModifyDuration":
+        str_expected_res_time = change_str_time_and_fmt_time(start_time, time_interval)
+    # 包含ModifyTime，且包含ModifyMode，且时间需要+5的
+    elif TEST_CASE_INFO[7] == "ModifyTime+ModifyMode" or \
+            TEST_CASE_INFO[7] == "ModifyTime+ModifyType+ModifyMode" or \
+            TEST_CASE_INFO[7] == "ModifyTime+ModifyType+ModifyDuration+ModifyMode":
+        if TEST_CASE_INFO[3] == "Once":  # 原事件Mode
+            if TEST_CASE_INFO[8] == "Daily" or TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:  # 新事件Mode
+                logging.info(f"单次事件:{TEST_CASE_INFO[3]}--改循环事件{TEST_CASE_INFO[8]}")
+                str_expected_res_time = change_str_time_and_fmt_time(start_time[8:], time_interval)
+        elif TEST_CASE_INFO[3] == "Daily" or TEST_CASE_INFO[3] in WEEKLY_EVENT_MODE:  # 原事件Mode
+            if TEST_CASE_INFO[8] == "Daily" or TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:  # 新事件Mode
+                logging.info(f"循环事件:{TEST_CASE_INFO[3]}--改循环事件{TEST_CASE_INFO[8]}")
+                str_expected_res_time = change_str_time_and_fmt_time(start_time, time_interval)
+            elif TEST_CASE_INFO[8] == "Once":  # 新事件Mode
+                logging.info(f"循环事件:{TEST_CASE_INFO[3]}--改单次事件{TEST_CASE_INFO[8]}")
+                sys_time = rsv_kws['current_sys_time']
+                logging.info(sys_time)
+                sys_time_split = re.split(r"[\s:/]", sys_time)
+                fmt_sys_time = ''.join(sys_time_split)
+                sys_time_date = fmt_sys_time[:8]
+                str_expected_res_time = change_str_time_and_fmt_time(sys_time_date + start_time, time_interval)
+    # 不包含ModifyTime，但涉及到ModifyMode，时间位数有变化的，但是不需要+5
+    elif TEST_CASE_INFO[7] == "ModifyMode" or TEST_CASE_INFO[7] == "ModifyType+ModifyMode" or \
+            TEST_CASE_INFO[7] == "ModifyDuration+ModifyMode" or \
+            TEST_CASE_INFO[7] == "ModifyType+ModifyDuration+ModifyMode":
+        if TEST_CASE_INFO[3] == "Once":  # 原事件Mode
             if TEST_CASE_INFO[8] == "Daily" or TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:  # 新事件Mode
                 logging.info(f"单次事件:{TEST_CASE_INFO[3]}--改循环事件{TEST_CASE_INFO[8]}")
                 str_expected_res_time = start_time[8:]
-            elif TEST_CASE_INFO[8] == "Once":   # 新事件Mode
-                str_expected_res_time = start_time
-        elif TEST_CASE_INFO[3] == "Daily" or TEST_CASE_INFO[3] in WEEKLY_EVENT_MODE:    # 原事件Mode
+        elif TEST_CASE_INFO[3] == "Daily" or TEST_CASE_INFO[3] in WEEKLY_EVENT_MODE:  # 原事件Mode
             if TEST_CASE_INFO[8] == "Daily" or TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:  # 新事件Mode
                 logging.info(f"循环事件:{TEST_CASE_INFO[3]}--改循环事件{TEST_CASE_INFO[8]}")
-                # old_hour = int(start_time[:2])
-                # old_minute = int(start_time[2:])
-                # new_hour = 0
-                # new_minute = 0
-                # if old_minute + time_interval < 60:
-                #     new_minute = old_minute + time_interval
-                #     new_hour = old_hour
-                # elif old_minute + time_interval >= 60:
-                #     new_minute = (old_minute + time_interval) - 60
-                #     if old_hour + 1 < 24:
-                #         new_hour = old_hour + 1
-                #     elif old_hour + 1 >= 24:
-                #         new_hour = (old_hour + 1) - 24
-                # expected_res_time = "{0:02d}".format(new_hour) + "{0:02d}".format(new_minute)
-                # str_expected_res_time = expected_res_time
                 str_expected_res_time = start_time
-            elif TEST_CASE_INFO[8] == "Once":   # 新事件Mode
+            elif TEST_CASE_INFO[8] == "Once":  # 新事件Mode
                 logging.info(f"循环事件:{TEST_CASE_INFO[3]}--改单次事件{TEST_CASE_INFO[8]}")
                 sys_time = rsv_kws['current_sys_time']
                 logging.info(sys_time)
@@ -1470,9 +1453,9 @@ def calculate_expected_edit_event_start_time():
                 fmt_sys_time = ''.join(sys_time_split)
                 sys_time_date = fmt_sys_time[:8]
                 str_expected_res_time = sys_time_date + start_time
-
+    # 既不包含ModifyTime，也不包含ModifyMode
     else:
-        logging.info("当前编辑不涉及修改事件，所以预约事件时间不变")
+        logging.info("当前编辑不涉及修改时间和修改Mode，所以预约事件时间不变")
         str_expected_res_time = start_time
 
     # GL.report_data[2] = str_expected_res_time[:8]       # 用于Once类型事件的report系统时间日期
