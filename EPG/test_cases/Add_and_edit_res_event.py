@@ -1356,8 +1356,8 @@ def manage_report_data_and_write_data():
     # 整理数据以及写数据
     GL.title_data[0] = file_path[2]
     GL.title_data[1] = TEST_CASE_INFO[2]
-    GL.title_data[2] = TEST_CASE_INFO[9]
-    GL.title_data[3] = TEST_CASE_INFO[8]
+    GL.title_data[2] = f"{TEST_CASE_INFO[4]}-->{TEST_CASE_INFO[9]}"
+    GL.title_data[3] = f"{TEST_CASE_INFO[3]}-->{TEST_CASE_INFO[3]}"
     GL.title_data[4] = TEST_CASE_INFO[5]
     GL.title_data[5] = TEST_CASE_INFO[6]
     GL.title_data[6] = str(GL.res_triggered_numb)
