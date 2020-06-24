@@ -19,9 +19,11 @@ import sys
 
 
 choice_case_numb = int(sys.argv[1])
-# choice_case_numb = 306
+# choice_case_numb = 256
 TEST_CASE_INFO = edit_res_case[choice_case_numb]
 print(TEST_CASE_INFO)
+
+# TEST_CASE_INFO = ["35", "All", "TV", "Once", "Play", "TVScreenDiffCH", "Manual_jump", "ModifyType+ModifyDuration", "Once", "PVR", "screen_test_numb"]
 
 Modify_list = [
     "ModifyTime",
@@ -39,8 +41,6 @@ Modify_list = [
     "ModifyType+ModifyDuration+ModifyMode",
     "ModifyTime+ModifyType+ModifyDuration+ModifyMode"
 ]
-
-# TEST_CASE_INFO = ["35", "All", "TV", "Once", "Play", "TVScreenDiffCH", "Manual_jump", "ModifyType+ModifyDuration", "Once", "PVR", "screen_test_numb"]
 
 
 class MyGlobal(object):
@@ -81,12 +81,24 @@ def write_log_data_to_txt(path, write_data):
 
 
 def send_commd(commd):
+    global receive_cmd_list, infrared_send_cmd
     # 红外发送端发送指令
-    send_serial.write(hex_strs_to_bytes(commd))
-    send_serial.flush()
-    logging.info("红外发送：{}".format(REVERSE_KEY[commd]))
-    infrared_send_cmd.append(REVERSE_KEY[commd])
-    time.sleep(1.0)
+    if len(infrared_send_cmd) == len(receive_cmd_list):
+        send_serial.write(hex_strs_to_bytes(commd))
+        send_serial.flush()
+        logging.info("红外发送：{}".format(REVERSE_KEY[commd]))
+        if REVERSE_KEY[commd] != "POWER":
+            infrared_send_cmd.append(REVERSE_KEY[commd])
+        time.sleep(1.0)
+    elif len(infrared_send_cmd) != len(receive_cmd_list):
+        if len(infrared_send_cmd) - len(receive_cmd_list) == 1:
+            logging.info(f"此刻补发STB没有接收到的红外命令{infrared_send_cmd[-1]}")
+            send_serial.write(hex_strs_to_bytes(KEY[infrared_send_cmd[-1]]))
+            send_serial.flush()
+            time.sleep(1.0)
+
+            logging.info(f"此时再发送本次要发送的命令{REVERSE_KEY[commd]}")
+            send_commd(commd)
 
 
 def send_more_commds(commd_list):
@@ -992,7 +1004,7 @@ def res_triggered_later_check_timer_setting_event_list():
 def change_str_time_and_fmt_time(str_time, interval_time):
     # 字符串时间和格式化事件之间转换
     str_new_fmt_date = ''
-    if len(str_time) == 12:
+    if len(str_time) == 12:     # once事件时间计算
         fmt_year = int(str_time[:4])
         fmt_month = int(str_time[4:6])
         fmt_day = int(str_time[6:8])
@@ -1002,7 +1014,7 @@ def change_str_time_and_fmt_time(str_time, interval_time):
         new_fmt_date = fmt_date + timedelta(minutes=interval_time)
         new_fmt_date_split = re.split(r"[-\s:]", str(new_fmt_date))
         str_new_fmt_date = ''.join(new_fmt_date_split)[:12]     # 去掉末尾的秒钟信息
-    elif len(str_time) == 4:
+    elif len(str_time) == 4:    # daily和weekly事件时间计算
         old_hour = int(str_time[:2])
         old_minute = int(str_time[2:])
         new_hour = 0
@@ -1017,6 +1029,21 @@ def change_str_time_and_fmt_time(str_time, interval_time):
             elif old_hour + 1 >= 24:
                 new_hour = (old_hour + 1) - 24
         str_new_fmt_date = "{0:02d}".format(new_hour) + "{0:02d}".format(new_minute)
+    elif len(str_time) == 5:    # duration时间计算
+        old_hour = int(str_time[:2])
+        old_minute = int(str_time[3:])
+        new_hour = 0
+        new_minute = 0
+        if old_minute + interval_time < 60:
+            new_minute = old_minute + interval_time
+            new_hour = old_hour
+        elif old_minute + interval_time >= 60:
+            new_minute = (old_minute + interval_time) - 60
+            if old_hour + 1 < 24:
+                new_hour = old_hour + 1
+            elif old_hour + 1 >= 24:
+                new_hour = (old_hour + 1) - 24
+        str_new_fmt_date = "{0:02d}".format(new_hour) + ":" + "{0:02d}".format(new_minute)
     return str_new_fmt_date
 
 
@@ -1193,12 +1220,12 @@ def write_data_to_excel():
                         else:
                             ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
                     elif TEST_CASE_INFO[4] != "Power Off" and TEST_CASE_INFO[9] == "Power Off":
-                        if GL.report_data[d][dd] != GL.report_data[0][2] and GL.report_data[d][dd] == "--:--":
+                        if GL.report_data[d][dd] != GL.report_data[0][2] and GL.report_data[d][dd] == "----":
                             ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
                         else:
                             ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
                     elif TEST_CASE_INFO[4] == "Power Off" and TEST_CASE_INFO[9] == "Power Off":
-                        if GL.report_data[d][dd] == GL.report_data[0][2] == "--:--":
+                        if GL.report_data[d][dd] == GL.report_data[0][2] == "----":
                             ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
                         else:
                             ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
@@ -1659,7 +1686,8 @@ def modify_edit_res_event():
 
 
 def receive_serial_process(
-        prs_data, infrared_send_cmd, rsv_kws, res_event_list, state, current_triggered_event_info, channel_info):
+        prs_data, infrared_send_cmd, rsv_kws, res_event_list, state, current_triggered_event_info, channel_info,
+        receive_cmd_list):
     logging_info_setting()
     rsv_key = {
         "POWER": "0xbbaf", "TV/R": "0xbbbd", "MUTE": "0xbbf7",
@@ -1731,7 +1759,7 @@ def receive_serial_process(
         "[PTD]Infrared_key_values:",    # 获取红外接收关键字
     ]
 
-    infrared_rsv_cmd = []
+    infrared_rsv_cmd = []       # 红外接受命令
     receive_serial = serial.Serial(prs_data["receive_serial_name"], 115200, timeout=1)
 
     while True:
@@ -1774,7 +1802,7 @@ def receive_serial_process(
 
             if other_kws[0] in data2:   # 红外接收打印
                 rsv_cmd = re.split(":", data2)[-1]
-                infrared_rsv_cmd.append(rsv_cmd)
+                infrared_rsv_cmd.append(rsv_cmd)       # 存放可以共享的接受命令的列表
                 if rsv_cmd not in reverse_rsv_key.keys():
                     logging.info("红外键值{}不在当前字典中，被其他遥控影响".format(rsv_cmd))
                 else:
@@ -1782,6 +1810,7 @@ def receive_serial_process(
                         infrared_send_cmd[-1], reverse_rsv_key[infrared_rsv_cmd[-1]]))
                     logging.info("红外次数统计(发送和接受):{}--{}".format(
                         len(infrared_send_cmd), len(infrared_rsv_cmd)))
+                    receive_cmd_list.append(rsv_cmd)
                 if state["control_power_on_info_rsv_state"]:    # 用于Power Off事件触发后，软开机没有检测到开机关键字用来避免死循环
                     state["stb_already_power_on_state"] = True
 
@@ -1961,6 +1990,7 @@ if __name__ == "__main__":
     receive_ser_name = ser_name[1]
 
     infrared_send_cmd = Manager().list([])
+    receive_cmd_list = Manager().list([])
     res_event_list = Manager().list([])
     current_triggered_event_info = Manager().list([])
     channel_info = Manager().list(['', '', '', '', '', '', ''])     # [频道号,频道名称,tp,lock,scramble,频道类型,组别]
@@ -1986,7 +2016,8 @@ if __name__ == "__main__":
     })
 
     rsv_p = Process(target=receive_serial_process, args=(
-        prs_data, infrared_send_cmd, rsv_kws, res_event_list, state, current_triggered_event_info, channel_info))
+        prs_data, infrared_send_cmd, rsv_kws, res_event_list, state, current_triggered_event_info, channel_info,
+        receive_cmd_list))
     rsv_p.start()
 
     if platform.system() == "Windows":
