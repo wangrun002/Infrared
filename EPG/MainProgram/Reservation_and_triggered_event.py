@@ -19,7 +19,7 @@ import sys
 
 
 choice_case_numb = int(sys.argv[1])
-TEST_CASE_INFO = all_test_case[choice_case_numb]
+TEST_CASE_INFO = new_add_res_case[choice_case_numb]
 print(TEST_CASE_INFO)
 # TEST_CASE_INFO = ["23", "All", "TV", "Daily", "Play", "EPG", "Manual_jump"]
 
@@ -744,14 +744,32 @@ def res_event_triggered_and_choice_jump_type():
             while not state["rec_start_state"]:
                 if state["no_storage_device_state"]:
                     logging.info("警告：没有插入存储设备")
+                    logging.info("出现没有插入存储设备提示后，按退出键退出提示")
+                    if TEST_CASE_INFO[5] in WAIT_INTERFACE[:2]:
+                        send_commd(KEY["EXIT"])  # 等待界面为大画面时，只用发送一个退出键，退出提示框
+                    else:  # 等待界面为其他界面时，除了要退出提示框，还要退回到大画面
+                        send_more_commds(EXIT_TO_SCREEN)
+                    GL.pvr_rec_dur_time = 0
                     state["receive_loop_state"] = True
                     break
                 if state["no_enough_space_state"]:
                     logging.info("警告：存储设备没有足够的空间")
+                    logging.info("出现存储设备没有足够的空间提示后，按退出键退出提示")
+                    if TEST_CASE_INFO[5] in WAIT_INTERFACE[:2]:
+                        send_commd(KEY["EXIT"])  # 等待界面为大画面时，只用发送一个退出键，退出提示框
+                    else:  # 等待界面为其他界面时，除了要退出提示框，还要退回到大画面
+                        send_more_commds(EXIT_TO_SCREEN)
+                    GL.pvr_rec_dur_time = 0
                     state["receive_loop_state"] = True
                     break
                 if state["pvr_not_supported_state"]:
                     logging.info("警告：当前录制节目为加密节目，或加锁节目，或无信号，请检查")
+                    logging.info("出现pvr_not_supported提示后，按退出键退出提示")
+                    if TEST_CASE_INFO[5] in WAIT_INTERFACE[:2]:
+                        send_commd(KEY["EXIT"])  # 等待界面为大画面时，只用发送一个退出键，退出提示框
+                    else:  # 等待界面为其他界面时，除了要退出提示框，还要退回到大画面
+                        send_more_commds(EXIT_TO_SCREEN)
+                    GL.pvr_rec_dur_time = 0
                     state["receive_loop_state"] = True
                     break
             else:
@@ -788,14 +806,32 @@ def res_event_triggered_and_choice_jump_type():
             while not state["rec_start_state"]:
                 if state["no_storage_device_state"]:
                     logging.info("警告：没有插入存储设备")
+                    logging.info("出现没有插入存储设备提示后，按退出键退出提示")
+                    if TEST_CASE_INFO[5] in WAIT_INTERFACE[:2]:
+                        send_commd(KEY["EXIT"])  # 等待界面为大画面时，只用发送一个退出键，退出提示框
+                    else:  # 等待界面为其他界面时，除了要退出提示框，还要退回到大画面
+                        send_more_commds(EXIT_TO_SCREEN)
+                    GL.pvr_rec_dur_time = 0
                     state["receive_loop_state"] = True
                     break
                 if state["no_enough_space_state"]:
                     logging.info("警告：存储设备没有足够的空间")
+                    logging.info("出现存储设备没有足够的空间提示后，按退出键退出提示")
+                    if TEST_CASE_INFO[5] in WAIT_INTERFACE[:2]:
+                        send_commd(KEY["EXIT"])  # 等待界面为大画面时，只用发送一个退出键，退出提示框
+                    else:  # 等待界面为其他界面时，除了要退出提示框，还要退回到大画面
+                        send_more_commds(EXIT_TO_SCREEN)
+                    GL.pvr_rec_dur_time = 0
                     state["receive_loop_state"] = True
                     break
                 if state["pvr_not_supported_state"]:
                     logging.info("警告：当前录制节目为加密节目，或加锁节目，或无信号，请检查")
+                    logging.info("出现pvr_not_supported提示后，按退出键退出提示")
+                    if TEST_CASE_INFO[5] in WAIT_INTERFACE[:2]:
+                        send_commd(KEY["EXIT"])  # 等待界面为大画面时，只用发送一个退出键，退出提示框
+                    else:  # 等待界面为其他界面时，除了要退出提示框，还要退回到大画面
+                        send_more_commds(EXIT_TO_SCREEN)
+                    GL.pvr_rec_dur_time = 0
                     state["receive_loop_state"] = True
                     break
             else:
@@ -1452,9 +1488,10 @@ if __name__ == "__main__":
         "PREVIOUS": "A1 F1 22 DD 4A", "NEXT": "A1 F1 22 DD 49", "TIME_SHIFT": "A1 F1 22 DD 48", "STOP": "A1 F1 22 DD 4D"
     }
     REVERSE_KEY = dict([val, key] for key, val in KEY.items())
-    # WAIT_INTERFACE = ["TVScreenDiffCH", "RadioScreenDiffCH", "ChannelList", "Menu", "EPG", "ChannelEdit"]
+    WAIT_INTERFACE = ["TVScreenDiffCH", "RadioScreenDiffCH", "ChannelList", "Menu", "EPG", "ChannelEdit"]
     WEEKLY_EVENT_MODE = ["Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
     # TEST_CASE_INFO = ["23", "All", "TV", "Daily", "Play", "EPG", "Manual_jump"]
+    EXIT_TO_SCREEN = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
 
     file_path = build_log_and_report_file_path()
     ser_name = list(check_ports())  # send_ser_name, receive_ser_name
