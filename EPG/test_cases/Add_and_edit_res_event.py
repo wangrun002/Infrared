@@ -482,7 +482,7 @@ def get_cycle_event_start_time_and_sys_date():
     # 获取循环事件的起始时间和系统时间的日期，组成完整的时间
     enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
     exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
-    cycle_event_start_time = ''
+    full_cycle_event_date_time = ''
     # 进入Timer_Setting界面
     # state["update_event_list_state"] = True
     send_more_commds(enter_timer_setting_interface)
@@ -511,16 +511,16 @@ def get_cycle_event_start_time_and_sys_date():
     # else:
     logging.info(res_event_list)
     if len(list(res_event_list)[0][0]) == 4:
-        logging.info("当前循环时间起始时间为4位数")
+        logging.info("当前循环事件起始时间为4位数")
         cycle_event_start_time = list(res_event_list)[0][0]
         logging.info(f"cycle_event_start_time:{cycle_event_start_time}")
-    elif len(list(res_event_list)[0][0]) == 12:
-        logging.info("当前循环时间起始时间为12位数")
-        cycle_event_start_time = list(res_event_list)[0][0][8:]
-        logging.info(f"cycle_event_start_time:{cycle_event_start_time}")
-    # 处理系统日期和事件时间，合并为一个完整的12位时间
-    full_cycle_event_date_time = sys_time_date + cycle_event_start_time
-    logging.info(f"系统日期和事件时间合并后的时间为：{full_cycle_event_date_time}")
+        # 处理系统日期和事件时间，合并为一个完整的12位时间
+        full_cycle_event_date_time = list(res_event_list)[0][0][:8] + cycle_event_start_time
+        logging.info(f"系统日期和事件时间合并后的时间为：{full_cycle_event_date_time}")
+    elif len(list(res_event_list)[0][0]) == 12:     # 假如事件的起始时间为12位数，不用与系统时间合并，直接使用该事件起始时间
+        logging.info("当前循环事件起始时间为12位数")
+        full_cycle_event_date_time = list(res_event_list)[0][0]
+        logging.info(f"事件的起始时间为12位数，不用与系统时间合并，直接使用该事件起始时间为：{full_cycle_event_date_time}")
     # 退回大画面
     send_more_commds(exit_to_screen)
     # 将获取信息的状态变量恢复默认
@@ -1191,11 +1191,11 @@ def write_data_to_excel():
                                 elif GL.report_data[d][dd] != contrast_time:
                                     ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
                             elif TEST_CASE_INFO[8] == "Once":  # 新事件Mode
-                                str_time = GL.report_data[2] + GL.report_data[0][0]
+                                str_time = GL.report_data[0][0]
                                 contrast_time = change_str_time_and_fmt_time(str_time, 5)  # 新增预约事件起始时间加5分钟
-                                if GL.report_data[d][dd] == contrast_time:
+                                if GL.report_data[d][dd] == GL.report_data[1][0][:8] + contrast_time:
                                     ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = blue_font
-                                elif GL.report_data[d][dd] != contrast_time:
+                                elif GL.report_data[d][dd] != GL.report_data[1][0][:8] + contrast_time:
                                     ws.cell(GL.start_row + interval_row + 1, len_res_1 + dd + 1).font = red_font
                     # 不包含ModifyTime，但是包含ModifyMode，时间位数有变化的，但是不需要+5分钟
                     elif TEST_CASE_INFO[7] == "ModifyMode" or TEST_CASE_INFO[7] == "ModifyType+ModifyMode" or \
