@@ -515,7 +515,7 @@ def get_cycle_event_start_time_and_sys_date():
         cycle_event_start_time = list(res_event_list)[0][0]
         logging.info(f"cycle_event_start_time:{cycle_event_start_time}")
         # 处理系统日期和事件时间，合并为一个完整的12位时间
-        full_cycle_event_date_time = list(res_event_list)[0][0][:8] + cycle_event_start_time
+        full_cycle_event_date_time = sys_time_date + cycle_event_start_time
         logging.info(f"系统日期和事件时间合并后的时间为：{full_cycle_event_date_time}")
     elif len(list(res_event_list)[0][0]) == 12:     # 假如事件的起始时间为12位数，不用与系统时间合并，直接使用该事件起始时间
         logging.info("当前循环事件起始时间为12位数")
