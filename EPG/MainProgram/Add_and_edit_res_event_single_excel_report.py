@@ -58,8 +58,8 @@ class MyGlobal(object):
         self.pvr_rec_dur_time = ''                      # 用于记录PVR事件录制持续时间
         self.event_already_triggered_numb = 0           # 用于控制循环事件第二次前后的运行代码界限
 
-        # 报告数据汇总[[预约事件信息]，[修改后的预约事件信息], "系统时间日期", "触发时间", "等待节目", "跳转节目", "录制时长", "case编号"]
-        self.report_data = [[], [], '', '', '', '', '', '']
+        # 报告数据汇总[[预约事件信息]，[修改后的预约事件信息], "系统时间日期", "触发时间", "等待节目", "跳转节目", "录制时长", "case编号", "执行case时间"]
+        self.report_data = [[], [], '', '', '', '', '', '', '']
         # ["报告名称", "预约事件类型", "预约事件模式", "预约节目类型", "预约等待界面", "预约跳转模式", "预约执行次数"]
         self.title_data = ['', '', '', '', '', '', '']
 
@@ -161,7 +161,7 @@ def clear_timer_setting_all_events():
     # 清除Timer_setting界面所有的事件
     enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
     delete_all_res_events = [KEY["BLUE"], KEY["OK"]]
-    exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
+    exit_to_screen = [KEY["EXIT"], KEY["EXIT"]]
     # 进入定时器设置界面
     send_more_commds(enter_timer_setting_interface)
     # 对定时器设置界面的事件判断和清除
@@ -188,7 +188,7 @@ def check_sys_time_mode():
     # 检测系统时间模式
     enter_time_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["OK"]]
     change_sys_time_mode = [KEY["RIGHT"], KEY["EXIT"], KEY["OK"]]
-    exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
+    exit_to_screen = [KEY["EXIT"], KEY["EXIT"]]
     # 进入时间设置界面
     send_more_commds(enter_time_setting_interface)
     # 对当前系统时间模式进行判断
@@ -355,7 +355,7 @@ def create_expected_add_event_info():
 def edit_add_new_res_event_info():
     logging.info("edit_add_new_res_event_info")
     # 编辑预约事件信息
-    exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
+    exit_to_screen = [KEY["EXIT"], KEY["EXIT"]]
     start_date_list = []        # 用于将开始日期由字符串转化为发送指令的列表
     start_time_list = []        # 用于将开始时间由字符串转化为发送指令的列表
     duration_time_list = []     # 用于将录制持续时间由字符转化为发送指令的列表
@@ -481,12 +481,14 @@ def new_add_res_event():
 def get_cycle_event_start_time_and_sys_date():
     logging.info("get_cycle_event_start_time_and_sys_date")
     # 获取循环事件的起始时间和系统时间的日期，组成完整的时间
-    enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
-    exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
+    # enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
+    enter_time_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["OK"]]
+    exit_to_screen = [KEY["EXIT"], KEY["EXIT"]]
     full_cycle_event_date_time = ''
     # 进入Timer_Setting界面
     # state["update_event_list_state"] = True
-    send_more_commds(enter_timer_setting_interface)
+    # send_more_commds(enter_timer_setting_interface)
+    send_more_commds(enter_time_setting_interface)
     # 获取当前系统时间的date
     get_current_system_time()
     sys_time = rsv_kws['current_sys_time']
@@ -495,21 +497,17 @@ def get_cycle_event_start_time_and_sys_date():
     fmt_sys_time = ''.join(sys_time_split)
     sys_time_date = fmt_sys_time[:8]
     # 获取预约事件的起始时间
-    while not state["res_event_numb_state"]:
-        logging.info("还没有获取到预约事件个数")
-        time.sleep(1)
-    else:
-        logging.info(f'当前事件列表框中事件个数为{rsv_kws["res_event_numb"]}')
-        logging.info(res_event_list)
-        if int(rsv_kws["res_event_numb"]) == 1:
-            logging.info("当前事件列表中只有一个事件")
-        else:
-            logging.info("警告：循环预约事件个数与预期不符，请检查")
-    # 查看预约事件列表时间信息
-    # while not state["res_event_info_state"]:
+    # while not state["res_event_numb_state"]:
     #     logging.info("还没有获取到预约事件个数")
     #     time.sleep(1)
     # else:
+    #     logging.info(f'当前事件列表框中事件个数为{rsv_kws["res_event_numb"]}')
+    #     logging.info(res_event_list)
+    #     if int(rsv_kws["res_event_numb"]) == 1:
+    #         logging.info("当前事件列表中只有一个事件")
+    #     else:
+    #         logging.info("警告：循环预约事件个数与预期不符，请检查")
+    # 查看预约事件列表时间信息
     logging.info(res_event_list)
     if len(list(res_event_list)[0][0]) == 4:
         logging.info("当前循环事件起始时间为4位数")
@@ -523,7 +521,7 @@ def get_cycle_event_start_time_and_sys_date():
         full_cycle_event_date_time = list(res_event_list)[0][0]
         logging.info(f"事件的起始时间为12位数，不用与系统时间合并，直接使用该事件起始时间为：{full_cycle_event_date_time}")
     # 退回大画面
-    send_more_commds(exit_to_screen)
+    # send_more_commds(exit_to_screen)
     # 将获取信息的状态变量恢复默认
     state["current_sys_time_state"] = False
     state["res_event_numb_state"] = False
@@ -597,27 +595,27 @@ def set_system_time():
     # 根据计算出的下次等待预约时间触发的系统时间来设置系统时间
     enter_time_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["OK"]]
     change_sys_time_mode = [KEY["RIGHT"], KEY["EXIT"], KEY["OK"]]
-    exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
+    exit_to_screen = [KEY["EXIT"], KEY["EXIT"]]
     sys_date_list = []      # 用于将系统日期由字符串转化为发送指令的列表
     sys_time_list = []      # 用于将系统时间由字符串转化为发送指令的列表
     sys_date_time = calc_modify_system_time()
     GL.report_data[2] = sys_date_time[:8]
     # 进入时间设置界面
-    send_more_commds(enter_time_setting_interface)
+    # send_more_commds(enter_time_setting_interface)
     # 对当前系统时间模式进行判断
-    while not state["sys_time_mode_state"]:
-        logging.info("还没有获取到系统时间模式信息")
-        time.sleep(1)
-    else:
-        if rsv_kws["sys_time_mode"] == "Auto":
-            send_more_commds(change_sys_time_mode)
-            # 重新进入Time Setting界面
-            send_commd(KEY["OK"])
-        elif rsv_kws["sys_time_mode"] == "Manual":
-            logging.info("系统时间模式已经为手动模式")
-        else:
-            logging.debug("警告：系统时间模式获取错误！！！")
-        state["sys_time_mode_state"] = False
+    # while not state["sys_time_mode_state"]:
+    #     logging.info("还没有获取到系统时间模式信息")
+    #     time.sleep(1)
+    # else:
+    #     if rsv_kws["sys_time_mode"] == "Auto":
+    #         send_more_commds(change_sys_time_mode)
+    #         # 重新进入Time Setting界面
+    #         send_commd(KEY["OK"])
+    #     elif rsv_kws["sys_time_mode"] == "Manual":
+    #         logging.info("系统时间模式已经为手动模式")
+    #     else:
+    #         logging.debug("警告：系统时间模式获取错误！！！")
+    #     state["sys_time_mode_state"] = False
     # 移动到Date选项
     send_commd(KEY["DOWN"])
     sys_date_list.append(sys_date_time[:8])
@@ -647,7 +645,7 @@ def goto_specified_interface_wait_for_event_triggered():
     channel_edit_interface = [KEY["MENU"], KEY["LEFT"], KEY["LEFT"], KEY["OK"]]
     # 切到指定界面
     if TEST_CASE_INFO[5] == "TVScreenDiffCH":
-        send_more_commds(exit_to_screen)
+        # send_more_commds(exit_to_screen)
         if channel_info[5] != "TV":
             send_commd(KEY["TV/R"])
         # 切到不同的频道等待
@@ -655,7 +653,7 @@ def goto_specified_interface_wait_for_event_triggered():
         if channel_info[3] == "1":  # 加锁节目判断
             send_commd(KEY["EXIT"])
     elif TEST_CASE_INFO[5] == "RadioScreenDiffCH":
-        send_more_commds(exit_to_screen)
+        # send_more_commds(exit_to_screen)
         if channel_info[5] != "Radio":
             send_commd(KEY["TV/R"])
         # 切到不同的频道等待
@@ -663,7 +661,7 @@ def goto_specified_interface_wait_for_event_triggered():
         if channel_info[3] == "1":  # 加锁节目判断
             send_commd(KEY["EXIT"])
     elif TEST_CASE_INFO[5] == "ChannelList":
-        send_more_commds(exit_to_screen)
+        # send_more_commds(exit_to_screen)
         # 切到不同的频道等待
         send_commd(KEY["UP"])
         if channel_info[3] == "1":  # 加锁节目判断
@@ -671,7 +669,7 @@ def goto_specified_interface_wait_for_event_triggered():
         # 调出频道列表
         send_commd(KEY["OK"])
     elif TEST_CASE_INFO[5] == "Menu":
-        send_more_commds(exit_to_screen)
+        # send_more_commds(exit_to_screen)
         # 切到不同的频道等待
         send_commd(KEY["UP"])
         if channel_info[3] == "1":  # 加锁节目判断
@@ -679,7 +677,7 @@ def goto_specified_interface_wait_for_event_triggered():
         # 进入Menu指定子菜单界面
         send_more_commds(menu_interface)
     elif TEST_CASE_INFO[5] == "EPG":
-        send_more_commds(exit_to_screen)
+        # send_more_commds(exit_to_screen)
         # 切到不同的频道等待
         send_commd(KEY["UP"])
         if channel_info[3] == "1":  # 加锁节目判断
@@ -687,7 +685,7 @@ def goto_specified_interface_wait_for_event_triggered():
         # 进入EPG界面
         send_commd(KEY["EPG"])
     elif TEST_CASE_INFO[5] == "ChannelEdit":
-        send_more_commds(exit_to_screen)
+        # send_more_commds(exit_to_screen)
         # 切到不同的频道等待
         send_commd(KEY["UP"])
         if channel_info[3] == "1":  # 加锁节目判断
@@ -1012,7 +1010,7 @@ def res_triggered_later_check_timer_setting_event_list():
     logging.info("res_triggered_later_check_timer_setting_event_list")
     # 预约事件触发后，事件列表事件检查
     enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
-    exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
+    exit_to_screen = [KEY["EXIT"], KEY["EXIT"]]
     send_more_commds(enter_timer_setting_interface)
     if rsv_kws["res_event_numb"] == '0':
         if len(GL.res_event_mgr) == int(rsv_kws["res_event_numb"]):
@@ -1085,7 +1083,7 @@ def write_data_to_excel():
     excel_title_1 = ["用例编号", "新增的预约事件信息", "编辑修改后的预约事件信息", "触发响应结果"]
     excel_title_2 = ["用例编号", "起始时间", "事件类型", "节目名称", "持续时间", "事件模式",
                      "起始时间", "事件类型", "节目名称", "持续时间", "事件模式",
-                     "系统时间日期", "触发时间", "等待节目", "跳转节目", "录制时长"]
+                     "系统时间日期", "触发时间", "等待节目", "跳转节目", "录制时长", "用例测试时间"]
 
     alignment = Alignment(horizontal="center", vertical="center", wrapText=True)
     blue_font = Font(color=BLUE)
@@ -1110,7 +1108,7 @@ def write_data_to_excel():
 
         ws.cell(1, 12).value = excel_title_1[3]
         ws["L" + str(1)].alignment = alignment
-        ws.merge_cells(start_row=1, start_column=12, end_row=1, end_column=16)
+        ws.merge_cells(start_row=1, start_column=12, end_row=1, end_column=17)
 
         # 写excel_title_2的内容
         for j in range(len(excel_title_2)):
@@ -1402,6 +1400,10 @@ def write_data_to_excel():
             ws.cell(max_row + 1, 1).alignment = alignment
             # ws.column_dimensions[get_column_letter(a_column_numb)].width = 15
 
+        elif d == 8:    # 写报告时间
+            ws.cell(max_row + 1, d + len_total - 1).value = GL.report_data[d]   # 由于d==7的坑填到第一列，所以这里需要列数减一
+            ws.cell(max_row + 1, d + len_total - 1).alignment = alignment
+
         else:
             ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
             ws.cell(max_row + 1, d + len_total).alignment = alignment
@@ -1421,18 +1423,21 @@ def manage_report_data_and_write_data():
         GL.report_data[5] = channel_info[1]     # 跳转节目
         GL.report_data[6] = "--:--"              # 录制时长
         GL.report_data[7] = TEST_CASE_INFO[0]   # 用例编号
+        GL.report_data[8] = str(datetime.now())[:19]    # 写该用例报告的时间
     elif TEST_CASE_INFO[9] == "PVR":
         # GL.report_data[3] = list(res_event_list)[0][0]
         # GL.report_data[4] = TEST_CASE_INFO[6]
         GL.report_data[5] = channel_info[1]
         GL.report_data[6] = str(GL.pvr_rec_dur_time) + 's'
         GL.report_data[7] = TEST_CASE_INFO[0]  # 用例编号
+        GL.report_data[8] = str(datetime.now())[:19]  # 写该用例报告的时间
     elif TEST_CASE_INFO[9] == "Power Off":
         # GL.report_data[3] = list(res_event_list)[0][0]
         GL.report_data[4] = "----"
         GL.report_data[5] = "----"
         GL.report_data[6] = "--:--"
         GL.report_data[7] = TEST_CASE_INFO[0]  # 用例编号
+        GL.report_data[8] = str(datetime.now())[:19]  # 写该用例报告的时间
 
     logging.info(GL.title_data)
     logging.info(GL.report_data)
@@ -1593,7 +1598,7 @@ def create_expected_edit_event_info():
 def modify_edit_add_new_res_event_info():
     logging.info("modify_edit_add_new_res_event_info")
     # 编辑预约事件信息
-    exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
+    exit_to_screen = [KEY["EXIT"], KEY["EXIT"]]
     start_date_list = []        # 用于将开始日期由字符串转化为发送指令的列表
     start_time_list = []        # 用于将开始时间由字符串转化为发送指令的列表
     duration_time_list = []     # 用于将录制持续时间由字符转化为发送指令的列表
@@ -1690,7 +1695,7 @@ def modify_edit_add_new_res_event_info():
     state["clear_res_event_list_state"] = True
     send_commd(KEY["EXIT"])
     send_commd(KEY["OK"])
-    # 此处编辑完事件后，不会再次打印事件信息，需要重新进入Timer Setting界面
+    # 此处编辑完事件后，不会再次打印事件信息，需要重新进入Timer Setting界面，为update_edit_res_event_to_event_mgr_list准备数据
     send_commd(KEY["EXIT"])
     send_commd(KEY["OK"])
     # 退回大画面
