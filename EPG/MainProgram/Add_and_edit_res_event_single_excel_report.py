@@ -483,7 +483,7 @@ def get_cycle_event_start_time_and_sys_date():
     # 获取循环事件的起始时间和系统时间的日期，组成完整的时间
     # enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
     enter_time_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["OK"]]
-    exit_to_screen = [KEY["EXIT"], KEY["EXIT"]]
+    # exit_to_screen = [KEY["EXIT"], KEY["EXIT"]]
     full_cycle_event_date_time = ''
     # 进入Timer_Setting界面
     # state["update_event_list_state"] = True
@@ -593,8 +593,8 @@ def calc_modify_system_time():
 def set_system_time():
     logging.info("set_system_time")
     # 根据计算出的下次等待预约时间触发的系统时间来设置系统时间
-    enter_time_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["OK"]]
-    change_sys_time_mode = [KEY["RIGHT"], KEY["EXIT"], KEY["OK"]]
+    # enter_time_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["OK"]]
+    # change_sys_time_mode = [KEY["RIGHT"], KEY["EXIT"], KEY["OK"]]
     exit_to_screen = [KEY["EXIT"], KEY["EXIT"]]
     sys_date_list = []      # 用于将系统日期由字符串转化为发送指令的列表
     sys_time_list = []      # 用于将系统时间由字符串转化为发送指令的列表
@@ -640,7 +640,7 @@ def set_system_time():
 def goto_specified_interface_wait_for_event_triggered():
     logging.info("goto_specified_interface_wait_for_event_triggered")
     # WAIT_INTERFACE = ["TVScreenDiffCH", "RadioScreenDiffCH", "ChannelList", "Menu", "EPG", "ChannelEdit"]
-    exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
+    # exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
     menu_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["DOWN"], KEY["DOWN"], KEY["OK"], KEY["OK"]]
     channel_edit_interface = [KEY["MENU"], KEY["LEFT"], KEY["LEFT"], KEY["OK"]]
     # 切到指定界面
@@ -1251,12 +1251,14 @@ def write_data_to_excel():
 
                 elif edit_data == 1:   # event type
                     if TEST_CASE_INFO[7] == "ModifyType" or "ModifyType" in TEST_CASE_INFO[7]:
-                        if GL.report_data[d][edit_data] != GL.report_data[0][1] and GL.report_data[d][edit_data] == TEST_CASE_INFO[9]:
+                        if GL.report_data[d][edit_data] != GL.report_data[0][1] \
+                                and GL.report_data[d][edit_data] == TEST_CASE_INFO[9]:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                         else:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
                     else:
-                        if GL.report_data[d][edit_data] == GL.report_data[0][1] and GL.report_data[d][edit_data] == TEST_CASE_INFO[9]:
+                        if GL.report_data[d][edit_data] == GL.report_data[0][1] \
+                                and GL.report_data[d][edit_data] == TEST_CASE_INFO[9]:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                         else:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
@@ -1273,7 +1275,8 @@ def write_data_to_excel():
                         else:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
                     elif TEST_CASE_INFO[4] != "Power Off" and TEST_CASE_INFO[9] == "Power Off":
-                        if GL.report_data[d][edit_data] != GL.report_data[0][2] and GL.report_data[d][edit_data] == "----":
+                        if GL.report_data[d][edit_data] != GL.report_data[0][2] \
+                                and GL.report_data[d][edit_data] == "----":
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                         else:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
@@ -1317,12 +1320,14 @@ def write_data_to_excel():
 
                 elif edit_data == 4:   # event mode
                     if TEST_CASE_INFO[7] == "ModifyMode" or "ModifyMode" in TEST_CASE_INFO[7]:
-                        if GL.report_data[d][edit_data] != GL.report_data[0][4] and GL.report_data[d][edit_data] == TEST_CASE_INFO[8]:
+                        if GL.report_data[d][edit_data] != GL.report_data[0][4] \
+                                and GL.report_data[d][edit_data] == TEST_CASE_INFO[8]:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                         else:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
                     else:
-                        if GL.report_data[d][edit_data] == GL.report_data[0][4] and GL.report_data[d][edit_data] == TEST_CASE_INFO[8]:
+                        if GL.report_data[d][edit_data] == GL.report_data[0][4] \
+                                and GL.report_data[d][edit_data] == TEST_CASE_INFO[8]:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                         else:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
