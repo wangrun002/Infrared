@@ -157,7 +157,6 @@ def build_log_and_report_file_path():
 
 def clear_timer_setting_all_events():
     logging.info("clear_timer_setting_all_events")
-    # logging_info_setting()
     # 清除Timer_setting界面所有的事件
     enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
     delete_all_res_events = [KEY["BLUE"], KEY["OK"]]
@@ -313,7 +312,6 @@ def calculate_expected_event_start_time():
     logging.info(expected_res_time)
     expected_res_time_split = re.split(r"[-\s:]", str(expected_res_time))
     str_expected_res_time = ''.join(expected_res_time_split)[:12]
-    # GL.report_data[2] = str_expected_res_time[:8]       # 用于Once类型事件的report系统时间日期
 
     logging.info(f"期望的完整的预约事件时间为{str_expected_res_time}")
     return str_expected_res_time
@@ -325,8 +323,6 @@ def create_expected_add_event_info():
     expected_event_info = ['', '', '', '', '']      # [起始时间，事件响应类型，节目名称，持续时间，事件触发模式]
     duration_time = "0001"
     if TEST_CASE_INFO[4] == "Play":
-        # choice_ch_for_res_event_type()
-        # if TEST_CASE_INFO[3] == "Once":
         expected_event_full_time = calculate_expected_event_start_time()
         expected_event_info[0] = expected_event_full_time
         expected_event_info[1] = TEST_CASE_INFO[4]
@@ -481,13 +477,9 @@ def new_add_res_event():
 def get_cycle_event_start_time_and_sys_date():
     logging.info("get_cycle_event_start_time_and_sys_date")
     # 获取循环事件的起始时间和系统时间的日期，组成完整的时间
-    # enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
     enter_time_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["OK"]]
-    # exit_to_screen = [KEY["EXIT"], KEY["EXIT"]]
     full_cycle_event_date_time = ''
-    # 进入Timer_Setting界面
-    # state["update_event_list_state"] = True
-    # send_more_commds(enter_timer_setting_interface)
+    # 进入Time_Setting界面
     send_more_commds(enter_time_setting_interface)
     # 获取当前系统时间的date
     get_current_system_time()
@@ -496,17 +488,6 @@ def get_cycle_event_start_time_and_sys_date():
     sys_time_split = re.split(r"[\s:/]", sys_time)
     fmt_sys_time = ''.join(sys_time_split)
     sys_time_date = fmt_sys_time[:8]
-    # 获取预约事件的起始时间
-    # while not state["res_event_numb_state"]:
-    #     logging.info("还没有获取到预约事件个数")
-    #     time.sleep(1)
-    # else:
-    #     logging.info(f'当前事件列表框中事件个数为{rsv_kws["res_event_numb"]}')
-    #     logging.info(res_event_list)
-    #     if int(rsv_kws["res_event_numb"]) == 1:
-    #         logging.info("当前事件列表中只有一个事件")
-    #     else:
-    #         logging.info("警告：循环预约事件个数与预期不符，请检查")
     # 查看预约事件列表时间信息
     logging.info(res_event_list)
     if len(list(res_event_list)[0][0]) == 4:
@@ -520,8 +501,6 @@ def get_cycle_event_start_time_and_sys_date():
         logging.info("当前循环事件起始时间为12位数")
         full_cycle_event_date_time = list(res_event_list)[0][0]
         logging.info(f"事件的起始时间为12位数，不用与系统时间合并，直接使用该事件起始时间为：{full_cycle_event_date_time}")
-    # 退回大画面
-    # send_more_commds(exit_to_screen)
     # 将获取信息的状态变量恢复默认
     state["current_sys_time_state"] = False
     state["res_event_numb_state"] = False
@@ -593,29 +572,13 @@ def calc_modify_system_time():
 def set_system_time():
     logging.info("set_system_time")
     # 根据计算出的下次等待预约时间触发的系统时间来设置系统时间
-    # enter_time_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["OK"]]
-    # change_sys_time_mode = [KEY["RIGHT"], KEY["EXIT"], KEY["OK"]]
     exit_to_screen = [KEY["EXIT"], KEY["EXIT"]]
     sys_date_list = []      # 用于将系统日期由字符串转化为发送指令的列表
     sys_time_list = []      # 用于将系统时间由字符串转化为发送指令的列表
     sys_date_time = calc_modify_system_time()
     GL.report_data[2] = sys_date_time[:8]
     # 进入时间设置界面
-    # send_more_commds(enter_time_setting_interface)
-    # 对当前系统时间模式进行判断
-    # while not state["sys_time_mode_state"]:
-    #     logging.info("还没有获取到系统时间模式信息")
-    #     time.sleep(1)
-    # else:
-    #     if rsv_kws["sys_time_mode"] == "Auto":
-    #         send_more_commds(change_sys_time_mode)
-    #         # 重新进入Time Setting界面
-    #         send_commd(KEY["OK"])
-    #     elif rsv_kws["sys_time_mode"] == "Manual":
-    #         logging.info("系统时间模式已经为手动模式")
-    #     else:
-    #         logging.debug("警告：系统时间模式获取错误！！！")
-    #     state["sys_time_mode_state"] = False
+    # 在get_cycle_event_start_time_and_sys_date已经执行
     # 移动到Date选项
     send_commd(KEY["DOWN"])
     sys_date_list.append(sys_date_time[:8])
@@ -640,12 +603,10 @@ def set_system_time():
 def goto_specified_interface_wait_for_event_triggered():
     logging.info("goto_specified_interface_wait_for_event_triggered")
     # WAIT_INTERFACE = ["TVScreenDiffCH", "RadioScreenDiffCH", "ChannelList", "Menu", "EPG", "ChannelEdit"]
-    # exit_to_screen = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
     menu_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["DOWN"], KEY["DOWN"], KEY["OK"], KEY["OK"]]
     channel_edit_interface = [KEY["MENU"], KEY["LEFT"], KEY["LEFT"], KEY["OK"]]
     # 切到指定界面
     if TEST_CASE_INFO[5] == "TVScreenDiffCH":
-        # send_more_commds(exit_to_screen)
         if channel_info[5] != "TV":
             send_commd(KEY["TV/R"])
         # 切到不同的频道等待
@@ -653,7 +614,6 @@ def goto_specified_interface_wait_for_event_triggered():
         if channel_info[3] == "1":  # 加锁节目判断
             send_commd(KEY["EXIT"])
     elif TEST_CASE_INFO[5] == "RadioScreenDiffCH":
-        # send_more_commds(exit_to_screen)
         if channel_info[5] != "Radio":
             send_commd(KEY["TV/R"])
         # 切到不同的频道等待
@@ -661,7 +621,6 @@ def goto_specified_interface_wait_for_event_triggered():
         if channel_info[3] == "1":  # 加锁节目判断
             send_commd(KEY["EXIT"])
     elif TEST_CASE_INFO[5] == "ChannelList":
-        # send_more_commds(exit_to_screen)
         # 切到不同的频道等待
         send_commd(KEY["UP"])
         if channel_info[3] == "1":  # 加锁节目判断
@@ -669,7 +628,6 @@ def goto_specified_interface_wait_for_event_triggered():
         # 调出频道列表
         send_commd(KEY["OK"])
     elif TEST_CASE_INFO[5] == "Menu":
-        # send_more_commds(exit_to_screen)
         # 切到不同的频道等待
         send_commd(KEY["UP"])
         if channel_info[3] == "1":  # 加锁节目判断
@@ -677,7 +635,6 @@ def goto_specified_interface_wait_for_event_triggered():
         # 进入Menu指定子菜单界面
         send_more_commds(menu_interface)
     elif TEST_CASE_INFO[5] == "EPG":
-        # send_more_commds(exit_to_screen)
         # 切到不同的频道等待
         send_commd(KEY["UP"])
         if channel_info[3] == "1":  # 加锁节目判断
@@ -685,7 +642,6 @@ def goto_specified_interface_wait_for_event_triggered():
         # 进入EPG界面
         send_commd(KEY["EPG"])
     elif TEST_CASE_INFO[5] == "ChannelEdit":
-        # send_more_commds(exit_to_screen)
         # 切到不同的频道等待
         send_commd(KEY["UP"])
         if channel_info[3] == "1":  # 加锁节目判断
@@ -799,7 +755,6 @@ def res_event_triggered_and_choice_jump_type():
                     else:   # 等待界面为其他界面时，除了要退出提示框，还要退回到大画面
                         send_more_commds(EXIT_TO_SCREEN)
                     GL.pvr_rec_dur_time = 0
-                    # state["receive_loop_state"] = True
                     break
                 if state["no_enough_space_state"]:
                     logging.info("警告：存储设备没有足够的空间")
@@ -809,7 +764,6 @@ def res_event_triggered_and_choice_jump_type():
                     else:  # 等待界面为其他界面时，除了要退出提示框，还要退回到大画面
                         send_more_commds(EXIT_TO_SCREEN)
                     GL.pvr_rec_dur_time = 0
-                    # state["receive_loop_state"] = True
                     break
                 if state["pvr_not_supported_state"]:
                     logging.info("警告：当前录制节目为加密节目，或加锁节目，或无信号，请检查")
@@ -819,7 +773,6 @@ def res_event_triggered_and_choice_jump_type():
                     else:  # 等待界面为其他界面时，除了要退出提示框，还要退回到大画面
                         send_more_commds(EXIT_TO_SCREEN)
                     GL.pvr_rec_dur_time = 0
-                    # state["receive_loop_state"] = True
                     break
             else:
                 logging.info("正确进入录制")
@@ -861,7 +814,6 @@ def res_event_triggered_and_choice_jump_type():
                     else:  # 等待界面为其他界面时，除了要退出提示框，还要退回到大画面
                         send_more_commds(EXIT_TO_SCREEN)
                     GL.pvr_rec_dur_time = 0
-                    # state["receive_loop_state"] = True
                     break
                 if state["no_enough_space_state"]:
                     logging.info("警告：存储设备没有足够的空间")
@@ -871,7 +823,6 @@ def res_event_triggered_and_choice_jump_type():
                     else:  # 等待界面为其他界面时，除了要退出提示框，还要退回到大画面
                         send_more_commds(EXIT_TO_SCREEN)
                     GL.pvr_rec_dur_time = 0
-                    # state["receive_loop_state"] = True
                     break
                 if state["pvr_not_supported_state"]:
                     logging.info("警告：当前录制节目为加密节目，或加锁节目，或无信号，请检查")
@@ -881,7 +832,6 @@ def res_event_triggered_and_choice_jump_type():
                     else:  # 等待界面为其他界面时，除了要退出提示框，还要退回到大画面
                         send_more_commds(EXIT_TO_SCREEN)
                     GL.pvr_rec_dur_time = 0
-                    # state["receive_loop_state"] = True
                     break
             else:
                 logging.info("正确进入录制")
@@ -1093,7 +1043,6 @@ def write_data_to_excel():
         wb = Workbook()
         ws = wb.active
         ws.title = file_path[2]
-        # ws.column_dimensions['A'].width = 17
         # 写excel_title_1的内容
         ws.cell(1, 1).value = excel_title_1[0]
         ws["A" + str(1)].alignment = alignment
@@ -1335,7 +1284,6 @@ def write_data_to_excel():
         elif d == 3:  # 触发时间
             ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
             ws.cell(max_row + 1, d + len_total).alignment = alignment
-            # ws.column_dimensions[get_column_letter(a_column_numb + len_total + (d - 1))].width = 15
 
             str_triggered_time = change_str_time_and_fmt_time(GL.report_data[3][:12], 1)  # 加1分钟后的触发时间
             if TEST_CASE_INFO[8] == "Once":     # （触发时间+1）后与预约事件起始时间进行比对
@@ -1357,7 +1305,6 @@ def write_data_to_excel():
         elif d == 5:  # 跳转节目
             ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
             ws.cell(max_row + 1, d + len_total).alignment = alignment
-            # ws.column_dimensions[get_column_letter(a_column_numb + len_total + (d - 1))].width = 15
             if TEST_CASE_INFO[9] == "Play" or TEST_CASE_INFO[9] == "PVR":
                 if TEST_CASE_INFO[6] == "Manual_jump" or TEST_CASE_INFO[6] == "Auto_jump":
                     if GL.report_data[d] == GL.report_data[1][2]:
@@ -1378,7 +1325,6 @@ def write_data_to_excel():
         elif d == 6:  # 录制时长
             ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
             ws.cell(max_row + 1, d + len_total).alignment = alignment
-            # ws.column_dimensions[get_column_letter(a_column_numb + len_total + (d - 1))].width = 15
             if TEST_CASE_INFO[9] == "PVR":
                 if TEST_CASE_INFO[6] == "Manual_jump" or TEST_CASE_INFO[6] == "Auto_jump":
                     res_dur_split = re.split(":", GL.report_data[1][3])
@@ -1403,7 +1349,6 @@ def write_data_to_excel():
         elif d == 7:    # 用例编号
             ws.cell(max_row + 1, 1).value = GL.report_data[d]
             ws.cell(max_row + 1, 1).alignment = alignment
-            # ws.column_dimensions[get_column_letter(a_column_numb)].width = 15
 
         elif d == 8:    # 写报告时间
             ws.cell(max_row + 1, d + len_total - 1).value = GL.report_data[d]   # 由于d==7的坑填到第一列，所以这里需要列数减一
@@ -1412,7 +1357,6 @@ def write_data_to_excel():
         else:
             ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
             ws.cell(max_row + 1, d + len_total).alignment = alignment
-            # ws.column_dimensions[get_column_letter(a_column_numb + len_total + (d - 1))].width = 15
     ws.row_dimensions[(max_row + 1)].height = 27    # 设置每次执行的report预约事件信息的行高
 
     wb.save(file_path[1])
@@ -1573,8 +1517,6 @@ def create_expected_edit_event_info():
     expected_edit_event_info = ['', '', '', '', '']      # [起始时间，事件响应类型，节目名称，持续时间，事件触发模式]
     duration_time = calculate_expected_edit_event_duration_time()
     if TEST_CASE_INFO[9] == "Play":
-        # choice_ch_for_res_event_type()
-        # if TEST_CASE_INFO[3] == "Once":
         expected_event_full_time = calculate_expected_edit_event_start_time()
         expected_edit_event_info[0] = expected_event_full_time
         expected_edit_event_info[1] = TEST_CASE_INFO[9]
