@@ -73,12 +73,24 @@ def write_log_data_to_txt(path, write_data):
 
 
 def send_commd(commd):
+    global receive_cmd_list, infrared_send_cmd
     # 红外发送端发送指令
-    send_serial.write(hex_strs_to_bytes(commd))
-    send_serial.flush()
-    logging.info("红外发送：{}".format(REVERSE_KEY[commd]))
-    infrared_send_cmd.append(REVERSE_KEY[commd])
-    time.sleep(1.0)
+    if len(infrared_send_cmd) == len(receive_cmd_list):
+        send_serial.write(hex_strs_to_bytes(commd))
+        send_serial.flush()
+        logging.info("红外发送：{}".format(REVERSE_KEY[commd]))
+        if REVERSE_KEY[commd] != "POWER":
+            infrared_send_cmd.append(REVERSE_KEY[commd])
+        time.sleep(1.0)
+    elif len(infrared_send_cmd) != len(receive_cmd_list):
+        if len(infrared_send_cmd) - len(receive_cmd_list) == 1:
+            logging.info(f"此刻补发STB没有接收到的红外命令{infrared_send_cmd[-1]}")
+            send_serial.write(hex_strs_to_bytes(KEY[infrared_send_cmd[-1]]))
+            send_serial.flush()
+            time.sleep(1.0)
+
+            logging.info(f"此时再发送本次要发送的命令{REVERSE_KEY[commd]}")
+            send_commd(commd)
 
 
 def send_random_commd(commd):
@@ -1000,6 +1012,7 @@ def padding_report_data():
 def write_data_to_report():
     logging.debug("write_data_to_report")
     wb = ''
+    ws = ''
     expect_report_title = ''
     actual_report_title = ''
     channel_report_title = ''
@@ -1405,6 +1418,7 @@ def receive_serial_process(prs_data, infrared_send_cmd, state, channel_info, rsv
                         infrared_send_cmd[-1], reverse_rsv_key[infrared_rsv_cmd[-1]]))
                     logging.info("红外次数统计(发送和接受):{}--{}".format(
                         len(infrared_send_cmd), len(infrared_rsv_cmd)))
+                    receive_cmd_list.append(rsv_cmd)
 
             if other_kws[1] in data2:     # 获取系统时间模式（自动还是手动）
                 state["sys_time_mode_state"] = True
@@ -1494,6 +1508,7 @@ if __name__ == "__main__":
     receive_ser_name = ser_name[1]
 
     infrared_send_cmd = Manager().list([])
+    receive_cmd_list = Manager().list([])
     channel_info = Manager().list(['', '', '', '', '', '', '', ''])     # [频道号,频道名称,tp,lock,scramble,频道类型,组别,epg_info]
     ch_epg_info = Manager().list(['', '', ''])                          # 单个EPG信息的提取[event_date, event_time, event_name]
     rsv_info = Manager().dict({
