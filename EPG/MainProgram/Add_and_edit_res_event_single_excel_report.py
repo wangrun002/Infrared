@@ -514,7 +514,7 @@ def calc_modify_system_time():
     # w = (d + 1 + 2 * m + 3 * (m + 1) / 5 + y + y / 4 - y / 100 + y / 400) % 7
     weekly_event_mode = ["Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
     weekday_num_dict = {"Mon.": 0, "Tues.": 1, "Wed.": 2, "Thurs.": 3, "Fri.": 4, "Sat.": 5, "Sun.": 6}
-    ahead_of_time = 1
+    ahead_of_time = 1   # 提前系统时间到事件起始时间前1分钟
     full_cyc_event_date_time = get_cycle_event_start_time_and_sys_date()
     fmt_next_sys_date_time = ''
     cur_year = int(full_cyc_event_date_time[:4])
@@ -981,7 +981,7 @@ def res_triggered_later_check_timer_setting_event_list():
 
 
 def change_str_time_and_fmt_time(str_time, interval_time):
-    # 字符串时间和格式化事件之间转换
+    # 字符串时间和格式化时间之间转换
     str_new_fmt_date = ''
     if len(str_time) == 12:     # once事件时间计算
         fmt_year = int(str_time[:4])
@@ -1792,7 +1792,7 @@ def receive_serial_process(
 
             if other_kws[0] in data2:   # 红外接收打印
                 rsv_cmd = re.split(":", data2)[-1]
-                infrared_rsv_cmd.append(rsv_cmd)       # 存放可以共享的接受命令的列表
+                infrared_rsv_cmd.append(rsv_cmd)        # 存放可以共享的接受命令的列表
                 if rsv_cmd not in reverse_rsv_key.keys():
                     logging.info("红外键值{}不在当前字典中，被其他遥控影响".format(rsv_cmd))
                 else:
