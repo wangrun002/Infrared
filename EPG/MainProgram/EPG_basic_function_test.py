@@ -1326,7 +1326,7 @@ def write_data_to_report():
     wb.save(file_path[1])
 
 
-def receive_serial_process(prs_data, infrared_send_cmd, state, channel_info, rsv_info, ch_epg_info):
+def receive_serial_process(prs_data, infrared_send_cmd, state, channel_info, rsv_info, ch_epg_info, receive_cmd_list):
     logging_info_setting()
     rsv_key = {
         "POWER": "0xbbaf", "TV/R": "0xbbbd", "MUTE": "0xbbf7",
@@ -1524,7 +1524,7 @@ if __name__ == "__main__":
     })
 
     rsv_p = Process(target=receive_serial_process, args=(
-        prs_data, infrared_send_cmd, state, channel_info, rsv_info, ch_epg_info))
+        prs_data, infrared_send_cmd, state, channel_info, rsv_info, ch_epg_info, receive_cmd_list))
     rsv_p.start()
 
     if platform.system() == "Windows":
