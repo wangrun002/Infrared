@@ -34,9 +34,8 @@ all_sat_commd = [
 from datetime import datetime
 from openpyxl import Workbook
 from openpyxl import load_workbook
-from openpyxl.styles import Font,colors,Alignment
+from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter,column_index_from_string
-from threading import Timer
 import serial
 import serial.tools.list_ports
 import re
@@ -48,16 +47,18 @@ import logging
 import threading
 import platform
 
+
 class MyGlobal():
     def __init__(self):
         self.search_start_state = False
         self.search_end_state = False
         self.all_tp_list = []                           # 用于存放搜索到的TP
         self.channel_info = {}                          # 用于存放各个TP下搜索到的电视和广播节目名称
-        self.search_datas = [0,0,0,0,0,0,0,0,0]         # 用于存放xlsx_title中的数据
+        self.search_datas = [0, 0, 0, 0, 0, 0, 0, 0, 0] # 用于存放xlsx_title中的数据
         self.searched_time = 0                          # 用于记录搜索的轮次
-        self.tv_radio_tp_count = [0,0,0,0,0]            # [GL.tv_radio_tp_count[0],GL.tv_radio_tp_count[1],GL.tv_radio_tp_count[2],GL.tv_radio_tp_count[3],GL.tv_radio_tp_count[4]]
-        self.tv_radio_tp_accumulated = [[],[],[],[]]    # 用于统计每轮搜索累加的TV、Radio、TP数以及保存TP数的值
+        # [GL.tv_radio_tp_count[0],GL.tv_radio_tp_count[1],GL.tv_radio_tp_count[2],GL.tv_radio_tp_count[3],GL.tv_radio_tp_count[4]]
+        self.tv_radio_tp_count = [0, 0, 0, 0, 0]
+        self.tv_radio_tp_accumulated = [[], [], [], []] # 用于统计每轮搜索累加的TV、Radio、TP数以及保存TP数的值
         self.xlsx_data_interval = 0                     # 用于计算每轮搜索写xlsx时的间隔
         self.search_dur_time = ''                       # 用于存放搜索花费的时间
         self.send_loop_state = True
@@ -76,8 +77,9 @@ class MyGlobal():
         self.antenna_setting_focus_pos = ''                     # 天线与卫星设置界面焦点位置
         self.infrared_send_commd = []                           # 所有红外发送命令列表
         self.infrared_rsv_commd = []                            # 所有红外接收命令列表
+        self.receive_cmd_list = []                              # 红外接收公版遥控器命令列表
         self.sat_param_save = ["", "", "", "", "", ""]      # [sat_name,LNB_Power,LNB_Fre,22k,diseqc1.0,diseqc1.1]
-        self.sat_param_kws =    [
+        self.sat_param_kws = [
                                     "[PTD]sat_name=",
                                     "[PTD]LNB1=",
                                     "[PTD]--[0:ON,1:OFF]---22K",
@@ -208,6 +210,7 @@ class MyGlobal():
                                         ["Delete","AllCH"],ONLY_EXECUTE_ONE_TIME],
                                 ]
 
+
 def check_ports():
     global send_com,receive_com
     send_com, receive_com = '', ''
@@ -255,6 +258,7 @@ def check_ports():
                 receive_com = ports_info[i].split("~")[0]
     return send_com,receive_com
 
+
 def serial_set(ser,ser_name,ser_baudrate):
     ser.port = ser_name
     ser.baudrate = ser_baudrate
@@ -265,20 +269,36 @@ def serial_set(ser,ser_name,ser_baudrate):
     ser.write_timeout = 0
     ser.open()
 
+
 def hex_strs_to_bytes(strings):
     # strs = strings.replace(" ", "")
     return bytes.fromhex(strings)
 
+
 def send_commd(commd):
-    send_ser.write(hex_strs_to_bytes(commd))
-    send_ser.flush()
-    logging.info("红外发送：{}".format(REVERSE_KEY[commd]))
-    GL.infrared_send_commd.append(REVERSE_KEY[commd])
-    time.sleep(1)
+    # 红外发送端发送指令
+    if len(GL.infrared_send_commd) == len(GL.receive_cmd_list):
+        send_ser.write(hex_strs_to_bytes(commd))
+        send_ser.flush()
+        logging.info("红外发送：{}".format(REVERSE_KEY[commd]))
+        if REVERSE_KEY[commd] != "POWER":
+            GL.infrared_send_commd.append(REVERSE_KEY[commd])
+        time.sleep(1.0)
+    elif len(GL.infrared_send_commd) != len(GL.receive_cmd_list):
+        if len(GL.infrared_send_commd) - len(GL.receive_cmd_list) == 1:
+            logging.info(f"此刻补发STB没有接收到的红外命令{GL.infrared_send_commd[-1]}")
+            send_ser.write(hex_strs_to_bytes(KEY[GL.infrared_send_commd[-1]]))
+            send_ser.flush()
+            time.sleep(1.0)
+
+            logging.info(f"此时再发送本次要发送的命令{REVERSE_KEY[commd]}")
+            send_commd(commd)
+
 
 def add_write_data_to_txt(file_path,write_data):    # 追加写文本
     with open(file_path,"a+",encoding="utf-8") as fo:
         fo.write(write_data)
+
 
 def build_print_log_and_report_file_path():
     global sat_name, search_mode, sheet_name
@@ -310,6 +330,7 @@ def build_print_log_and_report_file_path():
     case_log_file_name = "{}_{}_{}_{}_{}.txt".format(choice_search_sat, simplify_sat_name[sat_name], sat_name, search_mode, timestamp)
     case_log_txt_path = os.path.join(case_log_file_directory, case_log_file_name)
 
+
 def judge_write_file_exist():
     global case_log_file_directory, report_file_directory
     parent_path = os.path.dirname(os.getcwd())
@@ -326,6 +347,7 @@ def judge_write_file_exist():
         os.mkdir(case_log_file_directory)
     if not os.path.exists(report_file_directory):
         os.mkdir(report_file_directory)
+
 
 def judge_and_wirte_data_to_xlsx():
     GL.xlsx_data_interval = 1 + 5 * (GL.searched_time - 1)
@@ -415,6 +437,7 @@ def judge_and_wirte_data_to_xlsx():
                 ws.row_dimensions[(m+1+j)].height = 13.5
     wb.save(report_file_path)
 
+
 def enter_antenna_setting():
     logging.debug("Enter Antenna Setting")
     GL.sat_param_save[0] = ''
@@ -446,6 +469,7 @@ def judge_preparatory_work():
         for j in range(len(send_data_2)):
             send_commd(send_data_2[j])
 
+
 def check_satellite_param():
     logging.debug("Satellite")
     time.sleep(1)
@@ -470,6 +494,7 @@ def check_satellite_param():
         elif GL.all_sat_commd[choice_search_sat][1] == SEARCH_PREPARATORY_WORK[1]:  # normal sat search
             send_commd(KEY["DOWN"])
 
+
 def check_lnb_power():
     logging.debug("LNB POWER")
     while GL.antenna_setting_focus_pos != "LNB Power":
@@ -482,6 +507,7 @@ def check_lnb_power():
             send_commd(KEY["RIGHT"])
             send_commd(KEY["DOWN"])
 
+
 def check_lnb_fre():
     logging.debug("LBN FREQUENCY")
     while GL.antenna_setting_focus_pos != "LNB Frequency":
@@ -493,6 +519,7 @@ def check_lnb_fre():
         else:
             send_commd(KEY["DOWN"])
 
+
 def check_22k():
     logging.debug("22k")
     while GL.antenna_setting_focus_pos != "22K":
@@ -502,6 +529,7 @@ def check_22k():
             send_commd(KEY["RIGHT"])
         else:
             send_commd(KEY["DOWN"])
+
 
 def check_diseqc_10():
     logging.debug("Diseqc 1.0")
@@ -513,6 +541,7 @@ def check_diseqc_10():
         else:
             send_commd(KEY["DOWN"])
 
+
 def check_diseqc_11():
     logging.debug("Diseqc 1.1")
     while GL.antenna_setting_focus_pos != "DiSEqC 1,1":
@@ -523,12 +552,14 @@ def check_diseqc_11():
         else:
             send_commd(KEY["DOWN"])
 
+
 def check_tp():
     logging.debug("TP")
     while GL.antenna_setting_focus_pos != "TP":
         send_commd(KEY["DOWN"])
     else:
         send_commd(KEY["DOWN"])
+
 
 def choice_srh_mode_and_start_srh():
     logging.debug("Choice Search Mode And Start Search")
@@ -560,6 +591,7 @@ def choice_srh_mode_and_start_srh():
                 send_commd(KEY["OK"])
             time.sleep(1)
 
+
 def antenna_setting():
     check_satellite_param()
     check_lnb_power()
@@ -570,9 +602,11 @@ def antenna_setting():
     check_tp()
     choice_srh_mode_and_start_srh()
 
+
 def block_send_thread():
     time.sleep(1)
     # send_ser.send_break(3)
+
 
 def judge_srh_limit():
     logging.debug("Upper Limit To Save Channel Stage")
@@ -607,6 +641,7 @@ def judge_save_ch_mode():
         logging.info("主动在保存节目时延时3秒")
         time.sleep(3)
 
+
 def write_data_to_excel():
     logging.debug("Write data to Excel")
     logging.info("保存节目后等待保存TP和保存节目的打印5秒")
@@ -617,6 +652,7 @@ def write_data_to_excel():
     GL.search_datas[6] = GL.search_dur_time
     GL.search_datas[8] = GL.all_tp_list
     judge_and_wirte_data_to_xlsx()
+
 
 def clear_variate():
     logging.debug("clear data")
@@ -629,11 +665,13 @@ def clear_variate():
     GL.search_datas[5] = '0/0'
     GL.tv_radio_tp_count[2], GL.tv_radio_tp_count[3] = 0, 0
 
+
 def exit_antenna_setting():
     logging.debug("Exit Antenna Setting")
     send_data = GL.all_sat_commd[choice_search_sat][5]
     for i in range(len(send_data)):
         send_commd(send_data[i])
+
 
 def other_operate_del_all_ch():
     logging.debug("Delete All Channels And Choice Searched First Sat")
@@ -675,6 +713,7 @@ def other_operate_del_all_ch():
         send_commd(EXIT_TO_SCREEN[i])
     GL.searched_sat_name.clear()
 
+
 def other_operate_del_specify_sat_all_tp():
     logging.debug("Delete Specify Sat TP And Choice Random Sat")
     # send_commd(KEY["MENU"])
@@ -697,6 +736,7 @@ def other_operate_del_specify_sat_all_tp():
     send_data = EXIT_TO_SCREEN
     for j in range(len(send_data)):
         send_commd(send_data[j])
+
 
 def judge_other_operate():
     if len(GL.all_sat_commd[choice_search_sat][6]) == 0:  # 没有额外操作
@@ -726,6 +766,7 @@ def judge_other_operate():
                     send_commd(UPPER_LIMIT_LATER_NOT_DEL_SAT_TP_SEARCH_CONT[0])
                     GL.searched_sat_name.remove(random.choice(GL.searched_sat_name))  # 达到上限后切下一个卫星搜索
                     # GL.searched_sat_name.clear()        # 达到上限后重复搜索最后一个卫星
+
 
 def cyclic_srh_setting():
     global search_time
@@ -765,6 +806,7 @@ def cyclic_srh_setting():
             logging.info("程序结束")
             GL.send_loop_state = False
             GL.receive_loop_state = False
+
 
 def data_send_thread():
     global  search_time
@@ -818,8 +860,10 @@ def data_send_thread():
                     elif not GL.search_end_state:
                         block_send_thread()
 
+
 def data_receiver_thread():
     global start_time,end_time
+    tp = ''
     while GL.receive_loop_state:
         data = receive_ser.readline()
         if data:
@@ -840,8 +884,11 @@ def data_receiver_thread():
                 if infrared_rsv_commd not in reverse_rsv_key.keys():
                     logging.info("红外键值{}不在当前字典中，被其他遥控影响".format(infrared_rsv_commd))
                 else:
-                    logging.info("红外键值(发送和接受):({})--({})".format(GL.infrared_send_commd[-1], reverse_rsv_key[GL.infrared_rsv_commd[-1]]))
-                    logging.info("红外次数统计(发送和接受):{}--{}".format(len(GL.infrared_send_commd), len(GL.infrared_rsv_commd)))
+                    logging.info("红外键值(发送和接受):({})--({})".format(
+                        GL.infrared_send_commd[-1], reverse_rsv_key[GL.infrared_rsv_commd[-1]]))
+                    logging.info("红外次数统计(发送和接受):{}--{}".format(
+                        len(GL.infrared_send_commd), len(GL.infrared_rsv_commd)))
+                    GL.receive_cmd_list.append(infrared_rsv_commd)
 
             if GL.antenna_setting_kws in data2:     # 天线设置界面获取焦点位置
                 GL.antenna_setting_focus_pos = re.split(":", data2)[-1]
@@ -917,11 +964,9 @@ def data_receiver_thread():
                 GL.search_dur_time = str(end_time - start_time)[2:10]
                 for i in range(len(GL.all_tp_list)):
                     print(GL.all_tp_list[i])
-                print("第{}次搜索节目总数为TV/Radio:{}/{},TP总数为:{},盲扫时长:{}".format(GL.search_datas[1], \
-                                                                          GL.tv_radio_tp_count[0], GL.tv_radio_tp_count[1],
-                                                                          len(GL.all_tp_list), \
-                                                                          GL.search_dur_time))
-
+                print("第{}次搜索节目总数为TV/Radio:{}/{},TP总数为:{},盲扫时长:{}".format(
+                    GL.search_datas[1], GL.tv_radio_tp_count[0], GL.tv_radio_tp_count[1],
+                    len(GL.all_tp_list), GL.search_dur_time))
 
             if GL.search_monitor_kws[5] in data2:  # 监控保存TP的个数
                 GL.tv_radio_tp_count[4] = int(re.split("=", data2)[1])
@@ -939,11 +984,9 @@ def data_receiver_thread():
                 GL.tv_radio_tp_accumulated[3].append(GL.tv_radio_tp_count[4])
 
                 print("本次搜索实际保存TV/Radio:{},保存TP数为:{}".format(GL.search_datas[5], GL.search_datas[4]))
-                print("当前轮次:{},累计搜索节目个数:{}/{},累计搜索TP个数:{},累计保存TP个数：{}".format(GL.search_datas[1], \
-                                                                              sum(GL.tv_radio_tp_accumulated[0]), \
-                                                                              sum(GL.tv_radio_tp_accumulated[1]), \
-                                                                              sum(GL.tv_radio_tp_accumulated[2]), \
-                                                                              sum(GL.tv_radio_tp_accumulated[3])))
+                print("当前轮次:{},累计搜索节目个数:{}/{},累计搜索TP个数:{},累计保存TP个数：{}".format(
+                    GL.search_datas[1], sum(GL.tv_radio_tp_accumulated[0]), sum(GL.tv_radio_tp_accumulated[1]),
+                    sum(GL.tv_radio_tp_accumulated[2]),sum(GL.tv_radio_tp_accumulated[3])))
                 # GL.save_ch_finish_state = True
             if GL.delete_ch_finish_kws in data2:  # 监控删除所有节目成功的关键字
                 GL.delete_ch_finish_state = True
@@ -1041,43 +1084,43 @@ if __name__ == "__main__":
     GL = MyGlobal()
 
     sat_search_mode_list = [
-                            "6b_blind",                         #0
-                            "6b_super_blind",                   #1
+                            "6b_blind",                         # 0
+                            "6b_super_blind",                   # 1
 
-                            "y3_blind",                         #2
-                            "y3_super_blind",                   #3
+                            "y3_blind",                         # 2
+                            "y3_super_blind",                   # 3
 
-                            "138_blind",                        #4
-                            "138_super_blind",                  #5
+                            "138_blind",                        # 4
+                            "138_super_blind",                  # 5
 
-                            "88_blind",                         #6
-                            "88_super_blind",                   #7
+                            "88_blind",                         # 6
+                            "88_super_blind",                   # 7
 
-                            "plp_blind",                        #8
-                            "plp_super_blind",                  #9
+                            "plp_blind",                        # 8
+                            "plp_super_blind",                  # 9
 
-                            "138_incremental_blind",            #10 累加搜索
+                            "138_incremental_blind",            # 10 累加搜索
 
-                            "138_ch_upper_limit_blind",          #11 搜索节目达到上限,会删除所有节目,重新搜索
-                            "138_ch_ul_later_cont_blind",        #12 搜索节目达到上限后,不删除指定卫星下的tp,继续搜索
-                            "138_ch_ul_later_del_tp_blind",      #13 搜索节目达到上限后,删除指定卫星下的tp,继续搜索
+                            "138_ch_upper_limit_blind",          # 11 搜索节目达到上限,会删除所有节目,重新搜索
+                            "138_ch_ul_later_cont_blind",        # 12 搜索节目达到上限后,不删除指定卫星下的tp,继续搜索
+                            "138_ch_ul_later_del_tp_blind",      # 13 搜索节目达到上限后,删除指定卫星下的tp,继续搜索
 
-                            "z6_tp_upper_limit_blind",          #14 搜索tp达到上限,会恢复出厂设置,重新搜索
-                            "z6_tp_ul_later_cont_blind",        #15 搜索tp达到上限后,不删除指定卫星下的tp,继续搜索
-                            "z6_tp_ul_later_del_tp_blind",      #16 搜索tp达到上限后,删除指定卫星下的tp,继续搜索
+                            "z6_tp_upper_limit_blind",          # 14 搜索tp达到上限,会恢复出厂设置,重新搜索
+                            "z6_tp_ul_later_cont_blind",        # 15 搜索tp达到上限后,不删除指定卫星下的tp,继续搜索
+                            "z6_tp_ul_later_del_tp_blind",      # 16 搜索tp达到上限后,删除指定卫星下的tp,继续搜索
 
-                            "reset_factory",                    #17 恢复出厂设置
-                            "delete_all_channel",               #18 删除所有节目
+                            "reset_factory",                    # 17 恢复出厂设置
+                            "delete_all_channel",               # 18 删除所有节目
                             ]
 
     simplify_sat_name = {
-        "Chinas6b_C":"Z6",
-        "Asiasat 7 C":"Y3",
-        "Telstar 18 K":"138",
-        "ST 2 K":"88",
-        "PLPD":"PLPD",
-        "Reset":"Reset",
-        "Delete":"Delete",
+        "Chinas6b_C": "Z6",
+        "Asiasat 7 C": "Y3",
+        "Telstar 18 K": "138",
+        "ST 2 K": "88",
+        "PLPD": "PLPD",
+        "Reset": "Reset",
+        "Delete": "Delete",
     }
 
     choice_search_sat = int(sys.argv[1])                        # 参考sat_list中的选项进行卫星选择
@@ -1098,7 +1141,7 @@ if __name__ == "__main__":
     # serial_set(receive_ser, receive_ser_name, 115200)
 
     msg = "现在开始执行的是:{}_{}".format(sat_name,search_mode)
-    logging.critical(format(msg,'*^150'))
+    logging.critical(format(msg, '*^150'))
 
     thread_send = threading.Thread(target=data_send_thread)
     thread_receive = threading.Thread(target=data_receiver_thread)
