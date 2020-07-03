@@ -1,41 +1,41 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-'''
-voltage = { "0":"13V",
-            "1":"18V",
-            "2":"Off"
-            }
 
-22k = { "0":"On",
-        "1":"Off"
-        }
+# voltage = { "0":"13V",
+#             "1":"18V",
+#             "2":"Off"
+#             }
+#
+# 22k = { "0":"On",
+#         "1":"Off"
+#         }
+#
+# diseqc 1.0 = {  "0":"Off",
+#                 "1":"Port1",
+#                 "2":"Port2",
+#                 "3":"Port3",
+#                 "4":"Port4"
+#                 }
+#
+# all_sat_commd = [
+#                     choice_enter_antenna_mode,
+#                     search_preparatory_work,
+#                     sat_param_list,
+#                     choice_search_mode,
+#                     choice_save_type,
+#                     choice_exit_mode,
+#                     other_operate,
+#                     normal_cycle_times,
+#                     control_upper_limit_cycle_times,
+#                 ]
 
-diseqc 1.0 = {  "0":"Off",
-                "1":"Port1",
-                "2":"Port2",
-                "3":"Port3",
-                "4":"Port4"
-                }
-
-all_sat_commd = [
-                    choice_enter_antenna_mode,
-                    search_preparatory_work,
-                    sat_param_list,
-                    choice_search_mode,
-                    choice_save_type,
-                    choice_exit_mode,
-                    other_operate,
-                    normal_cycle_times,
-                    control_upper_limit_cycle_times,
-                ]
-'''
 
 from datetime import datetime
 from openpyxl import Workbook
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
-from openpyxl.utils import get_column_letter,column_index_from_string
+from openpyxl.utils import get_column_letter, column_index_from_string
 import serial
 import serial.tools.list_ports
 import re
@@ -48,17 +48,19 @@ import threading
 import platform
 
 
-class MyGlobal():
+class MyGlobal(object):
+
     def __init__(self):
         self.search_start_state = False
         self.search_end_state = False
         self.all_tp_list = []                           # 用于存放搜索到的TP
         self.channel_info = {}                          # 用于存放各个TP下搜索到的电视和广播节目名称
-        self.search_datas = [0, 0, 0, 0, 0, 0, 0, 0, 0] # 用于存放xlsx_title中的数据
+        # self.search_datas = [0, 0, 0, 0, 0, 0, 0, 0, 0] # 用于存放xlsx_title中的数据
+        self.search_datas = ['0', '0', '0', '0', '0', '0', '0', '0', []]  # 用于存放xlsx_title中的数据
         self.searched_time = 0                          # 用于记录搜索的轮次
         # [GL.tv_radio_tp_count[0],GL.tv_radio_tp_count[1],GL.tv_radio_tp_count[2],GL.tv_radio_tp_count[3],GL.tv_radio_tp_count[4]]
-        self.tv_radio_tp_count = [0, 0, 0, 0, 0]
-        self.tv_radio_tp_accumulated = [[], [], [], []] # 用于统计每轮搜索累加的TV、Radio、TP数以及保存TP数的值
+        self.tv_radio_tp_count = ['0', '0', '0', '0', '0']
+        self.tv_radio_tp_accumulated = [[], [], [], []]     # 用于统计每轮搜索累加的TV、Radio、TP数以及保存TP数的值
         self.xlsx_data_interval = 0                     # 用于计算每轮搜索写xlsx时的间隔
         self.search_dur_time = ''                       # 用于存放搜索花费的时间
         self.send_loop_state = True
@@ -88,132 +90,133 @@ class MyGlobal():
                                 ]
 
         self.search_monitor_kws = [
-                                    "[PTD]SearchStart",		#0
-                                    "[PTD]TV------",		#1
-                                    "[PTD]Radio-----",		#2
-                                    "[PTD]SearchFinish",	#3
-                                    "[PTD]get :  fre",		#4
-                                    "[PTD]TP_save=",		#5
-                                    "[PTD]TV_save=",		#6
-                                    "[PTD]maximum_tp",		#7
-                                    "[PTD]maximum_channel",	#8
-                                    "[PTD]get polar:",      #9
+                                    "[PTD]SearchStart",		    # 0
+                                    "[PTD]TV------",		    # 1
+                                    "[PTD]Radio-----",		    # 2
+                                    "[PTD]SearchFinish",        # 3
+                                    "[PTD]get :  fre",		    # 4
+                                    "[PTD]TP_save=",		    # 5
+                                    "[PTD]TV_save=",		    # 6
+                                    "[PTD]maximum_tp",		    # 7
+                                    "[PTD]maximum_channel",     # 8
+                                    "[PTD]get polar:",          # 9
                                     ]
 
-        self.all_sat_commd =   [
-                                    [   ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
+        self.all_sat_commd = [
+                                    [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
                                         ["Chinas6b_C", "Polar=0", "5150/5750", "22K=1", "2", "0", "Blind"],
                                         CHOICE_BLIND_MODE, CHOICE_SAVE_TYPE[0],
                                         EXIT_ANTENNA_SETTING, NOT_OTHER_OPERATE,
                                         NORMAL_SEARCH_TIMES, NOT_UPPER_LIMIT_LATER_SEARCH_TIME],
 
-                                    [   ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
+                                    [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
                                         ["Chinas6b_C", "Polar=0", "5150/5750", "22K=1", "2", "0", "SuperBlind"],
                                         CHOICE_SUPERBLIND_MODE, CHOICE_SAVE_TYPE[0],
                                         EXIT_ANTENNA_SETTING, NOT_OTHER_OPERATE,
                                         SUPER_SEARCH_TIMES, NOT_UPPER_LIMIT_LATER_SEARCH_TIME],
 
-                                    [   ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
+                                    [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
                                         ["Asiasat 7 C", "Polar=0", "5150/5750", "22K=1", "1", "0", "Blind"],
                                         CHOICE_BLIND_MODE, CHOICE_SAVE_TYPE[0],
                                         EXIT_ANTENNA_SETTING, NOT_OTHER_OPERATE,
                                         NORMAL_SEARCH_TIMES, NOT_UPPER_LIMIT_LATER_SEARCH_TIME],
 
-                                    [   ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
+                                    [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
                                         ["Asiasat 7 C", "Polar=0", "5150/5750", "22K=1", "1", "0", "SuperBlind"],
                                         CHOICE_SUPERBLIND_MODE, CHOICE_SAVE_TYPE[0],
                                         EXIT_ANTENNA_SETTING, NOT_OTHER_OPERATE,
                                         SUPER_SEARCH_TIMES, NOT_UPPER_LIMIT_LATER_SEARCH_TIME],
 
-                                    [   ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
+                                    [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
                                         ["Telstar 18 K", "Polar=0", "10600/0", "22K=0", "4", "0", "Blind"],
                                         CHOICE_BLIND_MODE, CHOICE_SAVE_TYPE[0],
                                         EXIT_ANTENNA_SETTING, NOT_OTHER_OPERATE,
                                         NORMAL_SEARCH_TIMES, NOT_UPPER_LIMIT_LATER_SEARCH_TIME],
 
-                                    [   ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
+                                    [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
                                         ["Telstar 18 K", "Polar=0", "10600/0", "22K=0", "4", "0", "SuperBlind"],
                                         CHOICE_SUPERBLIND_MODE, CHOICE_SAVE_TYPE[0],
                                         EXIT_ANTENNA_SETTING, NOT_OTHER_OPERATE,
                                         SUPER_SEARCH_TIMES, NOT_UPPER_LIMIT_LATER_SEARCH_TIME],
 
-                                    [   ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
+                                    [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
                                         ["ST 2 K", "Polar=0", "10600/0", "22K=1", "0", "0", "Blind"],
                                         CHOICE_BLIND_MODE, CHOICE_SAVE_TYPE[0],
                                         EXIT_ANTENNA_SETTING, NOT_OTHER_OPERATE,
                                         NORMAL_SEARCH_TIMES, NOT_UPPER_LIMIT_LATER_SEARCH_TIME],
 
-                                    [   ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
+                                    [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
                                         ["ST 2 K", "Polar=0", "10600/0", "22K=1", "0", "0", "SuperBlind"],
                                         CHOICE_SUPERBLIND_MODE, CHOICE_SAVE_TYPE[0],
                                         EXIT_ANTENNA_SETTING, NOT_OTHER_OPERATE,
                                         SUPER_SEARCH_TIMES, NOT_UPPER_LIMIT_LATER_SEARCH_TIME],
 
-                                    [   ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
+                                    [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
                                         ["PLPD", "Polar=0", "5150/5750", "22K=0", "1", "0", "Blind"],
                                         CHOICE_BLIND_MODE, CHOICE_SAVE_TYPE[0],
                                         EXIT_ANTENNA_SETTING, NOT_OTHER_OPERATE,
                                         NORMAL_SEARCH_TIMES, NOT_UPPER_LIMIT_LATER_SEARCH_TIME],
 
-                                    [   ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
+                                    [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
                                         ["PLPD", "Polar=0", "5150/5750", "22K=0", "1", "0", "SuperBlind"],
                                         CHOICE_SUPERBLIND_MODE, CHOICE_SAVE_TYPE[0],
                                         EXIT_ANTENNA_SETTING, NOT_OTHER_OPERATE,
                                         SUPER_SEARCH_TIMES, NOT_UPPER_LIMIT_LATER_SEARCH_TIME],
 
-                                    [   ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[0],
+                                    [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[0],
                                         ["Telstar 18 K", "Polar=0", "10600/0", "22K=0", "4", "0", "Incremental"],
                                         CHOICE_BLIND_MODE, CHOICE_SAVE_TYPE[0],
                                         EXIT_ANTENNA_SETTING, NOT_OTHER_OPERATE,
                                         INCREMENTAL_SEARCH_TIMES, NOT_UPPER_LIMIT_LATER_SEARCH_TIME],
 
-                                    [   ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[0],
+                                    [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[0],
                                         ["Telstar 18 K", "Polar=0", "10600/0", "22K=0", "4", "0", "ChUL"],
                                         CHOICE_BLIND_MODE, CHOICE_SAVE_TYPE[0],
                                         EXIT_ANTENNA_SETTING, DELETE_ALL_CH,
-                                        UPPER_LIMIT_SEARCH_TIMES,UPPER_LIMIT_CYCLE_TIMES],
+                                        UPPER_LIMIT_SEARCH_TIMES, UPPER_LIMIT_CYCLE_TIMES],
 
-                                    [   ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[0],
+                                    [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[0],
                                         ["Telstar 18 K", "Polar=0", "10600/0", "22K=0", "4", "0", "ChUL_Cont."],
                                         CHOICE_BLIND_MODE, CHOICE_SAVE_TYPE[0],
                                         EXIT_ANTENNA_SETTING, UPPER_LIMIT_LATER_NOT_DEL_SAT_TP_SEARCH_CONT,
-                                        UPPER_LIMIT_SEARCH_TIMES,UPPER_LIMIT_LATER_SEARCH_TIMES],
+                                        UPPER_LIMIT_SEARCH_TIMES, UPPER_LIMIT_LATER_SEARCH_TIMES],
 
-                                    [   ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[0],
+                                    [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[0],
                                         ["Telstar 18 K", "Polar=0", "10600/0", "22K=0", "4", "0", "ChUL_DelTp_Cont."],
                                         CHOICE_BLIND_MODE, CHOICE_SAVE_TYPE[0],
                                         EXIT_ANTENNA_SETTING, DELETE_SPECIFY_SAT_ALL_TP,
                                         UPPER_LIMIT_SEARCH_TIMES, UPPER_LIMIT_LATER_SEARCH_TIMES],
 
-                                    [   ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[0],
+                                    [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[0],
                                         ["Chinas6b_C", "Polar=0", "5150/5750", "22K=1", "2", "0", "TpUL"],
                                         CHOICE_BLIND_MODE, CHOICE_SAVE_TYPE[1],
                                         EXIT_ANTENNA_SETTING, RESET_FACTORY,
-                                        UPPER_LIMIT_SEARCH_TIMES,UPPER_LIMIT_CYCLE_TIMES],
+                                        UPPER_LIMIT_SEARCH_TIMES, UPPER_LIMIT_CYCLE_TIMES],
 
-                                    [   ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[0],
+                                    [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[0],
                                         ["Chinas6b_C", "Polar=0", "5150/5750", "22K=1", "2", "0", "TpUL_Cont."],
                                         CHOICE_BLIND_MODE, CHOICE_SAVE_TYPE[1],
                                         EXIT_ANTENNA_SETTING, UPPER_LIMIT_LATER_NOT_DEL_SAT_TP_SEARCH_CONT,
-                                        UPPER_LIMIT_SEARCH_TIMES,UPPER_LIMIT_LATER_SEARCH_TIMES],
+                                        UPPER_LIMIT_SEARCH_TIMES, UPPER_LIMIT_LATER_SEARCH_TIMES],
 
-                                    [   ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[0],
+                                    [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[0],
                                         ["Chinas6b_C", "Polar=0", "5150/5750", "22K=1", "2", "0", "TpUL_DelTp_Cont."],
                                         CHOICE_BLIND_MODE, CHOICE_SAVE_TYPE[1],
                                         EXIT_ANTENNA_SETTING, DELETE_SPECIFY_SAT_ALL_TP,
-                                        UPPER_LIMIT_SEARCH_TIMES,UPPER_LIMIT_LATER_SEARCH_TIMES],
+                                        UPPER_LIMIT_SEARCH_TIMES, UPPER_LIMIT_LATER_SEARCH_TIMES],
 
-                                    [   RESET_FACTORY, SEARCH_PREPARATORY_WORK[0],
-                                        ["Reset","Factory"],ONLY_EXECUTE_ONE_TIME],
+                                    [RESET_FACTORY, SEARCH_PREPARATORY_WORK[0],
+                                        ["Reset", "Factory"], ONLY_EXECUTE_ONE_TIME],
 
-                                    [   DELETE_ALL_CH, SEARCH_PREPARATORY_WORK[0],
-                                        ["Delete","AllCH"],ONLY_EXECUTE_ONE_TIME],
+                                    [DELETE_ALL_CH, SEARCH_PREPARATORY_WORK[0],
+                                        ["Delete", "AllCH"], ONLY_EXECUTE_ONE_TIME],
                                 ]
 
 
 def check_ports():
-    global send_com,receive_com
+    global send_com, receive_com
     send_com, receive_com = '', ''
+    send_port_desc, receive_port_desc = '', ''
     ports_info = []
     if platform.system() == "Windows":
         ser_cable_num = 7
@@ -256,10 +259,10 @@ def check_ports():
                 send_com = ports_info[i].split("~")[0]
             elif receive_port_desc in ports_info[i]:
                 receive_com = ports_info[i].split("~")[0]
-    return send_com,receive_com
+    return send_com, receive_com
 
 
-def serial_set(ser,ser_name,ser_baudrate):
+def serial_set(ser, ser_name, ser_baudrate):
     ser.port = ser_name
     ser.baudrate = ser_baudrate
     ser.bytesize = 8
@@ -296,7 +299,7 @@ def send_commd(commd):
 
 
 def add_write_data_to_txt(file_path,write_data):    # 追加写文本
-    with open(file_path,"a+",encoding="utf-8") as fo:
+    with open(file_path, "a+", encoding="utf-8") as fo:
         fo.write(write_data)
 
 
@@ -350,9 +353,11 @@ def judge_write_file_exist():
 
 
 def judge_and_wirte_data_to_xlsx():
+    ws = ''
+    wb = ''
     GL.xlsx_data_interval = 1 + 5 * (GL.searched_time - 1)
     global xlsx_title
-    alignment = Alignment(horizontal="center",vertical="center",wrapText=True)
+    alignment = Alignment(horizontal="center", vertical="center", wrapText=True)
     if not os.path.exists(report_file_path):
         wb = Workbook()
         ws = wb.active
@@ -404,13 +409,13 @@ def judge_and_wirte_data_to_xlsx():
 
     for m in range(len(GL.search_datas)):
         if m < len(GL.search_datas) - 2:
-            ws.cell((m + 1),(1 + GL.xlsx_data_interval)).value = GL.search_datas[m]
-            ws.merge_cells(start_row=(m + 1),start_column=(1 + GL.xlsx_data_interval),\
-                           end_row=(m + 1),end_column=(1 + GL.xlsx_data_interval + 4))
-            ws.cell((m + 1),(1 + GL.xlsx_data_interval)).alignment = alignment
+            ws.cell((m + 1), (1 + GL.xlsx_data_interval)).value = GL.search_datas[m]
+            ws.merge_cells(start_row=(m + 1), start_column=(1 + GL.xlsx_data_interval),
+                           end_row=(m + 1), end_column=(1 + GL.xlsx_data_interval + 4))
+            ws.cell((m + 1), (1 + GL.xlsx_data_interval)).alignment = alignment
         elif m == len(GL.search_datas) - 2:
             for n in range(len(xlsx_title[7]["数据类别"])):
-                ws.cell((m + 1),(1 + GL.xlsx_data_interval + n)).value = list(xlsx_title[m].values())[0][n]
+                ws.cell((m + 1), (1 + GL.xlsx_data_interval + n)).value = list(xlsx_title[m].values())[0][n]
                 ws.cell((m + 1), (1 + GL.xlsx_data_interval + n)).alignment = alignment
                 ws.row_dimensions[(m+1)].height = 13.5
         elif m == len(GL.search_datas) - 1:
@@ -433,7 +438,7 @@ def judge_and_wirte_data_to_xlsx():
                     GL.channel_info[GL.search_datas[m][j]][0] + GL.channel_info[GL.search_datas[m][j]][1])
 
                 for k in range(len(xlsx_title[7]["数据类别"])):
-                    ws.cell((m+1+j),(1+GL.xlsx_data_interval)+k).alignment = alignment
+                    ws.cell((m+1+j), (1+GL.xlsx_data_interval)+k).alignment = alignment
                 ws.row_dimensions[(m+1+j)].height = 13.5
     wb.save(report_file_path)
 
@@ -609,6 +614,7 @@ def block_send_thread():
 
 
 def judge_srh_limit():
+    global search_time
     logging.debug("Upper Limit To Save Channel Stage")
     if not GL.upper_limit_state:
         logging.debug("Not Upper Limit")
@@ -647,7 +653,7 @@ def write_data_to_excel():
     logging.info("保存节目后等待保存TP和保存节目的打印5秒")
     time.sleep(5)
     GL.search_datas[0] = sheet_name
-    GL.search_datas[2] = len(GL.all_tp_list)
+    GL.search_datas[2] = str(len(GL.all_tp_list))
     GL.search_datas[3] = "{}/{}".format(GL.tv_radio_tp_count[0], GL.tv_radio_tp_count[1])
     GL.search_datas[6] = GL.search_dur_time
     GL.search_datas[8] = GL.all_tp_list
@@ -661,7 +667,7 @@ def clear_variate():
     GL.all_tp_list.clear()
     GL.channel_info.clear()
     GL.tv_radio_tp_count[0], GL.tv_radio_tp_count[1] = 0, 0
-    GL.tv_radio_tp_count[4] = 0
+    GL.tv_radio_tp_count[4] = '0'
     GL.search_datas[5] = '0/0'
     GL.tv_radio_tp_count[2], GL.tv_radio_tp_count[3] = 0, 0
 
@@ -809,7 +815,7 @@ def cyclic_srh_setting():
 
 
 def data_send_thread():
-    global  search_time
+    global search_time
     # 执行单次运行的场景
     if len(GL.all_sat_commd[choice_search_sat]) < 9:
         send_data = GL.all_sat_commd[choice_search_sat][0]
@@ -862,7 +868,7 @@ def data_send_thread():
 
 
 def data_receiver_thread():
-    global start_time,end_time
+    global start_time, end_time
     tp = ''
     while GL.receive_loop_state:
         data = receive_ser.readline()
@@ -897,7 +903,7 @@ def data_receiver_thread():
                 GL.sat_param_save[0] = re.split("=", data2)[-1]
 
             if GL.sat_param_kws[1] in data2:  # 判断LNB Fre
-                lnb_split = re.split("[,\]]", data2)
+                lnb_split = re.split(r"[\],]", data2)
                 lnb1 = lnb_split[1].split("=")[-1]
                 lnb2 = lnb_split[2].split("=")[-1]
                 GL.sat_param_save[2] = "{}/{}".format(lnb1, lnb2)
@@ -906,7 +912,7 @@ def data_receiver_thread():
                 GL.sat_param_save[3] = list(filter(None, re.split("-{2,}|,", data2)))[-1].strip()
 
             if GL.sat_param_kws[3] in data2:  # 判断diseqc 1.0和Polar(LNB Power)
-                polar_split = re.split("[,\]-]", data2)
+                polar_split = re.split(r"[,\]-]", data2)
                 GL.sat_param_save[4] = polar_split[3].split("=")[-1]
                 GL.sat_param_save[1] = polar_split[7].strip()
 
@@ -920,7 +926,7 @@ def data_receiver_thread():
                 GL.searched_time += 1
                 # GL.xlsx_data_interval = 1 + 5 * (GL.searched_time - 1)
                 if GL.all_sat_commd[choice_search_sat][6] == NOT_OTHER_OPERATE:
-                    GL.search_datas[1] = GL.searched_time
+                    GL.search_datas[1] = str(GL.searched_time)
                 elif GL.all_sat_commd[choice_search_sat][6] != NOT_OTHER_OPERATE:
                     GL.search_datas[1] = "{}/{}".format(GL.searched_time, GL.all_sat_commd[choice_search_sat][8])
 
@@ -935,14 +941,14 @@ def data_receiver_thread():
                 GL.channel_info[tp] = [[], []]
 
             if GL.search_monitor_kws[1] in data2:  # 监控搜索过程电视个数和名称信息
-                GL.tv_radio_tp_count[0] = re.split("-{2,}|\s{2,}", data2)[1]  # 提取电视节目数
-                tv_name = re.split("-{2,}|\s{2,}", data2)[2]  # 提取电视节目名称
+                GL.tv_radio_tp_count[0] = re.split(r"-{2,}|\s{2,}", data2)[1]  # 提取电视节目数
+                tv_name = re.split(r"-{2,}|\s{2,}", data2)[2]  # 提取电视节目名称
                 # GL.channel_info[str(len(GL.all_tp_list))][0].append('[T]{}'.format(tv_name))
                 GL.channel_info[tp][0].append('[T]{}'.format(tv_name))
 
             if GL.search_monitor_kws[2] in data2:  # 监控搜索过程广播个数和名称信息
-                GL.tv_radio_tp_count[1] = re.split("-{2,}|\s{2,}", data2)[1]  # 提取广播节目数
-                radio_name = re.split("-{2,}|\s{2,}", data2)[2]  # 提取电视节目名称
+                GL.tv_radio_tp_count[1] = re.split(r"-{2,}|\s{2,}", data2)[1]  # 提取广播节目数
+                radio_name = re.split(r"-{2,}|\s{2,}", data2)[2]  # 提取电视节目名称
                 # GL.channel_info[str(len(GL.all_tp_list))][1].append('[R]{}'.format(radio_name))
                 GL.channel_info[tp][1].append('[R]{}'.format(radio_name))
 
@@ -969,7 +975,7 @@ def data_receiver_thread():
                     len(GL.all_tp_list), GL.search_dur_time))
 
             if GL.search_monitor_kws[5] in data2:  # 监控保存TP的个数
-                GL.tv_radio_tp_count[4] = int(re.split("=", data2)[1])
+                GL.tv_radio_tp_count[4] = re.split("=", data2)[1]
                 GL.search_datas[4] = GL.tv_radio_tp_count[4]
 
             if GL.search_monitor_kws[6] in data2:  # 监控保存TV和Radio的个数
@@ -981,12 +987,12 @@ def data_receiver_thread():
                 GL.tv_radio_tp_accumulated[0].append(int(GL.tv_radio_tp_count[0]))
                 GL.tv_radio_tp_accumulated[1].append(int(GL.tv_radio_tp_count[1]))
                 GL.tv_radio_tp_accumulated[2].append((int(len(GL.all_tp_list))))
-                GL.tv_radio_tp_accumulated[3].append(GL.tv_radio_tp_count[4])
+                GL.tv_radio_tp_accumulated[3].append(int(GL.tv_radio_tp_count[4]))
 
                 print("本次搜索实际保存TV/Radio:{},保存TP数为:{}".format(GL.search_datas[5], GL.search_datas[4]))
                 print("当前轮次:{},累计搜索节目个数:{}/{},累计搜索TP个数:{},累计保存TP个数：{}".format(
                     GL.search_datas[1], sum(GL.tv_radio_tp_accumulated[0]), sum(GL.tv_radio_tp_accumulated[1]),
-                    sum(GL.tv_radio_tp_accumulated[2]),sum(GL.tv_radio_tp_accumulated[3])))
+                    sum(GL.tv_radio_tp_accumulated[2]), sum(GL.tv_radio_tp_accumulated[3])))
                 # GL.save_ch_finish_state = True
             if GL.delete_ch_finish_kws in data2:  # 监控删除所有节目成功的关键字
                 GL.delete_ch_finish_state = True
@@ -1080,7 +1086,7 @@ if __name__ == "__main__":
         {"数据类别": ["TP", "All", "TV", "Radio", "CH_Name"]},
         "TP"
     ]
-
+    sat_name, search_mode = '', ''
     GL = MyGlobal()
 
     sat_search_mode_list = [
@@ -1140,7 +1146,7 @@ if __name__ == "__main__":
     # serial_set(send_ser, send_ser_name, 9600)
     # serial_set(receive_ser, receive_ser_name, 115200)
 
-    msg = "现在开始执行的是:{}_{}".format(sat_name,search_mode)
+    msg = "现在开始执行的是:{}_{}".format(sat_name, search_mode)
     logging.critical(format(msg, '*^150'))
 
     thread_send = threading.Thread(target=data_send_thread)
