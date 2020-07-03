@@ -290,7 +290,7 @@ def calculate_expected_event_start_time():
     logging.info(expected_res_time)
     expected_res_time_split = re.split(r"[-\s:]", str(expected_res_time))
     str_expected_res_time = ''.join(expected_res_time_split)[:12]
-    GL.report_data[1] = str_expected_res_time[:8]       # 用于Once类型事件的report系统时间日期
+    # GL.report_data[1] = str_expected_res_time[:8]       # 用于Once类型事件的report系统时间日期
 
     logging.info(f"期望的完整的预约事件时间为{str_expected_res_time}")
     return str_expected_res_time
@@ -1073,7 +1073,7 @@ def write_data_to_excel():
                 elif str_triggered_time != GL.report_data[0][0]:
                     ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
             elif TEST_CASE_INFO[3] == "Daily":
-                if GL.report_data[2][:12][8:] == "2359": # （触发时间的时分+1）与（系统时间日期+预约事件起始时间）进行比对
+                if GL.report_data[2][:12][8:] == "2359":  # （触发时间的时分+1）与（系统时间日期+预约事件起始时间）进行比对
                     str_triggered_time = GL.report_data[2][:8] + \
                                          change_str_time_and_fmt_time(GL.report_data[2][8:12], 1)
                 else:   # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
@@ -1083,7 +1083,7 @@ def write_data_to_excel():
                 elif str_triggered_time != GL.report_data[1] + GL.report_data[0][0]:
                     ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
             elif TEST_CASE_INFO[3] in WEEKLY_EVENT_MODE:    # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
-                if GL.report_data[2][:12][8:] == "2359": # （触发时间的时分+1）与（系统时间日期+预约事件起始时间）进行比对
+                if GL.report_data[2][:12][8:] == "2359":  # （触发时间的时分+1）与（系统时间日期+预约事件起始时间）进行比对
                     str_triggered_time = GL.report_data[2][:8] + \
                                          change_str_time_and_fmt_time(GL.report_data[2][8:12], 1)
                 else:   # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
