@@ -576,6 +576,10 @@ def set_system_time():
     sys_date_list = []      # 用于将系统日期由字符串转化为发送指令的列表
     sys_time_list = []      # 用于将系统时间由字符串转化为发送指令的列表
     sys_date_time = calc_modify_system_time()
+    # if sys_date_time[8:] == "2359":
+    #     GL.report_data[2] = change_str_time_and_fmt_time(sys_date_time, 1)[:8]
+    # else:
+    #     GL.report_data[2] = sys_date_time[:8]
     GL.report_data[2] = sys_date_time[:8]
     # 进入时间设置界面
     # 在get_cycle_event_start_time_and_sys_date已经执行
@@ -980,6 +984,23 @@ def res_triggered_later_check_timer_setting_event_list():
     send_more_commds(exit_to_screen)
 
 
+def cale_str_time_for_add_day(str_time, interval_day):
+    # 字符串时间和格式化时间之间转换
+    str_new_fmt_date = ''
+    if len(str_time) == 12:     # once事件时间计算
+        fmt_year = int(str_time[:4])
+        fmt_month = int(str_time[4:6])
+        fmt_day = int(str_time[6:8])
+        fmt_hour = int(str_time[8:10])
+        fmt_minute = int(str_time[10:12])
+        fmt_date = datetime(fmt_year, fmt_month, fmt_day, fmt_hour, fmt_minute)
+        new_fmt_date = fmt_date + timedelta(days=interval_day)
+        new_fmt_date_split = re.split(r"[-\s:]", str(new_fmt_date))
+        str_new_fmt_date = ''.join(new_fmt_date_split)[:12]     # 去掉末尾的秒钟信息
+        logging.info(f"----------------------------------------------------------------------{str_new_fmt_date}")
+    return str_new_fmt_date
+
+
 def change_str_time_and_fmt_time(str_time, interval_time):
     # 字符串时间和格式化时间之间转换
     str_new_fmt_date = ''
@@ -1186,7 +1207,12 @@ def write_data_to_excel():
                                 elif GL.report_data[d][edit_data] != contrast_time:
                                     ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
                             elif TEST_CASE_INFO[8] == "Once":  # 新事件Mode
-                                contrast_time = GL.report_data[2] + GL.report_data[0][0]    # 对比时间，用于验证是否正确
+                                # 起始时间为["2355"]时，新增+5分钟后，会出现跨日期的现象，GL.report_data[2]需要随之变化，否则出错
+                                if GL.report_data[0][0] == "0000":
+                                    contrast_time = cale_str_time_for_add_day(
+                                        (GL.report_data[2] + GL.report_data[0][0]), 1)
+                                else:
+                                    contrast_time = GL.report_data[2] + GL.report_data[0][0]    # 对比时间，用于验证是否正确
                                 if GL.report_data[d][edit_data] == contrast_time:
                                     ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                                 elif GL.report_data[d][edit_data] != contrast_time:
@@ -1285,22 +1311,40 @@ def write_data_to_excel():
             ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
             ws.cell(max_row + 1, d + len_total).alignment = alignment
 
-            str_triggered_time = change_str_time_and_fmt_time(GL.report_data[3][:12], 1)  # 加1分钟后的触发时间
             if TEST_CASE_INFO[8] == "Once":     # （触发时间+1）后与预约事件起始时间进行比对
+                str_triggered_time = change_str_time_and_fmt_time(GL.report_data[3][:12], 1)  # 加1分钟后的触发时间
                 if str_triggered_time == GL.report_data[1][0]:
                     ws.cell(max_row + 1, d + len_total).font = blue_font
                 elif str_triggered_time != GL.report_data[1][0]:
                     ws.cell(max_row + 1, d + len_total).font = red_font
-            elif TEST_CASE_INFO[8] == "Daily":  # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
-                if str_triggered_time == GL.report_data[2] + GL.report_data[1][0]:
-                    ws.cell(max_row + 1, d + len_total).font = blue_font
-                elif str_triggered_time != GL.report_data[2] + GL.report_data[1][0]:
-                    ws.cell(max_row + 1, d + len_total).font = red_font
-            elif TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:    # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
-                if str_triggered_time == GL.report_data[2] + GL.report_data[1][0]:
-                    ws.cell(max_row + 1, d + len_total).font = blue_font
-                elif str_triggered_time != GL.report_data[2] + GL.report_data[1][0]:
-                    ws.cell(max_row + 1, d + len_total).font = red_font
+            elif TEST_CASE_INFO[8] == "Daily":
+                if GL.report_data[3][:12][8:] == "2359":  # （触发时间的时分+1）与（系统时间日期+预约事件起始时间）进行比对
+                    str_triggered_time = GL.report_data[3][:8] + \
+                                         change_str_time_and_fmt_time(GL.report_data[3][8:12], 1)
+                    if str_triggered_time == GL.report_data[2] + GL.report_data[1][0]:
+                        ws.cell(max_row + 1, d + len_total).font = blue_font
+                    elif str_triggered_time != GL.report_data[2] + GL.report_data[1][0]:
+                        ws.cell(max_row + 1, d + len_total).font = red_font
+                elif GL.report_data[3][:12][8:] != "2359":     # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
+                    str_triggered_time = change_str_time_and_fmt_time(GL.report_data[3][:12], 1)  # 加1分钟后的触发时间
+                    if str_triggered_time == GL.report_data[2] + GL.report_data[1][0]:
+                        ws.cell(max_row + 1, d + len_total).font = blue_font
+                    elif str_triggered_time != GL.report_data[2] + GL.report_data[1][0]:
+                        ws.cell(max_row + 1, d + len_total).font = red_font
+            elif TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:
+                if GL.report_data[3][:12][8:] == "2359":  # （触发时间的时分+1）与（系统时间日期+预约事件起始时间）进行比对
+                    str_triggered_time = GL.report_data[3][:8] + \
+                                         change_str_time_and_fmt_time(GL.report_data[3][8:12], 1)
+                    if str_triggered_time == GL.report_data[2] + GL.report_data[1][0]:
+                        ws.cell(max_row + 1, d + len_total).font = blue_font
+                    elif str_triggered_time != GL.report_data[2] + GL.report_data[1][0]:
+                        ws.cell(max_row + 1, d + len_total).font = red_font
+                elif GL.report_data[3][:12][8:] != "2359":  # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
+                    str_triggered_time = change_str_time_and_fmt_time(GL.report_data[3][:12], 1)  # 加1分钟后的触发时间
+                    if str_triggered_time == GL.report_data[2] + GL.report_data[1][0]:
+                        ws.cell(max_row + 1, d + len_total).font = blue_font
+                    elif str_triggered_time != GL.report_data[2] + GL.report_data[1][0]:
+                        ws.cell(max_row + 1, d + len_total).font = red_font
 
         elif d == 5:  # 跳转节目
             ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
@@ -1458,10 +1502,15 @@ def calculate_expected_edit_event_start_time():
                 logging.info(f"循环事件:{TEST_CASE_INFO[3]}--改单次事件{TEST_CASE_INFO[8]}")
                 sys_time = rsv_kws['current_sys_time']
                 logging.info(sys_time)
+                logging.info(start_time)
                 sys_time_split = re.split(r"[\s:/]", sys_time)
                 fmt_sys_time = ''.join(sys_time_split)
                 sys_time_date = fmt_sys_time[:8]
-                str_expected_res_time = sys_time_date + start_time
+                # 起始时间为["2355", "2356", "2357", "2358", "2359"]时，新增+5分钟后，会出现跨日期的现象，导致程序出错
+                if start_time in ["0000", "0001", "0002", "0003", "0004"]:
+                    str_expected_res_time = cale_str_time_for_add_day((sys_time_date + start_time), 1)
+                else:
+                    str_expected_res_time = sys_time_date + start_time
     # 既不包含ModifyTime，也不包含ModifyMode
     else:
         logging.info("当前编辑不涉及修改时间和修改Mode，所以预约事件时间不变")
