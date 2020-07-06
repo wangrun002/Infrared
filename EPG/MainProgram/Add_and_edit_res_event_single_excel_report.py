@@ -92,7 +92,12 @@ def send_commd(commd):
             infrared_send_cmd.append(REVERSE_KEY[commd])
         time.sleep(1.0)
     elif len(infrared_send_cmd) != len(receive_cmd_list):
-        if len(infrared_send_cmd) - len(receive_cmd_list) == 1:
+        logging.info("检测到发送和接收命令数不一致，等待5秒，查看是否接收端还没有接收到打印")
+        time.sleep(5)
+        if len(infrared_send_cmd) == len(receive_cmd_list):
+            send_commd(commd)
+        # elif len(infrared_send_cmd) - len(receive_cmd_list) == 1:
+        elif len(infrared_send_cmd) != len(receive_cmd_list):
             logging.info(f"此刻补发STB没有接收到的红外命令{infrared_send_cmd[-1]}")
             send_serial.write(hex_strs_to_bytes(KEY[infrared_send_cmd[-1]]))
             send_serial.flush()
