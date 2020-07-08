@@ -1390,7 +1390,8 @@ def receive_serial_process(prs_data, infrared_send_cmd, state, channel_info, rsv
         if data:
             tt = datetime.now()
             # data1 = data.decode("GB18030", "ignore")
-            data1 = data.decode("ISO-8859-1", "ignore")
+            # data1 = data.decode("ISO-8859-1", "ignore")
+            data1 = data.decode("utf-8", "ignore")
             data2 = re.compile('[\\x00-\\x08\\x0b-\\x0c\\x0e-\\x1f]').sub('', data1).strip()
             data3 = "[{}]     {}\n".format(str(tt), data2)
             print(data2)
