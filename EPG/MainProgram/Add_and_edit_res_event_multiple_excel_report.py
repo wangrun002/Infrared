@@ -91,7 +91,12 @@ def send_commd(commd):
             infrared_send_cmd.append(REVERSE_KEY[commd])
         time.sleep(1.0)
     elif len(infrared_send_cmd) != len(receive_cmd_list):
-        if len(infrared_send_cmd) - len(receive_cmd_list) == 1:
+        logging.info("检测到发送和接收命令数不一致，等待5秒，查看是否接收端还没有接收到打印")
+        time.sleep(5)
+        if len(infrared_send_cmd) == len(receive_cmd_list):
+            send_commd(commd)
+        # elif len(infrared_send_cmd) - len(receive_cmd_list) == 1:
+        elif len(infrared_send_cmd) != len(receive_cmd_list):
             logging.info(f"此刻补发STB没有接收到的红外命令{infrared_send_cmd[-1]}")
             send_serial.write(hex_strs_to_bytes(KEY[infrared_send_cmd[-1]]))
             send_serial.flush()
@@ -1843,7 +1848,7 @@ def receive_serial_process(
 
             if res_kws[3] in data2:     # 获取预约事件信息
                 # state["res_event_info_state"] = True
-                event_split_info = re.split(r"t:|,", data2)
+                event_split_info = re.split(r"event:|,", data2)
                 event_info = ['', '', '', '', '']
                 for info in event_split_info:
                     if "Start_time" in info:
@@ -1865,7 +1870,7 @@ def receive_serial_process(
 
             if res_kws[4] in data2:     # 获取预约事件跳转触发信息，以及当前响应事件的信息
                 state["res_event_triggered_state"] = True
-                current_event_split_info = re.split(r"d:|,", data2)
+                current_event_split_info = re.split(r"triggered:|,", data2)
                 current_event_info = ['', '', '', '', '']
                 for info in current_event_split_info:
                     if "Start_time" in info:
