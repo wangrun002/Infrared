@@ -1872,7 +1872,7 @@ def receive_serial_process(
 
             if res_kws[3] in data2:     # 获取预约事件信息
                 # state["res_event_info_state"] = True
-                event_split_info = re.split(r"t:|,", data2)
+                event_split_info = re.split(r"event:|,", data2)
                 event_info = ['', '', '', '', '']
                 for info in event_split_info:
                     if "Start_time" in info:
@@ -1894,7 +1894,7 @@ def receive_serial_process(
 
             if res_kws[4] in data2:     # 获取预约事件跳转触发信息，以及当前响应事件的信息
                 state["res_event_triggered_state"] = True
-                current_event_split_info = re.split(r"d:|,", data2)
+                current_event_split_info = re.split(r"triggered:|,", data2)
                 current_event_info = ['', '', '', '', '']
                 for info in current_event_split_info:
                     if "Start_time" in info:
