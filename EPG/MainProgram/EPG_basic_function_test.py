@@ -83,7 +83,12 @@ def send_commd(commd):
             infrared_send_cmd.append(REVERSE_KEY[commd])
         time.sleep(1.0)
     elif len(infrared_send_cmd) != len(receive_cmd_list):
-        if len(infrared_send_cmd) - len(receive_cmd_list) == 1:
+        logging.info("检测到发送和接收命令数不一致，等待5秒，查看是否接收端还没有接收到打印")
+        time.sleep(5)
+        if len(infrared_send_cmd) == len(receive_cmd_list):
+            send_commd(commd)
+        # elif len(infrared_send_cmd) - len(receive_cmd_list) == 1:
+        elif len(infrared_send_cmd) != len(receive_cmd_list):
             logging.info(f"此刻补发STB没有接收到的红外命令{infrared_send_cmd[-1]}")
             send_serial.write(hex_strs_to_bytes(KEY[infrared_send_cmd[-1]]))
             send_serial.flush()
@@ -1462,7 +1467,7 @@ def receive_serial_process(prs_data, infrared_send_cmd, state, channel_info, rsv
                         channel_info[7] = rsv_info["epg_info_exist"]
 
             if check_epg_kws[1] in data2:
-                epg_event_split = re.split(r"t:|,", data2)
+                epg_event_split = re.split(r"event:|,", data2)
                 for i in range(len(epg_event_split)):
                     if epg_info_kws[1] in epg_event_split[i]:
                         time_info_split = re.split(r"=|--|\s", epg_event_split[i])
