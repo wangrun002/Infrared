@@ -2069,3 +2069,8 @@ edit_res_case = [
     ['1843', 'All', 'TV', 'Sun.', 'Power Off', 'TVScreenDiffCH', 'Manual_jump', 'ModifyTime+ModifyType+ModifyDuration+ModifyMode', 'Fri.', 'PVR', 'screen_test_numb'],
     ['1844', 'All', 'TV', 'Sun.', 'Power Off', 'TVScreenDiffCH', 'Manual_jump', 'ModifyTime+ModifyType+ModifyDuration+ModifyMode', 'Sat.', 'PVR', 'screen_test_numb']
 ]
+
+epg_event_comparison_case = [
+    ['00', 'GX', 'TV', 'RIGHT', 'EPGEventComparison'],
+    ['01', 'GX', 'Radio', 'RIGHT', 'EPGEventComparison']
+]
