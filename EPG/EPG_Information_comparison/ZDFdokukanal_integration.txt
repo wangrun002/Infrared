@@ -1,0 +1,229 @@
+2006/07/05 06:00:00--2006/07/05 06:45:00 Lago Maggiore
+2006/07/05 06:45:00--2006/07/05 08:00:00 Bernsteinsucher
+2006/07/05 08:00:00--2006/07/05 08:45:00 Das Gold der Ostsee - Bernstein
+2006/07/05 08:45:00--2006/07/05 10:30:00 Gebrochene Glut
+2006/07/05 10:30:00--2006/07/05 11:00:00 Rangierer
+2006/07/05 11:00:00--2006/07/05 11:15:00 Hitech im Körper
+2006/07/05 11:15:00--2006/07/05 11:45:00 Die Butler - Die Kunst des Dienens (5)
+2006/07/05 11:45:00--2006/07/05 12:30:00 Im Land des Roten Känguruhs
+2006/07/05 12:30:00--2006/07/05 13:15:00 Lago Maggiore
+2006/07/05 13:15:00--2006/07/05 14:00:00 Im Land des Roten Känguruhs
+2006/07/05 14:00:00--2006/07/05 14:45:00 König David und das Geheimnis des Tempels
+2006/07/05 14:45:00--2006/07/05 15:30:00 The Future is wild - Die Welt in Jahrmillionen, Teil 2
+2006/07/05 15:30:00--2006/07/05 16:00:00 Frontal 21 kompakt
+2006/07/05 16:00:00--2006/07/05 16:45:00 Ruhrpott-Schnauzen (6)
+2006/07/05 16:45:00--2006/07/05 18:30:00 Gebrochene Glut
+2006/07/05 18:30:00--2006/07/05 19:00:00 Rangierer
+2006/07/05 19:00:00--2006/07/05 19:15:00 Hitech im Körper
+2006/07/05 19:15:00--2006/07/05 19:45:00 Die Butler - Die Kunst des Dienens (5)
+2006/07/05 19:45:00--2006/07/05 20:00:00 Myanmar - Die Geheimnisse des sagenhaften Burma
+2006/07/05 20:00:00--2006/07/05 21:30:00 Close
+2006/07/05 21:30:00--2006/07/05 22:00:00 Frontal 21 kompakt
+2006/07/05 22:00:00--2006/07/05 22:45:00 Das Gold der Ostsee - Bernstein
+2006/07/05 22:45:00--2006/07/06 00:00:00 Bernsteinsucher
+2006/07/06 00:00:00--2006/07/06 00:45:00 The Future is wild - Die Welt in Jahrmillionen, Teil 2
+2006/07/06 00:45:00--2006/07/06 01:15:00 Rangierer
+2006/07/06 01:15:00--2006/07/06 03:00:00 Gebrochene Glut
+2006/07/06 03:00:00--2006/07/06 03:15:00 Die Geschichte des Tango
+2006/07/06 03:15:00--2006/07/06 03:45:00 Der Promi-Butler
+2006/07/06 03:45:00--2006/07/06 04:30:00 The Future is wild - Die Welt in Jahrmillionen, Teil 2
+2006/07/06 04:30:00--2006/07/06 05:15:00 Das Gold der Ostsee - Bernstein
+2006/07/06 05:15:00--2006/07/06 06:30:00 Bernsteinsucher
+2006/07/06 06:30:00--2006/07/06 07:15:00 The Future is wild - Die Welt in Jahrmillionen, Teil 2
+2006/07/06 07:15:00--2006/07/06 09:00:00 Gebrochene Glut
+2006/07/06 09:00:00--2006/07/06 09:30:00 Rangierer
+2006/07/06 09:30:00--2006/07/06 10:15:00 König David und das Geheimnis des Tempels
+2006/07/06 10:15:00--2006/07/06 11:00:00 Lago Maggiore
+2006/07/06 11:00:00--2006/07/06 11:15:00 Die Geschichte des Tango
+2006/07/06 11:15:00--2006/07/06 11:45:00 Der Promi-Butler
+2006/07/06 11:45:00--2006/07/06 12:15:00 Frontal 21 kompakt
+2006/07/06 12:15:00--2006/07/06 13:00:00 Das Gold der Ostsee - Bernstein
+2006/07/06 13:00:00--2006/07/06 14:15:00 Bernsteinsucher
+2006/07/06 14:15:00--2006/07/06 15:00:00 Im Land des Roten Känguruhs
+2006/07/06 15:00:00--2006/07/06 16:45:00 Gebrochene Glut
+2006/07/06 16:45:00--2006/07/06 17:30:00 The Future is wild - Die Welt in Jahrmillionen, Teil 2
+2006/07/06 17:30:00--2006/07/06 18:15:00 König David und das Geheimnis des Tempels
+2006/07/06 18:15:00--2006/07/06 19:00:00 Sphinx: Kreuzzug in die Hölle - Die Tempelritter
+2006/07/06 19:00:00--2006/07/06 19:15:00 Die Geschichte des Tango
+2006/07/06 19:15:00--2006/07/06 19:45:00 Der Promi-Butler
+2006/07/06 19:45:00--2006/07/06 20:30:00 König David und das Geheimnis des Tempels
+2006/07/06 20:30:00--2006/07/06 21:15:00 Das Gold der Ostsee - Bernstein
+2006/07/06 21:15:00--2006/07/06 22:30:00 Bernsteinsucher
+2006/07/06 22:30:00--2006/07/06 23:00:00 Frontal 21 kompakt
+2006/07/06 23:00:00--2006/07/06 23:45:00 The Future is wild - Die Welt in Jahrmillionen, Teil 2
+2006/07/06 23:45:00--2006/07/07 00:15:00 Rangierer
+2006/07/07 00:15:00--2006/07/07 01:00:00 Lago Maggiore
+2006/07/07 01:00:00--2006/07/07 01:45:00 König David und das Geheimnis des Tempels
+2006/07/07 01:45:00--2006/07/07 02:15:00 Frontal 21 kompakt
+2006/07/07 02:15:00--2006/07/07 03:00:00 Im Land des Roten Känguruhs
+2006/07/07 03:00:00--2006/07/07 03:15:00 Traditionelle Chinesische Medizin
+2006/07/07 03:15:00--2006/07/07 03:45:00 Palmen, Pool und immer lächeln
+2006/07/07 03:45:00--2006/07/07 04:15:00 Rangierer
+2006/07/07 04:15:00--2006/07/07 05:00:00 Im Land des Roten Känguruhs
+2006/07/07 05:00:00--2006/07/07 05:45:00 Lago Maggiore
+2006/07/07 05:45:00--2006/07/07 06:30:00 König David und das Geheimnis des Tempels
+2006/07/07 06:30:00--2006/07/07 07:00:00 Frontal 21 kompakt
+2006/07/07 07:00:00--2006/07/07 07:30:00 Rangierer
+2006/07/07 07:30:00--2006/07/07 08:15:00 The Future is wild - Die Welt in Jahrmillionen, Teil 2
+2006/07/07 08:15:00--2006/07/07 09:00:00 Im Land des Roten Känguruhs
+2006/07/07 09:00:00--2006/07/07 10:15:00 Bernsteinsucher
+2006/07/07 10:15:00--2006/07/07 11:00:00 Das Gold der Ostsee - Bernstein
+2006/07/07 11:00:00--2006/07/07 11:15:00 Traditionelle Chinesische Medizin
+2006/07/07 11:15:00--2006/07/07 11:45:00 Palmen, Pool und immer lächeln
+2006/07/07 11:45:00--2006/07/07 12:30:00 The Future is wild - Die Welt in Jahrmillionen, Teil 2
+2006/07/07 12:30:00--2006/07/07 13:15:00 Im Land des Roten Känguruhs
+2006/07/07 13:15:00--2006/07/07 14:00:00 König David und das Geheimnis des Tempels
+2006/07/07 14:00:00--2006/07/07 14:45:00 Lago Maggiore
+2006/07/07 14:45:00--2006/07/07 15:15:00 Rangierer
+2006/07/07 15:15:00--2006/07/07 16:00:00 Im Land des Roten Känguruhs
+2006/07/07 16:00:00--2006/07/07 16:45:00 Ruhrpott-Schnauzen (7)
+2006/07/07 16:45:00--2006/07/07 17:00:00 Öl-Route Türkei Durch Anatolien für den Rest der Welt
+2006/07/07 17:00:00--2006/07/07 18:15:00 Bernsteinsucher
+2006/07/07 18:15:00--2006/07/07 19:00:00 Das Gold der Ostsee - Bernstein
+2006/07/07 19:00:00--2006/07/07 19:15:00 Traditionelle Chinesische Medizin
+2006/07/07 19:15:00--2006/07/07 19:45:00 Palmen, Pool und immer lächeln
+2006/07/07 19:45:00--2006/07/07 20:30:00 The Future is wild - Die Welt in Jahrmillionen, Teil 2
+2006/07/07 20:30:00--2006/07/07 21:15:00 Im Land des Roten Känguruhs
+2006/07/07 21:15:00--2006/07/07 23:00:00 Gebrochene Glut
+2006/07/07 23:00:00--2006/07/07 23:45:00 Lago Maggiore
+2006/07/07 23:45:00--2006/07/08 00:15:00 Frontal 21 kompakt
+2006/07/08 00:15:00--2006/07/08 01:00:00 König David und das Geheimnis des Tempels
+2006/07/08 01:00:00--2006/07/08 02:15:00 Bernsteinsucher
+2006/07/08 02:15:00--2006/07/08 03:00:00 Das Gold der Ostsee - Bernstein
+2006/07/08 03:00:00--2006/07/08 03:15:00 Mit Sack und Pack
+2006/07/08 03:15:00--2006/07/08 04:00:00 Der Fluch des Toplitzsees
+2006/07/08 04:00:00--2006/07/08 05:15:00 Laut und deutlich
+2006/07/08 05:15:00--2006/07/08 05:45:00 Die Angst vor der Gewalt
+2006/07/08 05:45:00--2006/07/08 06:15:00 ZDF.reporter kompakt
+2006/07/08 06:15:00--2006/07/08 07:00:00 Die Suche nach dem Tiefseemonster
+2006/07/08 07:00:00--2006/07/08 08:00:00 Das Geheimnis um Beethovens Haar
+2006/07/08 08:00:00--2006/07/08 08:45:00 Marmor - Stein des Lichts
+2006/07/08 08:45:00--2006/07/08 09:30:00 Auf der Suche
+2006/07/08 09:30:00--2006/07/08 10:15:00 Neuland
+2006/07/08 10:15:00--2006/07/08 11:00:00 Jäger verlorener Schätze
+2006/07/08 11:00:00--2006/07/08 11:15:00 Mit Sack und Pack
+2006/07/08 11:15:00--2006/07/08 12:00:00 Der Fluch des Toplitzsees
+2006/07/08 12:00:00--2006/07/08 12:45:00 Die Suche nach dem Tiefseemonster
+2006/07/08 12:45:00--2006/07/08 13:30:00 Auf der Suche
+2006/07/08 13:30:00--2006/07/08 14:15:00 Marmor - Stein des Lichts
+2006/07/08 14:15:00--2006/07/08 15:15:00 Das Geheimnis um Beethovens Haar
+2006/07/08 15:15:00--2006/07/08 16:00:00 Neuland
+2006/07/08 16:00:00--2006/07/08 16:45:00 Jäger verlorener Schätze
+2006/07/08 16:45:00--2006/07/08 17:15:00 ZDF.reporter kompakt
+2006/07/08 17:15:00--2006/07/08 17:45:00 Die Angst vor der Gewalt
+2006/07/08 17:45:00--2006/07/08 19:00:00 Laut und deutlich
+2006/07/08 19:00:00--2006/07/08 19:15:00 Mit Sack und Pack
+2006/07/08 19:15:00--2006/07/08 20:00:00 Der Fluch des Toplitzsees
+2006/07/08 20:00:00--2006/07/08 20:45:00 Auf der Suche
+2006/07/08 20:45:00--2006/07/08 21:00:00 Fremd
+2006/07/08 21:00:00--2006/07/08 22:00:00 Das Geheimnis um Beethovens Haar
+2006/07/08 22:00:00--2006/07/08 22:30:00 ZDF.reporter kompakt
+2006/07/08 22:30:00--2006/07/08 23:00:00 Kindesmissbrauch: Wer sind die Täter?
+2006/07/08 23:00:00--2006/07/08 23:30:00 Dutroux und die toten Zeugen
+2006/07/08 23:30:00--2006/07/09 00:45:00 Laut und deutlich
+2006/07/09 00:45:00--2006/07/09 01:15:00 Die Angst vor der Gewalt
+2006/07/09 01:15:00--2006/07/09 02:00:00 Marmor - Stein des Lichts
+2006/07/09 02:00:00--2006/07/09 03:00:00 Das Geheimnis um Beethovens Haar
+2006/07/09 03:00:00--2006/07/09 03:15:00 Myanmar - Die Geheimnisse des sagenhaften Burma
+2006/07/09 03:15:00--2006/07/09 04:00:00 Tauchfahrt in die Vergangenheit
+2006/07/09 04:00:00--2006/07/09 04:45:00 Die Suche nach dem Tiefseemonster
+2006/07/09 04:45:00--2006/07/09 05:45:00 Das Geheimnis um Beethovens Haar
+2006/07/09 05:45:00--2006/07/09 07:00:00 Laut und deutlich
+2006/07/09 07:00:00--2006/07/09 07:30:00 Die Angst vor der Gewalt
+2006/07/09 07:30:00--2006/07/09 08:00:00 ZDF.reporter kompakt
+2006/07/09 08:00:00--2006/07/09 08:45:00 Jäger verlorener Schätze
+2006/07/09 08:45:00--2006/07/09 09:30:00 Die Suche nach dem Tiefseemonster
+2006/07/09 09:30:00--2006/07/09 10:15:00 Marmor - Stein des Lichts
+2006/07/09 10:15:00--2006/07/09 11:00:00 Neuland
+2006/07/09 11:00:00--2006/07/09 11:15:00 Myanmar - Die Geheimnisse des sagenhaften Burma
+2006/07/09 11:15:00--2006/07/09 12:00:00 Tauchfahrt in die Vergangenheit
+2006/07/09 12:00:00--2006/07/09 13:15:00 Laut und deutlich
+2006/07/09 13:15:00--2006/07/09 13:45:00 Die Angst vor der Gewalt
+2006/07/09 13:45:00--2006/07/09 14:15:00 ZDF.reporter kompakt
+2006/07/09 14:15:00--2006/07/09 14:30:00 Fremd
+2006/07/09 14:30:00--2006/07/09 15:15:00 Jäger verlorener Schätze
+2006/07/09 15:15:00--2006/07/09 16:00:00 Marmor - Stein des Lichts
+2006/07/09 16:00:00--2006/07/09 16:45:00 Die Suche nach dem Tiefseemonster
+2006/07/09 16:45:00--2006/07/09 17:45:00 Das Geheimnis um Beethovens Haar
+2006/07/09 17:45:00--2006/07/09 18:15:00 ZDF.reporter kompakt
+2006/07/09 18:15:00--2006/07/09 19:00:00 Auf der Suche
+2006/07/09 19:00:00--2006/07/09 19:15:00 Myanmar - Die Geheimnisse des sagenhaften Burma
+2006/07/09 19:15:00--2006/07/09 20:00:00 Tauchfahrt in die Vergangenheit
+2006/07/09 20:00:00--2006/07/09 20:30:00 Kindesmissbrauch: Wer sind die Täter?
+2006/07/09 20:30:00--2006/07/09 21:00:00 Dutroux und die toten Zeugen
+2006/07/09 21:00:00--2006/07/09 22:15:00 Laut und deutlich
+2006/07/09 22:15:00--2006/07/09 22:45:00 Die Angst vor der Gewalt
+2006/07/09 22:45:00--2006/07/09 23:00:00 Fremd
+2006/07/09 23:00:00--2006/07/09 23:45:00 Die Suche nach dem Tiefseemonster
+2006/07/09 23:45:00--2006/07/10 00:30:00 Jäger verlorener Schätze
+2006/07/10 00:30:00--2006/07/10 01:15:00 Neuland
+2006/07/10 01:15:00--2006/07/10 02:00:00 Die Suche nach dem Tiefseemonster
+2006/07/10 02:00:00--2006/07/10 02:30:00 Kindesmissbrauch: Wer sind die Täter?
+2006/07/10 02:30:00--2006/07/10 03:00:00 Dutroux und die toten Zeugen
+2006/07/10 03:00:00--2006/07/10 03:15:00 East Wind
+2006/07/10 03:15:00--2006/07/10 04:00:00 Tauchfahrt in die Vergangenheit
+2006/07/10 04:00:00--2006/07/10 04:30:00 ZDF.reporter kompakt
+2006/07/10 04:30:00--2006/07/10 05:15:00 Neuland
+2006/07/10 05:15:00--2006/07/10 06:00:00 Marmor - Stein des Lichts
+2006/07/10 06:00:00--2006/07/10 07:00:00 Das Geheimnis um Beethovens Haar
+2006/07/10 07:00:00--2006/07/10 07:30:00 ZDF.reporter kompakt
+2006/07/10 07:30:00--2006/07/10 07:45:00 Fremd
+2006/07/10 07:45:00--2006/07/10 08:30:00 Die Suche nach dem Tiefseemonster
+2006/07/10 08:30:00--2006/07/10 09:45:00 Laut und deutlich
+2006/07/10 09:45:00--2006/07/10 10:15:00 Die Angst vor der Gewalt
+2006/07/10 10:15:00--2006/07/10 11:00:00 Auf der Suche
+2006/07/10 11:00:00--2006/07/10 11:15:00 East Wind
+2006/07/10 11:15:00--2006/07/10 12:00:00 Tauchfahrt in die Vergangenheit
+2006/07/10 12:00:00--2006/07/10 12:30:00 ZDF.reporter kompakt
+2006/07/10 12:30:00--2006/07/10 12:45:00 Fremd
+2006/07/10 12:45:00--2006/07/10 13:45:00 Das Geheimnis um Beethovens Haar
+2006/07/10 13:45:00--2006/07/10 14:30:00 Die Suche nach dem Tiefseemonster
+2006/07/10 14:30:00--2006/07/10 15:15:00 Neuland
+2006/07/10 15:15:00--2006/07/10 16:00:00 Jäger verlorener Schätze
+2006/07/10 16:00:00--2006/07/10 16:45:00 Marmor - Stein des Lichts
+2006/07/10 16:45:00--2006/07/10 18:00:00 Laut und deutlich
+2006/07/10 18:00:00--2006/07/10 19:00:00 Das Geheimnis um Beethovens Haar
+2006/07/10 19:00:00--2006/07/10 19:15:00 East Wind
+2006/07/10 19:15:00--2006/07/10 20:00:00 Tauchfahrt in die Vergangenheit
+2006/07/10 20:00:00--2006/07/10 20:15:00 Fremd
+2006/07/10 20:15:00--2006/07/10 20:45:00 Wunder der Wissenschaft
+2006/07/10 20:45:00--2006/07/10 21:15:00 ZDF.reporter kompakt
+2006/07/10 21:15:00--2006/07/10 21:45:00 Kindesmissbrauch: Wer sind die Täter?
+2006/07/10 21:45:00--2006/07/10 22:15:00 Dutroux und die toten Zeugen
+2006/07/10 22:15:00--2006/07/10 23:00:00 Neuland
+2006/07/10 23:00:00--2006/07/10 23:45:00 Marmor - Stein des Lichts
+2006/07/10 23:45:00--2006/07/11 00:45:00 Das Geheimnis um Beethovens Haar
+2006/07/11 00:45:00--2006/07/11 01:30:00 Auf der Suche
+2006/07/11 01:30:00--2006/07/11 01:45:00 Fremd
+2006/07/11 01:45:00--2006/07/11 02:15:00 Die Angst vor der Gewalt
+2006/07/11 02:15:00--2006/07/11 03:00:00 Jäger verlorener Schätze
+2006/07/11 03:00:00--2006/07/11 03:15:00 Öl-Route Türkei Durch Anatolien für den Rest der Welt
+2006/07/11 03:15:00--2006/07/11 04:00:00 Tauchfahrt in die Vergangenheit
+2006/07/11 04:00:00--2006/07/11 04:45:00 Marmor - Stein des Lichts
+2006/07/11 04:45:00--2006/07/11 05:30:00 Auf der Suche
+2006/07/11 05:30:00--2006/07/11 06:15:00 Neuland
+2006/07/11 06:15:00--2006/07/11 07:00:00 Jäger verlorener Schätze
+2006/07/11 07:00:00--2006/07/11 08:15:00 Laut und deutlich
+2006/07/11 08:15:00--2006/07/11 08:45:00 Die Angst vor der Gewalt
+2006/07/11 08:45:00--2006/07/11 09:30:00 Neuland
+2006/07/11 09:30:00--2006/07/11 10:15:00 Auf der Suche
+2006/07/11 10:15:00--2006/07/11 11:00:00 Marmor - Stein des Lichts
+2006/07/11 11:00:00--2006/07/11 11:15:00 Öl-Route Türkei Durch Anatolien für den Rest der Welt
+2006/07/11 11:15:00--2006/07/11 12:00:00 Tauchfahrt in die Vergangenheit
+2006/07/11 12:00:00--2006/07/11 12:45:00 Marmor - Stein des Lichts
+2006/07/11 12:45:00--2006/07/11 13:15:00 ZDF.reporter kompakt
+2006/07/11 13:15:00--2006/07/11 14:00:00 Jäger verlorener Schätze
+2006/07/11 14:00:00--2006/07/11 14:45:00 Marmor - Stein des Lichts
+2006/07/11 14:45:00--2006/07/11 16:00:00 Laut und deutlich
+2006/07/11 16:00:00--2006/07/11 16:45:00 Ruhrpott-Schnauzen (8)
+2006/07/11 16:45:00--2006/07/11 17:30:00 Jäger verlorener Schätze
+2006/07/11 17:30:00--2006/07/11 18:15:00 Neuland
+2006/07/11 18:15:00--2006/07/11 19:00:00 Die Suche nach dem Tiefseemonster
+2006/07/11 19:00:00--2006/07/11 19:15:00 Öl-Route Türkei Durch Anatolien für den Rest der Welt
+2006/07/11 19:15:00--2006/07/11 20:00:00 Tauchfahrt in die Vergangenheit
+2006/07/11 20:00:00--2006/07/11 20:45:00 Marmor - Stein des Lichts
+2006/07/11 20:45:00--2006/07/11 21:30:00 Auf der Suche
+2006/07/11 21:30:00--2006/07/11 21:45:00 Fremd
+2006/07/11 21:45:00--2006/07/11 23:00:00 Laut und deutlich
+2006/07/11 23:00:00--2006/07/11 23:30:00 Die Angst vor der Gewalt
+2006/07/11 23:30:00--2006/07/12 00:00:00 Kindesmissbrauch: Wer sind die Täter?
