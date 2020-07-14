@@ -517,6 +517,7 @@ def write_data_to_report():
     actual_report_title = ''
     channel_event_info_title = ''
     alignment = Alignment(horizontal="center", vertical="center", wrapText=True)
+    left_alignment = Alignment(horizontal="left", vertical="center", wrapText=True)
     blue_font = Font(color=BLUE)
     red_font = Font(color=RED)
 
@@ -581,7 +582,7 @@ def write_data_to_report():
                 # 写目前节目的样本数据
                 for line in range(len(channel_sample_file_data)):
                     ws1.cell(line + 2, 1).value = channel_sample_file_data[line]
-                    ws1.cell(line + 2, 1).alignment = alignment
+                    ws1.cell(line + 2, 1).alignment = left_alignment
 
                 # 写目前节目的测试数据
                 ch_name_key = list(GL.all_ch_epg_info.keys())[len(GL.all_ch_epg_info.keys()) - 1]
@@ -592,7 +593,7 @@ def write_data_to_report():
                         GL.all_ch_epg_info[ch_name_key][x][1],
                         GL.all_ch_epg_info[ch_name_key][x][2])
                     ws1.cell(x + 2, 2).value = channel_test_data
-                    ws1.cell(x + 2, 2).alignment = alignment
+                    ws1.cell(x + 2, 2).alignment = left_alignment
                     sample_data = ws1.cell(x + 2, 1).value
                     sample_data_split = re.split(r"\s", sample_data)
                     new_sample_data = " ".join(sample_data_split)
@@ -731,7 +732,7 @@ def write_data_to_report():
             # 写目前节目的样本数据
             for line in range(len(channel_sample_file_data)):
                 ws1.cell(line + 2, 1).value = channel_sample_file_data[line]
-                ws1.cell(line + 2, 1).alignment = alignment
+                ws1.cell(line + 2, 1).alignment = left_alignment
 
             # 写目前节目的测试数据
             ch_name_key = list(GL.all_ch_epg_info.keys())[len(GL.all_ch_epg_info.keys()) - 1]
@@ -742,7 +743,7 @@ def write_data_to_report():
                     GL.all_ch_epg_info[ch_name_key][x][1],
                     GL.all_ch_epg_info[ch_name_key][x][2])
                 ws1.cell(x + 2, 2).value = channel_test_data
-                ws1.cell(x + 2, 2).alignment = alignment
+                ws1.cell(x + 2, 2).alignment = left_alignment
                 sample_data = ws1.cell(x + 2, 1).value
                 sample_data_split = re.split(r"\s", sample_data)
                 new_sample_data = " ".join(sample_data_split)
