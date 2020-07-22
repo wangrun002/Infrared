@@ -29,7 +29,8 @@ weekly_mode = ["Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
 # test_case_info = ["01", "All", "TV", "Weekly", "Play", "TVScreenDiffCH",
 #                   "Manual_jump", "Same(time+type)+Diff(mode)", "Weekly", "Play", "screen_test_numb"]
 
-if test_case_info[7] == "Same[time+type+mode]" or test_case_info[7] == "Same[time+mode]+Diff[type]":
+if test_case_info[7] == "Same[time+type+mode]" or test_case_info[7] == "Same[time+mode]+Diff[type]" \
+        or test_case_info[7] == "Same[type+mode]+Diff[time+dur]":
     if test_case_info[3] == "Weekly" and test_case_info[8] == "Weekly":
         new_test_case_info = test_case_info.copy()
         print(f"选择之前的new_test_case_info：{new_test_case_info}")
@@ -38,7 +39,8 @@ if test_case_info[7] == "Same[time+type+mode]" or test_case_info[7] == "Same[tim
         TEST_CASE_INFO = new_test_case_info
     else:
         TEST_CASE_INFO = test_case_info
-elif test_case_info[7] == "Same[time+type]+Diff[mode]" or test_case_info[7] == "Same[time]+Diff[type+mode]":
+elif test_case_info[7] == "Same[time+type]+Diff[mode]" or test_case_info[7] == "Same[time]+Diff[type+mode]" \
+        or test_case_info[7] == "Same[type]+Diff[time+dur+mode]":
     if test_case_info[3] == "Weekly" and test_case_info[8] != "Weekly":
         new_test_case_info = test_case_info.copy()
         print(f"选择之前的new_test_case_info：{new_test_case_info}")
@@ -61,6 +63,8 @@ scenes_list = [
     "Same[time+mode]+Diff[type]",
     "Same[time+type]+Diff[mode]",
     "Same[time]+Diff[type+mode]",
+    "Same[type+mode]+Diff[time+dur]",
+    "Same[type]+Diff[time+dur+mode]",
     ]
 
 
@@ -70,7 +74,7 @@ class MyGlobal(object):
         if test_case_info[-1] == "screen_test_numb":
             self.res_triggered_numb = 2                 # 大画面预约响应的次数
         elif test_case_info[-1] == "other_interface_test_numb":
-            self.res_triggered_numb = 2                 # 其他界面预约响应的次数
+            self.res_triggered_numb = 1                 # 其他界面预约响应的次数
 
         self.choice_res_ch = ''                         # 预约Play或PVR事件时所选预约节目
         self.res_event_mgr = []                         # 预约事件管理
@@ -375,6 +379,7 @@ def choice_ch_for_res_event_type(choice_event):
 def calculate_res_event_expected_start_time():
     logging.info("calculate_res_event_expected_start_time")
     time_interval = 5
+    str_expected_res_time = ''
     weekday_num_dict = {"Mon.": 0, "Tues.": 1, "Wed.": 2, "Thurs.": 3, "Fri.": 4, "Sat.": 5, "Sun.": 6}
     sys_time = rsv_kws['current_sys_time']
     sys_time_split = re.split(r"[\s:/]", sys_time)
@@ -386,7 +391,8 @@ def calculate_res_event_expected_start_time():
     dt_time = datetime(sys_year, sys_month, sys_day, sys_hour, sys_minute)
 
     logging.info(dt_time)
-    if TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode]" or TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode]":
+    if TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode]" or TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode]" \
+            or TEST_CASE_INFO[7] == "Same[type]+Diff[time+dur+mode]":
         if TEST_CASE_INFO[3] == "Once" and TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:
             cur_weekday = date(sys_year, sys_month, sys_day).weekday()  # 当前系统时间的星期数
             event_2_weekday = weekday_num_dict[TEST_CASE_INFO[8]]   # event_2对应的星期数
@@ -427,7 +433,11 @@ def create_expected_add_event_info():
     logging.info("create_expected_add_event_info")
     # 创建期望的事件信息
     expected_event_info = ['', '', '', '', '']      # [起始时间，事件响应类型，节目名称，持续时间，事件触发模式]
-    duration_time = "0001"
+    if TEST_CASE_INFO[7] == "Same[type+mode]+Diff[time+dur]" or \
+            TEST_CASE_INFO[7] == "Same[type]+Diff[time+dur+mode]":
+        duration_time = "0010"
+    else:
+        duration_time = "0001"
     if TEST_CASE_INFO[4] == "Play":
         expected_event_full_time = calculate_res_event_expected_start_time()
         expected_event_info[0] = expected_event_full_time
@@ -791,7 +801,8 @@ def write_data_to_excel():
                 ws.cell(max_row + 1, len_res_1 + edit_data + 2).value = GL.report_data[d][edit_data]
                 ws.cell(max_row + 1, len_res_1 + edit_data + 2).alignment = alignment
                 if edit_data == 0:  # 起始时间
-                    if TEST_CASE_INFO[7] == "Same[time+type+mode]" or TEST_CASE_INFO[7] == "Same[time+mode]+Diff[type]":
+                    if TEST_CASE_INFO[7] == "Same[time+type+mode]" or \
+                            TEST_CASE_INFO[7] == "Same[time+mode]+Diff[type]":
                         if GL.report_data[d][edit_data] == GL.report_data[0][0]:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                         else:
@@ -822,9 +833,42 @@ def write_data_to_excel():
                                 ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                             else:
                                 ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                    elif TEST_CASE_INFO[7] == "Same[type+mode]+Diff[time+dur]":
+                        if GL.report_data[d][edit_data] == change_str_time_and_fmt_time(GL.report_data[0][0], 5):
+                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                        else:
+                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+
+                    elif TEST_CASE_INFO[7] == "Same[type]+Diff[time+dur+mode]":
+                        if TEST_CASE_INFO[8] == "Once" and TEST_CASE_INFO[3] != "Once":
+                            if GL.report_data[0][0] == \
+                                    change_str_time_and_fmt_time(GL.report_data[d][edit_data], -5)[8:] \
+                                    and len(GL.report_data[d][edit_data]) == 12:
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                        elif TEST_CASE_INFO[8] != "Once" and TEST_CASE_INFO[3] == "Once":
+                            if GL.report_data[d][edit_data] == \
+                                    change_str_time_and_fmt_time(GL.report_data[0][0], 5)[8:] \
+                                    and len(GL.report_data[d][edit_data]) == 4:
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                        elif TEST_CASE_INFO[8] != "Once" and TEST_CASE_INFO[3] != "Once":
+                            if GL.report_data[d][edit_data] == \
+                                    change_str_time_and_fmt_time(GL.report_data[0][0], 5) \
+                                    and len(GL.report_data[d][edit_data]) == 4:
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                    else:
+                        ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
 
                 elif edit_data == 1:  # 事件type
-                    if TEST_CASE_INFO[7] == "Same[time+type+mode]" or TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode]":
+                    if TEST_CASE_INFO[7] == "Same[time+type+mode]" \
+                            or TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode]" \
+                            or TEST_CASE_INFO[7] == "Same[type+mode]+Diff[time+dur]" \
+                            or TEST_CASE_INFO[7] == "Same[type]+Diff[time+dur+mode]":
                         if GL.report_data[d][edit_data] == GL.report_data[0][1] and \
                                 GL.report_data[d][edit_data] == TEST_CASE_INFO[9]:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
@@ -837,33 +881,49 @@ def write_data_to_excel():
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                         else:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                    else:
+                        ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
 
                 elif edit_data == 3:  # duration
                     if TEST_CASE_INFO[9] == "PVR":
-                        if GL.report_data[d][edit_data] == "00:01":
-                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                        if TEST_CASE_INFO[7] == "Same[type+mode]+Diff[time+dur]" \
+                                or TEST_CASE_INFO[7] == "Same[type]+Diff[time+dur+mode]":
+                            if GL.report_data[d][edit_data] == "00:10":
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
                         else:
-                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                            if GL.report_data[d][edit_data] == "00:01":
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
                     elif TEST_CASE_INFO[9] != "PVR":
                         if GL.report_data[d][edit_data] == "--:--":
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                         else:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                    else:
+                        ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
 
                 elif edit_data == 4:    # 事件Mode
-                    if TEST_CASE_INFO[7] == "Same[time+type+mode]" or TEST_CASE_INFO[7] == "Same[time+mode]+Diff[type]":
+                    if TEST_CASE_INFO[7] == "Same[time+type+mode]" \
+                            or TEST_CASE_INFO[7] == "Same[time+mode]+Diff[type]" \
+                            or TEST_CASE_INFO[7] == "Same[type+mode]+Diff[time+dur]":
                         if GL.report_data[d][edit_data] == GL.report_data[0][4] and \
                                 GL.report_data[d][edit_data] == TEST_CASE_INFO[8]:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                         else:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
                     elif TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode]" or \
-                            TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode]":
+                            TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode]" or \
+                            TEST_CASE_INFO[7] == "Same[type]+Diff[time+dur+mode]":
                         if GL.report_data[d][edit_data] != GL.report_data[0][4] and \
                                 GL.report_data[d][edit_data] == TEST_CASE_INFO[8]:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                         else:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                    else:
+                        ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
 
         elif d == 2:    # 事件列表事件个数
             ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
@@ -927,6 +987,7 @@ def calculate_expected_event_2_start_time():
     if TEST_CASE_INFO[7] == "Same[time+type+mode]":
         logging.info("当前编辑不涉及修改时间和修改Mode，所以预约事件时间不变")
         str_expected_event_2_start_time = start_time
+
     elif TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode]":
         logging.info("当前编辑涉及修改Mode，所以预约事件时间需要变化")
         if TEST_CASE_INFO[3] == "Once":  # 原事件Mode
@@ -991,6 +1052,7 @@ def calculate_expected_event_2_start_time():
     elif TEST_CASE_INFO[7] == "Same[time+mode]+Diff[type]":
         logging.info("当前编辑不涉及修改时间和修改Mode，所以预约事件时间不变")
         str_expected_event_2_start_time = start_time
+
     elif TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode]":
         logging.info("当前编辑涉及修改Mode，所以预约事件时间需要变化")
         if TEST_CASE_INFO[3] == "Once":  # 原事件Mode
@@ -1051,6 +1113,74 @@ def calculate_expected_event_2_start_time():
                         cur_next_weekday_split = re.split(r"[-\s:]", str(cur_next_weekday))
                         str_expected_event_2_start_time = ''.join(cur_next_weekday_split)[:8] + start_time
 
+    elif TEST_CASE_INFO[7] == "Same[type+mode]+Diff[time+dur]":    # 需要更改起始时间
+        logging.info("当前编辑涉及修改时间，所以预约事件时间需要变化")
+        str_expected_event_2_start_time = change_str_time_and_fmt_time(start_time, 5)
+
+    elif TEST_CASE_INFO[7] == "Same[type]+Diff[time+dur+mode]":    # 需要更改起始时间
+        logging.info("当前编辑涉及修改Mode，所以预约事件时间需要变化")
+        if TEST_CASE_INFO[3] == "Once":  # 原事件Mode
+            if TEST_CASE_INFO[8] == "Daily" or TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:  # 新事件Mode
+                logging.info(f"单次事件:{TEST_CASE_INFO[3]}--改循环事件{TEST_CASE_INFO[8]}")
+                str_expected_event_2_start_time = change_str_time_and_fmt_time(start_time[8:], 5)
+        elif TEST_CASE_INFO[3] == "Daily":  # 原事件Mode
+            if TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:  # 新事件Mode
+                logging.info(f"循环事件:{TEST_CASE_INFO[3]}--改循环事件{TEST_CASE_INFO[8]}")
+                str_expected_event_2_start_time = change_str_time_and_fmt_time(start_time, 5)
+            elif TEST_CASE_INFO[8] == "Once":  # 新事件Mode
+                logging.info(f"循环事件:{TEST_CASE_INFO[3]}--改单次事件{TEST_CASE_INFO[8]}")
+                sys_time = rsv_kws['current_sys_time']
+                logging.info(sys_time)
+                logging.info(start_time)
+                sys_time_split = re.split(r"[\s:/]", sys_time)
+                fmt_sys_time = ''.join(sys_time_split)
+                sys_time_date = fmt_sys_time[:8]
+                cur_sys_hour_minute_time = int(fmt_sys_time[8:])
+                if int(start_time) < cur_sys_hour_minute_time:  # 事件1的起始时间早于当前系统时间
+                    str_expected_event_2_start_time = change_str_time_and_fmt_time((sys_time_date + start_time), 5)
+                elif int(start_time) >= cur_sys_hour_minute_time:  # 事件1的起始时间等于或晚于当前系统时间，需要增加一个循环
+                    next_cycle_day_start_time = cale_str_time_for_add_day((sys_time_date + start_time), 1)
+                    str_expected_event_2_start_time = change_str_time_and_fmt_time(next_cycle_day_start_time, 5)
+
+        elif TEST_CASE_INFO[3] in WEEKLY_EVENT_MODE:  # 原事件Mode
+            if TEST_CASE_INFO[8] == "Daily":  # 新事件Mode
+                logging.info(f"循环事件:{TEST_CASE_INFO[3]}--改循环事件{TEST_CASE_INFO[8]}")
+                str_expected_event_2_start_time = change_str_time_and_fmt_time(start_time, 5)
+            elif TEST_CASE_INFO[8] == "Once":  # 新事件Mode
+                logging.info(f"循环事件:{TEST_CASE_INFO[3]}--改单次事件{TEST_CASE_INFO[8]}")
+                sys_time = rsv_kws['current_sys_time']
+                sys_time_split = re.split(r"[\s:/]", sys_time)
+                cur_year = int(sys_time_split[0])
+                cur_month = int(sys_time_split[1])
+                cur_day = int(sys_time_split[2])
+                cur_hour = int(sys_time_split[3])
+                cur_minute = int(sys_time_split[4])
+                dt_time = datetime(cur_year, cur_month, cur_day, cur_hour, cur_minute)
+                cur_sys_hour_minute_time = int(sys_time_split[3] + sys_time_split[4])  # 当前系统时间的时分值
+                cur_weekday = date(cur_year, cur_month, cur_day).weekday()  # 当前系统时间对应的星期数
+                res_event_weekday = weekday_num_dict[TEST_CASE_INFO[3]]  # event_1事件对应的星期数
+                if cur_weekday == res_event_weekday:  # 事件1的起始时间星期与当前系统时间日期星期相同时
+                    if int(start_time) < cur_sys_hour_minute_time:  # 事件1的起始时间早于当前系统时间
+                        str_expected_event_2_start_time = change_str_time_and_fmt_time((dt_time[:8] + start_time), 5)
+                    elif int(start_time) >= cur_sys_hour_minute_time:  # 事件1的起始时间等于或晚于当前系统时间，需要增加一个循环
+                        cur_next_weekday = dt_time + timedelta(days=7)
+                        cur_next_weekday_split = re.split(r"[-\s:]", str(cur_next_weekday))
+                        cur_next_weekday_start_time = ''.join(cur_next_weekday_split)[:8] + start_time
+                        str_expected_event_2_start_time = change_str_time_and_fmt_time(cur_next_weekday_start_time, 5)
+                elif cur_weekday != res_event_weekday:  # 事件1的起始时间星期与当前系统时间日期星期不同时
+                    if cur_weekday > res_event_weekday:  # 当前系统时间星期数大于事件1的星期数时
+                        interval_day = 7 - cur_weekday + res_event_weekday
+                        cur_next_weekday = dt_time + timedelta(days=interval_day)
+                        cur_next_weekday_split = re.split(r"[-\s:]", str(cur_next_weekday))
+                        cur_next_weekday_start_time = ''.join(cur_next_weekday_split)[:8] + start_time
+                        str_expected_event_2_start_time = change_str_time_and_fmt_time(cur_next_weekday_start_time, 5)
+                    elif cur_weekday < res_event_weekday:
+                        interval_day = res_event_weekday - cur_weekday
+                        cur_next_weekday = dt_time + timedelta(days=interval_day)
+                        cur_next_weekday_split = re.split(r"[-\s:]", str(cur_next_weekday))
+                        cur_next_weekday_start_time = ''.join(cur_next_weekday_split)[:8] + start_time
+                        str_expected_event_2_start_time = change_str_time_and_fmt_time(cur_next_weekday_start_time, 5)
+
     logging.info(f"期望的完整的预约事件时间为{str_expected_event_2_start_time}")
     return str_expected_event_2_start_time
 
@@ -1061,32 +1191,10 @@ def calculate_expected_event_2_duration_time():
     interval_dur = 1        # 更改录制时长的变量
     specified_dur_time = "0002"   # ModifyType+ModifyDuration时会出现无Dur_time改有Dur_time的情况，直接指定时间
 
-    if TEST_CASE_INFO[7] == "ModifyDuration" or "ModifyDuration" in TEST_CASE_INFO[7]:
-        if TEST_CASE_INFO[4] == "PVR" and TEST_CASE_INFO[9] == "PVR":   # 单项ModifyDuration
-            dur_time = GL.res_event_mgr[0][3]  # 原新增预约事件的持续时间
-            res_dur_split = re.split(":", dur_time)
-            res_dur_hour_info = int(res_dur_split[0])
-            res_dur_minute_info = int(res_dur_split[1])
-            new_hour = 0
-            new_minute = 0
-            if res_dur_minute_info + interval_dur < 60:
-                new_minute = res_dur_minute_info + interval_dur
-                new_hour = res_dur_hour_info
-            elif res_dur_minute_info + interval_dur >= 60:
-                new_minute = (res_dur_minute_info + interval_dur) - 60
-                if res_dur_hour_info + 1 < 24:
-                    new_hour = res_dur_hour_info + 1
-                elif res_dur_hour_info + 1 >= 24:  # 等于24的情况可能会出现问题，但是目前的用例应该不会遇到
-                    new_hour = (res_dur_hour_info + 1) - 24
-            new_dur_time = "{0:02d}".format(new_hour) + "{0:02d}".format(new_minute)
-            str_expected_dur_time = new_dur_time
-        elif TEST_CASE_INFO[4] != "PVR" and TEST_CASE_INFO[9] == "PVR":   # 多项修改且包含ModifyDuration
-            dur_time = GL.res_event_mgr[0][3]  # 原新增预约事件的持续时间
-            if dur_time == "--:--":
-                str_expected_dur_time = specified_dur_time
-        else:
-            logging.info(f"请注意，当前事件不是PVR事件，而是{TEST_CASE_INFO[4]}事件")
-
+    if TEST_CASE_INFO[7] == "Same[type+mode]+Diff[time+dur]" or \
+            TEST_CASE_INFO[7] == "Same[type]+Diff[time+dur+mode]":
+        logging.info("当前事件需要更改Duration")
+        str_expected_dur_time = "0010"
     else:
         logging.info("当前事件不需要更改Duration，保持默认值")
         str_expected_dur_time = "0001"
