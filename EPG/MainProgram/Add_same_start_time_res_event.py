@@ -57,10 +57,10 @@ elif test_case_info[7] == "Same[time+type]+Diff[mode]" or test_case_info[7] == "
         TEST_CASE_INFO = test_case_info
 
 scenes_list = [
-    "Same(time+type+mode)",
-    "Same(time+mode)+Diff(type)",
-    "Same(time+type)+Diff(mode)",
-    "Same(time)+Diff(type+mode)",
+    "Same[time+type+mode]",
+    "Same[time+mode]+Diff[type]",
+    "Same[time+type]+Diff[mode]",
+    "Same[time]+Diff[type+mode]",
     ]
 
 
@@ -727,7 +727,7 @@ def write_data_to_excel():
             if j == 0:
                 ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 6
             else:
-                ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 10
+                ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 11.5
         # 设置Title的行高
         ws.row_dimensions[1].height = 30  # 设置每次执行的report预约事件信息的行高
         ws.row_dimensions[2].height = 30  # 设置每次执行的report预约事件信息的行高
@@ -765,7 +765,7 @@ def write_data_to_excel():
                 if j == 0:
                     ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 6
                 else:
-                    ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 10
+                    ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 11.5
             # 设置Title的行高
             ws.row_dimensions[1].height = 30  # 设置每次执行的report预约事件信息的行高
             ws.row_dimensions[2].height = 30  # 设置每次执行的report预约事件信息的行高
@@ -790,6 +790,96 @@ def write_data_to_excel():
             for edit_data in range(len(GL.report_data[d])):
                 ws.cell(max_row + 1, len_res_1 + edit_data + 2).value = GL.report_data[d][edit_data]
                 ws.cell(max_row + 1, len_res_1 + edit_data + 2).alignment = alignment
+                if edit_data == 0:  # 起始时间
+                    if TEST_CASE_INFO[7] == "Same[time+type+mode]" or TEST_CASE_INFO[7] == "Same[time+mode]+Diff[type]":
+                        if GL.report_data[d][edit_data] == GL.report_data[0][0]:
+                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                        else:
+                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                    elif TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode]" or \
+                            TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode]":
+                        if TEST_CASE_INFO[8] == "Once" and TEST_CASE_INFO[3] == "Once":
+                            if GL.report_data[d][edit_data] == GL.report_data[0][0] and \
+                                    len(GL.report_data[d][edit_data]) == 12:
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                        elif TEST_CASE_INFO[8] == "Once" and TEST_CASE_INFO[3] != "Once":
+                            if GL.report_data[d][edit_data][8:] == GL.report_data[0][0] and \
+                                    len(GL.report_data[d][edit_data]) == 12:
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                        elif TEST_CASE_INFO[8] != "Once" and TEST_CASE_INFO[3] == "Once":
+                            if GL.report_data[d][edit_data] == GL.report_data[0][0][8:] and \
+                                    len(GL.report_data[d][edit_data]) == 4:
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                        elif TEST_CASE_INFO[8] != "Once" and TEST_CASE_INFO[3] != "Once":
+                            if GL.report_data[d][edit_data] == GL.report_data[0][0] and \
+                                    len(GL.report_data[d][edit_data]) == 4:
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+
+                elif edit_data == 1:  # 事件type
+                    if TEST_CASE_INFO[7] == "Same[time+type+mode]" or TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode]":
+                        if GL.report_data[d][edit_data] == GL.report_data[0][1] and \
+                                GL.report_data[d][edit_data] == TEST_CASE_INFO[9]:
+                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                        else:
+                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                    elif TEST_CASE_INFO[7] == "Same[time+mode]+Diff[type]" or \
+                            TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode]":
+                        if GL.report_data[d][edit_data] != GL.report_data[0][1] and \
+                                GL.report_data[d][edit_data] == TEST_CASE_INFO[9]:
+                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                        else:
+                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+
+                elif edit_data == 3:  # duration
+                    if TEST_CASE_INFO[9] == "PVR":
+                        if GL.report_data[d][edit_data] == "00:01":
+                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                        else:
+                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                    elif TEST_CASE_INFO[9] != "PVR":
+                        if GL.report_data[d][edit_data] == "--:--":
+                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                        else:
+                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+
+                elif edit_data == 4:    # 事件Mode
+                    if TEST_CASE_INFO[7] == "Same[time+type+mode]" or TEST_CASE_INFO[7] == "Same[time+mode]+Diff[type]":
+                        if GL.report_data[d][edit_data] == GL.report_data[0][4] and \
+                                GL.report_data[d][edit_data] == TEST_CASE_INFO[8]:
+                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                        else:
+                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                    elif TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode]" or \
+                            TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode]":
+                        if GL.report_data[d][edit_data] != GL.report_data[0][4] and \
+                                GL.report_data[d][edit_data] == TEST_CASE_INFO[8]:
+                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                        else:
+                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+
+        elif d == 2:    # 事件列表事件个数
+            ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
+            ws.cell(max_row + 1, d + len_total).alignment = alignment
+            if GL.report_data[d] == '1':
+                ws.cell(max_row + 1, d + len_total).font = blue_font
+            else:
+                ws.cell(max_row + 1, d + len_total).font = red_font
+
+        elif d == 3:    # 无效事件提示
+            ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
+            ws.cell(max_row + 1, d + len_total).alignment = alignment
+            if GL.report_data[d] == '[PTD]Res_invalid_timer':
+                ws.cell(max_row + 1, d + len_total).font = blue_font
+            else:
+                ws.cell(max_row + 1, d + len_total).font = red_font
 
         elif d == 4:    # 用例编号
             ws.cell(max_row + 1, 1).value = GL.report_data[d]
@@ -799,9 +889,9 @@ def write_data_to_excel():
             ws.cell(max_row + 1, d + len_total - 1).value = GL.report_data[d]   # 由于d==7的坑填到第一列，所以这里需要列数减一
             ws.cell(max_row + 1, d + len_total - 1).alignment = alignment
 
-        else:
-            ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
-            ws.cell(max_row + 1, d + len_total).alignment = alignment
+        # else:
+        #     ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
+        #     ws.cell(max_row + 1, d + len_total).alignment = alignment
     ws.row_dimensions[(max_row + 1)].height = 27    # 设置每次执行的report预约事件信息的行高
 
     wb.save(file_path[1])
