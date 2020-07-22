@@ -2363,5 +2363,14 @@ same_start_time_case = [
     ['142', 'All', 'TV', 'Weekly', 'Power On', 'TVScreenDiffCH', 'Manual_jump', 'Same[time]+Diff[type+mode]', 'Once',
      'Power Off', 'screen_test_numb'],
     ['143', 'All', 'TV', 'Weekly', 'Power On', 'TVScreenDiffCH', 'Manual_jump', 'Same[time]+Diff[type+mode]', 'Daily',
-     'Power Off', 'screen_test_numb']
+     'Power Off', 'screen_test_numb'],
+    ['144', 'All', 'TV', 'Once', 'PVR', 'TVScreenDiffCH', 'Manual_jump', 'Same[type+dur+mode]+Diff[time]', 'Once', 'PVR', 'screen_test_numb'],
+    ['145', 'All', 'TV', 'Daily', 'PVR', 'TVScreenDiffCH', 'Manual_jump', 'Same[type+dur+mode]+Diff[time]', 'Daily', 'PVR', 'screen_test_numb'],
+    ['146', 'All', 'TV', 'Weekly', 'PVR', 'TVScreenDiffCH', 'Manual_jump', 'Same[type+dur+mode]+Diff[time]', 'Weekly', 'PVR', 'screen_test_numb'],
+    ['147', 'All', 'TV', 'Once', 'PVR', 'TVScreenDiffCH', 'Manual_jump', 'Same[type+dur]+Diff[time+mode]', 'Daily', 'PVR', 'screen_test_numb'],
+    ['148', 'All', 'TV', 'Once', 'PVR', 'TVScreenDiffCH', 'Manual_jump', 'Same[type+dur]+Diff[time+mode]', 'Weekly', 'PVR', 'screen_test_numb'],
+    ['149', 'All', 'TV', 'Daily', 'PVR', 'TVScreenDiffCH', 'Manual_jump', 'Same[type+dur]+Diff[time+mode]', 'Once', 'PVR', 'screen_test_numb'],
+    ['150', 'All', 'TV', 'Daily', 'PVR', 'TVScreenDiffCH', 'Manual_jump', 'Same[type+dur]+Diff[time+mode]', 'Weekly', 'PVR', 'screen_test_numb'],
+    ['151', 'All', 'TV', 'Weekly', 'PVR', 'TVScreenDiffCH', 'Manual_jump', 'Same[type+dur]+Diff[time+mode]', 'Once', 'PVR', 'screen_test_numb'],
+    ['152', 'All', 'TV', 'Weekly', 'PVR', 'TVScreenDiffCH', 'Manual_jump', 'Same[type+dur]+Diff[time+mode]', 'Daily', 'PVR', 'screen_test_numb']
 ]
