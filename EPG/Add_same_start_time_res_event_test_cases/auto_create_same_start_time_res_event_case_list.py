@@ -72,6 +72,66 @@ for i in res_type:
                     total_list.append(single_list)
                     n += 1
 
+# "Same[type+mode+dur]+Diff[time]"
+for i in res_type:
+    for j in res_mode:
+        if i == "PVR":
+            single_list = ["", "All", "TV", "", "", "TVScreenDiffCH", "Manual_jump",
+                           "Same[type+dur+mode]+Diff[time]", "", "", "screen_test_numb"]
+            single_list[0] = "{0:02d}".format(n)
+            single_list[3] = j
+            single_list[4] = i
+            single_list[8] = j
+            single_list[9] = i
+            total_list.append(single_list)
+            n += 1
+
+# "Same[type+dur]+Diff[time+mode]"
+for i in res_type:
+    for j in res_mode:
+        for k in res_mode:
+            if i == "PVR" and k != j:
+                single_list = ["", "All", "TV", "", "", "TVScreenDiffCH", "Manual_jump",
+                               "Same[type+dur]+Diff[time+mode]", "", "", "screen_test_numb"]
+                single_list[0] = "{0:02d}".format(n)
+                single_list[3] = j
+                single_list[4] = i
+                single_list[8] = k
+                single_list[9] = i
+                total_list.append(single_list)
+                n += 1
+
+# "Same[mode]+Diff[time+type+dur]"
+for j in res_type:
+    for k in res_type:
+        for i in res_mode:
+            if j == "PVR" and k != j:
+                single_list = ["", "All", "TV", "", "", "TVScreenDiffCH", "Manual_jump",
+                               "Same[mode]+Diff[time+type+dur]", "", "", "screen_test_numb"]
+                single_list[0] = "{0:02d}".format(n)
+                single_list[3] = i
+                single_list[4] = j
+                single_list[8] = i
+                single_list[9] = k
+                total_list.append(single_list)
+                n += 1
+
+# "Diff[time+type+dur+mode]"
+for k in res_type:
+    for h in res_type:
+        for i in res_mode:
+            for j in res_mode:
+                if j != i and k == "PVR" and h != k:
+                    single_list = ["", "All", "TV", "", "", "TVScreenDiffCH", "Manual_jump",
+                                   "Diff[time+type+dur+mode]", "", "", "screen_test_numb"]
+                    single_list[0] = "{0:02d}".format(n)
+                    single_list[3] = i
+                    single_list[4] = k
+                    single_list[8] = j
+                    single_list[9] = h
+                    total_list.append(single_list)
+                    n += 1
+
 # print(len(total_list))
 for m in range(len(total_list)):
     print(f"{total_list[m]},")
