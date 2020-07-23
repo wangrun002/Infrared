@@ -29,8 +29,10 @@ weekly_mode = ["Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
 # test_case_info = ["01", "All", "TV", "Weekly", "Play", "TVScreenDiffCH",
 #                   "Manual_jump", "Same(time+type)+Diff(mode)", "Weekly", "Play", "screen_test_numb"]
 
-if test_case_info[7] == "Same[time+type+mode]" or test_case_info[7] == "Same[time+mode]+Diff[type]" \
-        or test_case_info[7] == "Same[type+dur+mode]+Diff[time]":
+if test_case_info[7] == "Same[time+type+mode]" \
+        or test_case_info[7] == "Same[time+mode]+Diff[type]" \
+        or test_case_info[7] == "Same[type+dur+mode]+Diff[time]" \
+        or test_case_info[7] == "Same[mode]+Diff[time+type+dur]":
     if test_case_info[3] == "Weekly" and test_case_info[8] == "Weekly":
         new_test_case_info = test_case_info.copy()
         print(f"选择之前的new_test_case_info：{new_test_case_info}")
@@ -39,8 +41,10 @@ if test_case_info[7] == "Same[time+type+mode]" or test_case_info[7] == "Same[tim
         TEST_CASE_INFO = new_test_case_info
     else:
         TEST_CASE_INFO = test_case_info
-elif test_case_info[7] == "Same[time+type]+Diff[mode]" or test_case_info[7] == "Same[time]+Diff[type+mode]" \
-        or test_case_info[7] == "Same[type+dur]+Diff[time+mode]":
+elif test_case_info[7] == "Same[time+type]+Diff[mode]" \
+        or test_case_info[7] == "Same[time]+Diff[type+mode]" \
+        or test_case_info[7] == "Same[type+dur]+Diff[time+mode]" \
+        or test_case_info[7] == "Diff[time+type+dur+mode]":
     if test_case_info[3] == "Weekly" and test_case_info[8] != "Weekly":
         new_test_case_info = test_case_info.copy()
         print(f"选择之前的new_test_case_info：{new_test_case_info}")
@@ -74,9 +78,9 @@ class MyGlobal(object):
 
     def __init__(self):
         if test_case_info[-1] == "screen_test_numb":
-            self.res_triggered_numb = 1                 # 大画面预约响应的次数
+            self.res_triggered_numb = 2                 # 大画面预约响应的次数
         elif test_case_info[-1] == "other_interface_test_numb":
-            self.res_triggered_numb = 1                 # 其他界面预约响应的次数
+            self.res_triggered_numb = 2                 # 其他界面预约响应的次数
 
         self.choice_res_ch = ''                         # 预约Play或PVR事件时所选预约节目
         self.res_event_mgr = []                         # 预约事件管理
@@ -394,7 +398,8 @@ def calculate_res_event_expected_start_time():
 
     logging.info(dt_time)
     if TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode]" or TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode]" \
-            or TEST_CASE_INFO[7] == "Same[type+dur]+Diff[time+mode]":
+            or TEST_CASE_INFO[7] == "Same[type+dur]+Diff[time+mode]" \
+            or TEST_CASE_INFO[7] == "Diff[time+type+dur+mode]":
         if TEST_CASE_INFO[3] == "Once" and TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:
             cur_weekday = date(sys_year, sys_month, sys_day).weekday()  # 当前系统时间的星期数
             event_2_weekday = weekday_num_dict[TEST_CASE_INFO[8]]   # event_2对应的星期数
@@ -435,8 +440,10 @@ def create_expected_add_event_info():
     logging.info("create_expected_add_event_info")
     # 创建期望的事件信息
     expected_event_info = ['', '', '', '', '']      # [起始时间，事件响应类型，节目名称，持续时间，事件触发模式]
-    if TEST_CASE_INFO[7] == "Same[type+dur+mode]+Diff[time]" or \
-            TEST_CASE_INFO[7] == "Same[type+dur]+Diff[time+mode]":
+    if TEST_CASE_INFO[7] == "Same[type+dur+mode]+Diff[time]" \
+            or TEST_CASE_INFO[7] == "Same[type+dur]+Diff[time+mode]" \
+            or TEST_CASE_INFO[7] == "Same[mode]+Diff[time+type+dur]" \
+            or TEST_CASE_INFO[7] == "Diff[time+type+dur+mode]":
         duration_time = "0010"
     else:
         duration_time = "0001"
@@ -737,7 +744,7 @@ def write_data_to_excel():
             ws.cell(2, j + 1).value = excel_title_2[j]
             ws.cell(2, j + 1).alignment = alignment
             if j == 0:
-                ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 6
+                ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 10
             else:
                 ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 11.5
         # 设置Title的行高
@@ -775,7 +782,7 @@ def write_data_to_excel():
                 ws.cell(2, j + 1).value = excel_title_2[j]
                 ws.cell(2, j + 1).alignment = alignment
                 if j == 0:
-                    ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 6
+                    ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 10
                 else:
                     ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 11.5
             # 设置Title的行高
@@ -835,13 +842,15 @@ def write_data_to_excel():
                                 ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                             else:
                                 ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
-                    elif TEST_CASE_INFO[7] == "Same[type+dur+mode]+Diff[time]":
+                    elif TEST_CASE_INFO[7] == "Same[type+dur+mode]+Diff[time]" \
+                            or TEST_CASE_INFO[7] == "Same[mode]+Diff[time+type+dur]":   # 起始时间需要+5
                         if GL.report_data[d][edit_data] == change_str_time_and_fmt_time(GL.report_data[0][0], 5):
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                         else:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
 
-                    elif TEST_CASE_INFO[7] == "Same[type+dur]+Diff[time+mode]":
+                    elif TEST_CASE_INFO[7] == "Same[type+dur]+Diff[time+mode]" \
+                            or TEST_CASE_INFO[7] == "Diff[time+type+dur+mode]":     # 起始时间需要+5
                         if TEST_CASE_INFO[8] == "Once" and TEST_CASE_INFO[3] != "Once":
                             if GL.report_data[0][0] == \
                                     change_str_time_and_fmt_time(GL.report_data[d][edit_data], -5)[8:] \
@@ -877,7 +886,9 @@ def write_data_to_excel():
                         else:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
                     elif TEST_CASE_INFO[7] == "Same[time+mode]+Diff[type]" or \
-                            TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode]":
+                            TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode]" or \
+                            TEST_CASE_INFO[7] == "Same[mode]+Diff[time+type+dur]" or \
+                            TEST_CASE_INFO[7] == "Diff[time+type+dur+mode]":
                         if GL.report_data[d][edit_data] != GL.report_data[0][1] and \
                                 GL.report_data[d][edit_data] == TEST_CASE_INFO[9]:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
@@ -910,7 +921,8 @@ def write_data_to_excel():
                 elif edit_data == 4:    # 事件Mode
                     if TEST_CASE_INFO[7] == "Same[time+type+mode]" \
                             or TEST_CASE_INFO[7] == "Same[time+mode]+Diff[type]" \
-                            or TEST_CASE_INFO[7] == "Same[type+dur+mode]+Diff[time]":
+                            or TEST_CASE_INFO[7] == "Same[type+dur+mode]+Diff[time]" \
+                            or TEST_CASE_INFO[7] == "Same[mode]+Diff[time+type+dur]":
                         if GL.report_data[d][edit_data] == GL.report_data[0][4] and \
                                 GL.report_data[d][edit_data] == TEST_CASE_INFO[8]:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
@@ -918,7 +930,8 @@ def write_data_to_excel():
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
                     elif TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode]" or \
                             TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode]" or \
-                            TEST_CASE_INFO[7] == "Same[type+dur]+Diff[time+mode]":
+                            TEST_CASE_INFO[7] == "Same[type+dur]+Diff[time+mode]" or \
+                            TEST_CASE_INFO[7] == "Diff[time+type+dur+mode]":
                         if GL.report_data[d][edit_data] != GL.report_data[0][4] and \
                                 GL.report_data[d][edit_data] == TEST_CASE_INFO[8]:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
@@ -930,18 +943,32 @@ def write_data_to_excel():
         elif d == 2:    # 事件列表事件个数
             ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
             ws.cell(max_row + 1, d + len_total).alignment = alignment
-            if GL.report_data[d] == '1':
-                ws.cell(max_row + 1, d + len_total).font = blue_font
+            if TEST_CASE_INFO[7] == "Same[mode]+Diff[time+type+dur]" \
+                    or TEST_CASE_INFO[7] == "Diff[time+type+dur+mode]":
+                if GL.report_data[d] == '2':
+                    ws.cell(max_row + 1, d + len_total).font = blue_font
+                else:
+                    ws.cell(max_row + 1, d + len_total).font = red_font
             else:
-                ws.cell(max_row + 1, d + len_total).font = red_font
+                if GL.report_data[d] == '1':
+                    ws.cell(max_row + 1, d + len_total).font = blue_font
+                else:
+                    ws.cell(max_row + 1, d + len_total).font = red_font
 
         elif d == 3:    # 无效事件提示
             ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
             ws.cell(max_row + 1, d + len_total).alignment = alignment
-            if GL.report_data[d] == '[PTD]Res_invalid_timer':
-                ws.cell(max_row + 1, d + len_total).font = blue_font
+            if TEST_CASE_INFO[7] == "Same[mode]+Diff[time+type+dur]" \
+                    or TEST_CASE_INFO[7] == "Diff[time+type+dur+mode]":
+                if GL.report_data[d] == 'Res_event_success':
+                    ws.cell(max_row + 1, d + len_total).font = blue_font
+                else:
+                    ws.cell(max_row + 1, d + len_total).font = red_font
             else:
-                ws.cell(max_row + 1, d + len_total).font = red_font
+                if GL.report_data[d] == '[PTD]Res_invalid_timer':
+                    ws.cell(max_row + 1, d + len_total).font = blue_font
+                else:
+                    ws.cell(max_row + 1, d + len_total).font = red_font
 
         elif d == 4:    # 用例编号
             ws.cell(max_row + 1, 1).value = GL.report_data[d]
@@ -975,6 +1002,7 @@ def before_cycle_test_clear_data_and_state():
     logging.info(f"剩余循环次数：{GL.res_triggered_numb}")
 
     if GL.res_triggered_numb < 1:
+        clear_timer_setting_all_events()
         logging.info("程序结束")
         state["receive_loop_state"] = True  # 触发结束接收进程的状态
 
@@ -1120,6 +1148,74 @@ def calculate_expected_event_2_start_time():
         str_expected_event_2_start_time = change_str_time_and_fmt_time(start_time, 5)
 
     elif TEST_CASE_INFO[7] == "Same[type+dur]+Diff[time+mode]":    # 需要更改起始时间
+        logging.info("当前编辑涉及修改Mode，所以预约事件时间需要变化")
+        if TEST_CASE_INFO[3] == "Once":  # 原事件Mode
+            if TEST_CASE_INFO[8] == "Daily" or TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:  # 新事件Mode
+                logging.info(f"单次事件:{TEST_CASE_INFO[3]}--改循环事件{TEST_CASE_INFO[8]}")
+                str_expected_event_2_start_time = change_str_time_and_fmt_time(start_time[8:], 5)
+        elif TEST_CASE_INFO[3] == "Daily":  # 原事件Mode
+            if TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:  # 新事件Mode
+                logging.info(f"循环事件:{TEST_CASE_INFO[3]}--改循环事件{TEST_CASE_INFO[8]}")
+                str_expected_event_2_start_time = change_str_time_and_fmt_time(start_time, 5)
+            elif TEST_CASE_INFO[8] == "Once":  # 新事件Mode
+                logging.info(f"循环事件:{TEST_CASE_INFO[3]}--改单次事件{TEST_CASE_INFO[8]}")
+                sys_time = rsv_kws['current_sys_time']
+                logging.info(sys_time)
+                logging.info(start_time)
+                sys_time_split = re.split(r"[\s:/]", sys_time)
+                fmt_sys_time = ''.join(sys_time_split)
+                sys_time_date = fmt_sys_time[:8]
+                cur_sys_hour_minute_time = int(fmt_sys_time[8:])
+                if int(start_time) < cur_sys_hour_minute_time:  # 事件1的起始时间早于当前系统时间
+                    str_expected_event_2_start_time = change_str_time_and_fmt_time((sys_time_date + start_time), 5)
+                elif int(start_time) >= cur_sys_hour_minute_time:  # 事件1的起始时间等于或晚于当前系统时间，需要增加一个循环
+                    next_cycle_day_start_time = cale_str_time_for_add_day((sys_time_date + start_time), 1)
+                    str_expected_event_2_start_time = change_str_time_and_fmt_time(next_cycle_day_start_time, 5)
+
+        elif TEST_CASE_INFO[3] in WEEKLY_EVENT_MODE:  # 原事件Mode
+            if TEST_CASE_INFO[8] == "Daily":  # 新事件Mode
+                logging.info(f"循环事件:{TEST_CASE_INFO[3]}--改循环事件{TEST_CASE_INFO[8]}")
+                str_expected_event_2_start_time = change_str_time_and_fmt_time(start_time, 5)
+            elif TEST_CASE_INFO[8] == "Once":  # 新事件Mode
+                logging.info(f"循环事件:{TEST_CASE_INFO[3]}--改单次事件{TEST_CASE_INFO[8]}")
+                sys_time = rsv_kws['current_sys_time']
+                sys_time_split = re.split(r"[\s:/]", sys_time)
+                cur_year = int(sys_time_split[0])
+                cur_month = int(sys_time_split[1])
+                cur_day = int(sys_time_split[2])
+                cur_hour = int(sys_time_split[3])
+                cur_minute = int(sys_time_split[4])
+                dt_time = datetime(cur_year, cur_month, cur_day, cur_hour, cur_minute)
+                cur_sys_hour_minute_time = int(sys_time_split[3] + sys_time_split[4])  # 当前系统时间的时分值
+                cur_weekday = date(cur_year, cur_month, cur_day).weekday()  # 当前系统时间对应的星期数
+                res_event_weekday = weekday_num_dict[TEST_CASE_INFO[3]]  # event_1事件对应的星期数
+                if cur_weekday == res_event_weekday:  # 事件1的起始时间星期与当前系统时间日期星期相同时
+                    if int(start_time) < cur_sys_hour_minute_time:  # 事件1的起始时间早于当前系统时间
+                        str_expected_event_2_start_time = change_str_time_and_fmt_time((dt_time[:8] + start_time), 5)
+                    elif int(start_time) >= cur_sys_hour_minute_time:  # 事件1的起始时间等于或晚于当前系统时间，需要增加一个循环
+                        cur_next_weekday = dt_time + timedelta(days=7)
+                        cur_next_weekday_split = re.split(r"[-\s:]", str(cur_next_weekday))
+                        cur_next_weekday_start_time = ''.join(cur_next_weekday_split)[:8] + start_time
+                        str_expected_event_2_start_time = change_str_time_and_fmt_time(cur_next_weekday_start_time, 5)
+                elif cur_weekday != res_event_weekday:  # 事件1的起始时间星期与当前系统时间日期星期不同时
+                    if cur_weekday > res_event_weekday:  # 当前系统时间星期数大于事件1的星期数时
+                        interval_day = 7 - cur_weekday + res_event_weekday
+                        cur_next_weekday = dt_time + timedelta(days=interval_day)
+                        cur_next_weekday_split = re.split(r"[-\s:]", str(cur_next_weekday))
+                        cur_next_weekday_start_time = ''.join(cur_next_weekday_split)[:8] + start_time
+                        str_expected_event_2_start_time = change_str_time_and_fmt_time(cur_next_weekday_start_time, 5)
+                    elif cur_weekday < res_event_weekday:
+                        interval_day = res_event_weekday - cur_weekday
+                        cur_next_weekday = dt_time + timedelta(days=interval_day)
+                        cur_next_weekday_split = re.split(r"[-\s:]", str(cur_next_weekday))
+                        cur_next_weekday_start_time = ''.join(cur_next_weekday_split)[:8] + start_time
+                        str_expected_event_2_start_time = change_str_time_and_fmt_time(cur_next_weekday_start_time, 5)
+
+    elif TEST_CASE_INFO[7] == "Same[mode]+Diff[time+type+dur]":    # 需要更改起始时间
+        logging.info("当前编辑涉及修改时间，所以预约事件时间需要变化")
+        str_expected_event_2_start_time = change_str_time_and_fmt_time(start_time, 5)
+
+    elif TEST_CASE_INFO[7] == "Diff[time+type+dur+mode]":    # 需要更改起始时间
         logging.info("当前编辑涉及修改Mode，所以预约事件时间需要变化")
         if TEST_CASE_INFO[3] == "Once":  # 原事件Mode
             if TEST_CASE_INFO[8] == "Daily" or TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:  # 新事件Mode
@@ -1345,14 +1441,18 @@ def edit_add_new_res_event_2_info():
     # 此处编辑完事件后，不会再次打印事件信息，需要重新进入Timer Setting界面，为update_edit_res_event_to_event_mgr_list准备数据
     time.sleep(2)
     # 更新event_2的信息
-    if TEST_CASE_INFO[9] == "PVR":
+    if TEST_CASE_INFO[9] == "PVR":      # Invalid事件时，这里获取不到event_2的事件信息，所以只能手动指定dur的‘：’间隔
         new_expected_res_event_info = expected_res_event_info
         dur_time = new_expected_res_event_info[3]
         new_expected_res_event_info[3] = dur_time[:2] + ":" + dur_time[2:]
         GL.report_data[1] = new_expected_res_event_info
     else:
         GL.report_data[1] = expected_res_event_info
-    GL.report_data[3] = rsv_kws["event_invalid_msg"]
+
+    if TEST_CASE_INFO[7] == "Same[mode]+Diff[time+type+dur]" or TEST_CASE_INFO[7] == "Diff[time+type+dur+mode]":
+        GL.report_data[3] = "Res_event_success"
+    else:
+        GL.report_data[3] = rsv_kws["event_invalid_msg"]
     # send_cmd(KEY["EXIT"])
     # send_cmd(KEY["OK"])
     if rsv_kws["event_invalid_msg"] != '':
