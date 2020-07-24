@@ -154,7 +154,7 @@ def build_log_and_report_file_path():
         TEST_CASE_INFO[3], sheet_name, TEST_CASE_INFO[9], TEST_CASE_INFO[8])
     log_file_name = "Log_{}_{}.txt".format(fmt_name, time_info)
     log_file_path = os.path.join(log_directory_path, log_file_name)
-    report_file_name = "Result_report.xlsx"
+    report_file_name = "Edit_modify_res_event_result_report.xlsx"
     report_file_path = os.path.join(report_directory_path, report_file_name)
     # sheet_name = "{}_{}_{}_{}".format(TEST_CASE_INFO[2], TEST_CASE_INFO[4], TEST_CASE_INFO[3], TEST_CASE_INFO[7])
     return log_file_path, report_file_path, sheet_name
