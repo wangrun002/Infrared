@@ -132,6 +132,39 @@ for k in res_type:
                     total_list.append(single_list)
                     n += 1
 
+# "Same[time+type]+Diff[mode+date]"
+for i in res_type:
+    for j in res_mode:
+        for k in res_mode:
+            if (j == "Once" or j == "Weekly") and (k == "Once" or k == "Weekly"):
+                if k != j:
+                    single_list = ["", "All", "TV", "", "", "TVScreenDiffCH", "Manual_jump",
+                                   "Same[time+type]+Diff[mode+date]", "", "", "screen_test_numb"]
+                    single_list[0] = "{0:02d}".format(n)
+                    single_list[3] = j
+                    single_list[4] = i
+                    single_list[8] = k
+                    single_list[9] = i
+                    total_list.append(single_list)
+                    n += 1
+
+# "Same[time]+Diff[type+mode+date]"
+for i in res_type:
+    for j in res_type:
+        for k in res_mode:
+            for h in res_mode:
+                if (k == "Once" or k == "Weekly") and (h == "Once" or h == "Weekly"):
+                    if h != k and j != i:
+                        single_list = ["", "All", "TV", "", "", "TVScreenDiffCH", "Manual_jump",
+                                       "Same[time]+Diff[type+mode+date]", "", "", "screen_test_numb"]
+                        single_list[0] = "{0:02d}".format(n)
+                        single_list[3] = k
+                        single_list[4] = i
+                        single_list[8] = h
+                        single_list[9] = j
+                        total_list.append(single_list)
+                        n += 1
+
 # print(len(total_list))
 for m in range(len(total_list)):
     print(f"{total_list[m]},")
