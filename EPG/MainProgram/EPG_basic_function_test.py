@@ -27,12 +27,15 @@ class MyGlobal(object):
 
     def __init__(self):
         if TEST_CASE_INFO[4] == "EnterExitEPGInterface":
-            self.send_test_case_commd_numb = 10                     # 进入退出EPG界面的次数
+            self.send_test_case_commd_numb = 100                     # 进入退出EPG界面的次数
         elif TEST_CASE_INFO[4] == "EPGSwitchChannel":
-            self.send_test_case_commd_numb = 15                     # EPG界面切台执行次数
+            if TEST_CASE_INFO[3] == "UP" or TEST_CASE_INFO[3] == "DOWN":
+                self.send_test_case_commd_numb = 500                 # EPG界面切台执行次数
+            else:
+                self.send_test_case_commd_numb = 50
         elif TEST_CASE_INFO[4] == "SwitchEPGEvent":
-            self.send_test_case_commd_numb = 15                     # EPG界面切换事件次数
-            self.each_ch_test_numb = 15                             # 每个节目的测试次数，一般与发送测试case次数保持一致
+            self.send_test_case_commd_numb = 50                     # EPG界面切换事件次数
+            self.each_ch_test_numb = 50                             # 每个节目的固定测试次数，一般与发送测试case次数保持一致
 
         self.TV_channel_groups = {}                                 # 存放电视节目的组别和节目数信息
         self.Radio_channel_groups = {}                              # 存放广播节目的组别和节目数信息
