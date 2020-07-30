@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-all_test_case = [
+new_add_res_case = [
     ['00', 'All', 'TV', 'Once', 'Play', 'TVScreenDiffCH', 'Manual_jump', 'screen_test_numb'],
     ['01', 'All', 'TV', 'Once', 'Play', 'TVScreenDiffCH', 'Auto_jump', 'screen_test_numb'],
     ['02', 'All', 'TV', 'Once', 'Play', 'TVScreenDiffCH', 'Cancel_jump', 'screen_test_numb'],
@@ -78,33 +78,46 @@ all_test_case = [
     ['73', 'All', 'TV', 'Daily', 'Play', 'ChannelList', 'Manual_jump', 'other_interface_test_numb'],
     ['74', 'All', 'TV', 'Mon.', 'Play', 'Menu', 'Manual_jump', 'other_interface_test_numb'],
     ['75', 'All', 'TV', 'Fri.', 'Play', 'EPG', 'Manual_jump', 'other_interface_test_numb'],
-    ['76', 'All', 'TV', 'Once', 'Play', 'ChannelEdit', 'Manual_jump', 'other_interface_test_numb']
+    ['76', 'All', 'TV', 'Once', 'Play', 'ChannelEdit', 'Manual_jump', 'other_interface_test_numb'],
+    ['77', 'All', 'TV', 'Once', 'Power On', 'WakeUp', 'Auto_jump', 'screen_test_numb'],
+    ['78', 'All', 'TV', 'Daily', 'Power On', 'WakeUp', 'Auto_jump', 'screen_test_numb'],
+    ['79', 'All', 'TV', 'Mon.', 'Power On', 'WakeUp', 'Auto_jump', 'screen_test_numb'],
+    ['80', 'All', 'TV', 'Tues.', 'Power On', 'WakeUp', 'Auto_jump', 'screen_test_numb'],
+    ['81', 'All', 'TV', 'Wed.', 'Power On', 'WakeUp', 'Auto_jump', 'screen_test_numb'],
+    ['82', 'All', 'TV', 'Thurs.', 'Power On', 'WakeUp', 'Auto_jump', 'screen_test_numb'],
+    ['83', 'All', 'TV', 'Fri.', 'Power On', 'WakeUp', 'Auto_jump', 'screen_test_numb'],
+    ['84', 'All', 'TV', 'Sat.', 'Power On', 'WakeUp', 'Auto_jump', 'screen_test_numb'],
+    ['85', 'All', 'TV', 'Sun.', 'Power On', 'WakeUp', 'Auto_jump', 'screen_test_numb']
 ]
 
 read_data = []
 
-with open("res_event_example_file.py","r") as f:
+with open("res_event_example_file.py", "r") as f:
     for line in f.readlines():
         print(line, end='')
         read_data.append(line)
 
 
 def build_x_numb_python_file():
-    for i in range(len(all_test_case)):
-        if all_test_case[i][4] == "Power Off":      # 这里要注意py文件的名称不能有空格，会导致python3 xxx.py执行错误
+    for i in range(len(new_add_res_case)):
+        # 这里要注意py文件的名称不能有空格，会导致python3 xxx.py执行错误
+        if new_add_res_case[i][4] == "Power Off" or new_add_res_case[i][4] == "Power On":
             python_file_path = "test_{}_{}_{}_{}_{}_{}.py".format(
-                all_test_case[i][0], all_test_case[i][2],
-                all_test_case[i][3], all_test_case[i][4].replace(" ", ''),
-                all_test_case[i][5], all_test_case[i][6])
+                new_add_res_case[i][0], new_add_res_case[i][2],
+                new_add_res_case[i][3], new_add_res_case[i][4].replace(" ", ''),
+                new_add_res_case[i][5], new_add_res_case[i][6])
         else:
-            python_file_path = "test_{}_{}_{}_{}_{}_{}.py".format(all_test_case[i][0], all_test_case[i][2],
-                                                                  all_test_case[i][3], all_test_case[i][4],
-                                                                  all_test_case[i][5], all_test_case[i][6])
-        with open(python_file_path,"a+") as fo:
+            python_file_path = "test_{}_{}_{}_{}_{}_{}.py".format(new_add_res_case[i][0], new_add_res_case[i][2],
+                                                                  new_add_res_case[i][3], new_add_res_case[i][4],
+                                                                  new_add_res_case[i][5], new_add_res_case[i][6])
+        with open(python_file_path, "a+") as fo:
             for j in range(len(read_data)):
                 if "choice_case_numb =" in read_data[j]:
-                    fo.write("choice_case_numb = {}\n".format(int(all_test_case[i][0])))
+                    fo.write("choice_case_numb = {}\n".format(int(new_add_res_case[i][0])))
+                elif "case_info" in read_data[j]:
+                    fo.write(f"case_info = {new_add_res_case[i]}\n")
                 else:
                     fo.write(read_data[j])
+
 
 build_x_numb_python_file()

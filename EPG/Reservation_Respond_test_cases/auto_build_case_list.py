@@ -8,6 +8,7 @@ n = 0
 res_type = ["Play", "PVR", "Power Off"]
 res_mode = ["Once", "Daily", "Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
 jump_mode = ["Manual_jump", "Auto_jump", "Cancel_jump"]
+add_res_type = "Power On"
 
 for i in res_type:
     for j in res_mode:
@@ -20,6 +21,7 @@ for i in res_type:
                     single_list[4] = i
                     single_list[6] = k
                     total_list.append(single_list)
+                    n += 1
             else:
                 single_list = ["", "All", "TV", "", "", "TVScreenDiffCH", "", "screen_test_numb"]
                 single_list[0] = "{0:02d}".format(n)
@@ -27,11 +29,9 @@ for i in res_type:
                 single_list[4] = i
                 single_list[6] = k
                 total_list.append(single_list)
-            n += 1
-
+                n += 1
 
 total_list.append(['63', 'All', 'Radio', 'Once', 'PVR', 'RadioScreenDiffCH', 'Manual_jump', 'screen_test_numb'])
-
 total_list.append(['64', 'All', 'TV', 'Once', 'PVR', 'RadioScreenDiffCH', 'Manual_jump', 'screen_test_numb'])
 total_list.append(['65', 'All', 'TV', 'Daily', 'PVR', 'RadioScreenDiffCH', 'Manual_jump', 'screen_test_numb'])
 total_list.append(['66', 'All', 'TV', 'Mon.', 'PVR', 'RadioScreenDiffCH', 'Manual_jump', 'screen_test_numb'])
@@ -50,8 +50,15 @@ total_list.append(['75', 'All', 'TV', 'Fri.', 'Play', 'EPG', 'Manual_jump', 'oth
 
 total_list.append(['76', 'All', 'TV', 'Once', 'Play', 'ChannelEdit', 'Manual_jump', 'other_interface_test_numb'])
 
-
-
+n = 77
+for i in res_mode:
+    single_list = ["", "All", "TV", "", "", "WakeUp", "", "screen_test_numb"]
+    single_list[0] = "{0:02d}".format(n)
+    single_list[3] = i
+    single_list[4] = add_res_type
+    single_list[6] = "Auto_jump"
+    total_list.append(single_list)
+    n += 1
 
 
 print(len(total_list))
