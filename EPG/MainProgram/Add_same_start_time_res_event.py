@@ -82,9 +82,9 @@ class MyGlobal(object):
 
     def __init__(self):
         if test_case_info[-1] == "screen_test_numb":
-            self.res_triggered_numb = 2                 # 大画面预约响应的次数
+            self.res_triggered_numb = 1                 # 大画面预约响应的次数
         elif test_case_info[-1] == "other_interface_test_numb":
-            self.res_triggered_numb = 2                 # 其他界面预约响应的次数
+            self.res_triggered_numb = 1                 # 其他界面预约响应的次数
 
         self.choice_res_ch = ''                         # 预约Play或PVR事件时所选预约节目
         self.res_event_mgr = []                         # 预约事件管理
