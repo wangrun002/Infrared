@@ -19,5 +19,3 @@ if platform.system() == "Windows":
 elif platform.system() == "Linux":
     os.system("python3 %s %d" % (test_file_path, choice_case_numb))
 os.unlink(test_file_path)
-
-
