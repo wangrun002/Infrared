@@ -300,6 +300,9 @@ def choice_ch_for_res_event_type():
     elif TEST_CASE_INFO[9] == "Power Off":
         logging.info(f"当前用例为{TEST_CASE_INFO[4]}，不需要切换节目")
 
+    elif TEST_CASE_INFO[9] == "Power On":
+        logging.info(f"当前用例为{TEST_CASE_INFO[4]}，不需要切换节目")
+
 
 def calculate_expected_event_start_time():
     logging.info("calculate_expected_event_start_time")
@@ -344,6 +347,14 @@ def create_expected_add_event_info():
         expected_event_info[4] = TEST_CASE_INFO[3]
 
     elif TEST_CASE_INFO[4] == "Power Off":
+        expected_event_full_time = calculate_expected_event_start_time()
+        expected_event_info[0] = expected_event_full_time
+        expected_event_info[1] = TEST_CASE_INFO[4]
+        expected_event_info[2] = "----"
+        expected_event_info[3] = "--:--"
+        expected_event_info[4] = TEST_CASE_INFO[3]
+
+    elif TEST_CASE_INFO[4] == "Power On":
         expected_event_full_time = calculate_expected_event_start_time()
         expected_event_info[0] = expected_event_full_time
         expected_event_info[1] = TEST_CASE_INFO[4]
@@ -433,10 +444,10 @@ def edit_add_new_res_event_info():
             send_commd(KEY["DOWN"])
     # 设置Channel参数
     logging.info("Edit Channel")
-    if TEST_CASE_INFO[4] == "Power Off":
-        logging.info(f"当前事件类型为Power Off，不需要设置Channel：{TEST_CASE_INFO[4]}")
+    if TEST_CASE_INFO[4] == "Power Off" or TEST_CASE_INFO[4] == "Power On":
+        logging.info(f"当前事件类型为：{TEST_CASE_INFO[4]}，不需要设置Channel")
     elif TEST_CASE_INFO[4] != "Power Off":
-        logging.info(f"当前事件类型不为Power Off，需要设置Channel：{TEST_CASE_INFO[4]}")
+        logging.info(f"当前事件类型不为Power Off/On，需要设置Channel：{TEST_CASE_INFO[4]}")
         while rsv_kws["edit_event_focus_pos"] != "Channel":
             send_commd(KEY["DOWN"])
         else:
@@ -615,13 +626,17 @@ def goto_specified_interface_wait_for_event_triggered():
     menu_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["DOWN"], KEY["DOWN"], KEY["OK"], KEY["OK"]]
     channel_edit_interface = [KEY["MENU"], KEY["LEFT"], KEY["LEFT"], KEY["OK"]]
     # 切到指定界面
-    if TEST_CASE_INFO[5] == "TVScreenDiffCH":
+    if TEST_CASE_INFO[5] == "TVScreenDiffCH" and TEST_CASE_INFO[9] != "Power On":
         if channel_info[5] != "TV":
             send_commd(KEY["TV/R"])
         # 切到不同的频道等待
         send_commd(KEY["UP"])
         if channel_info[3] == "1":  # 加锁节目判断
             send_commd(KEY["EXIT"])
+    elif TEST_CASE_INFO[5] == "TVScreenDiffCH" and TEST_CASE_INFO[9] == "Power On":
+        # 发送关机指令
+        logging.info("当前为Power On事件，手动进入待机状态，等待唤醒")
+        send_commd(KEY["POWER"])
     elif TEST_CASE_INFO[5] == "RadioScreenDiffCH":
         if channel_info[5] != "Radio":
             send_commd(KEY["TV/R"])
@@ -661,20 +676,23 @@ def goto_specified_interface_wait_for_event_triggered():
     time.sleep(2)
     GL.report_data[4] = channel_info[1]
     # 等待事件响应
-    logging.info("事件还没有触发，等待响应")
-    while not state["res_event_triggered_state"]:
-        time.sleep(0.1)
+    if TEST_CASE_INFO[9] == "Power On":
+        logging.info("当前为Power On事件，等待唤醒自动唤醒")
     else:
-        logging.info("事件已经触发，正确跳出预约跳转选择框")
-        logging.info(f"触发事件时，系统时间信息为：{rsv_kws['res_triggered_sys_time']}")
-        GL.report_data[3] = rsv_kws['res_triggered_sys_time']
-        logging.info(type(current_triggered_event_info))
-        logging.info(type(GL.res_event_mgr))
-        if list(current_triggered_event_info) in GL.res_event_mgr:
-            logging.info("当前触发事件在事件列表中")
-            state["res_event_triggered_state"] = False
-        elif list(current_triggered_event_info) not in GL.res_event_mgr:
-            logging.info(f"警告：当前触发事件不在事件列表中，{GL.res_event_mgr}-{current_triggered_event_info}")
+        logging.info("事件还没有触发，等待响应")
+        while not state["res_event_triggered_state"]:
+            time.sleep(0.1)
+        else:
+            logging.info("事件已经触发，正确跳出预约跳转选择框")
+            logging.info(f"触发事件时，系统时间信息为：{rsv_kws['res_triggered_sys_time']}")
+            GL.report_data[3] = rsv_kws['res_triggered_sys_time']
+            logging.info(type(current_triggered_event_info))
+            logging.info(type(GL.res_event_mgr))
+            if list(current_triggered_event_info) in GL.res_event_mgr:
+                logging.info("当前触发事件在事件列表中")
+                state["res_event_triggered_state"] = False
+            elif list(current_triggered_event_info) not in GL.res_event_mgr:
+                logging.info(f"警告：当前触发事件不在事件列表中，{GL.res_event_mgr}-{current_triggered_event_info}")
 
 
 def res_event_triggered_and_choice_jump_type():
@@ -735,7 +753,7 @@ def res_event_triggered_and_choice_jump_type():
                 else:
                     logging.info(f"警告：没有取消跳转成功，当前节目与触发事件的节目为:{channel_info[1]}--{current_triggered_event_info[2]}")
 
-    if TEST_CASE_INFO[9] == "PVR":
+    elif TEST_CASE_INFO[9] == "PVR":
         if TEST_CASE_INFO[6] == "Manual_jump":
             time.sleep(5)
             logging.info("选择手动跳转")
@@ -874,7 +892,7 @@ def res_event_triggered_and_choice_jump_type():
                     logging.info(f"警告：没有取消跳转成功，当前节目与触发事件的节目为:{channel_info[1]}--{current_triggered_event_info[2]}")
             GL.pvr_rec_dur_time = 0     # 取消跳转时，录制持续时长为0
 
-    if TEST_CASE_INFO[9] == "Power Off":
+    elif TEST_CASE_INFO[9] == "Power Off":
         if TEST_CASE_INFO[6] == "Manual_jump":
             time.sleep(5)
             logging.info("选择手动跳转")
@@ -947,22 +965,49 @@ def res_event_triggered_and_choice_jump_type():
                 logging.info("事件跳转取消成功")
                 time.sleep(3)
 
+    elif TEST_CASE_INFO[9] == "Power On":
+        while not state["power_off_state"]:
+            logging.info("还没有进入到关机状态")
+            time.sleep(1)
+        else:
+            logging.info("进入关机状态")
+            logging.info("等待唤醒操作")
+            state["control_power_on_info_rsv_state"] = True
+            power_off_start_time = datetime.now()  # 用于关机计时起始时间
+        while not state["stb_already_power_on_state"]:
+            logging.info("还没有获取到启动成功标志，请等候")
+            time.sleep(1)
+        else:
+            logging.info("检测到启动成功标志")
+            state["control_power_on_info_rsv_state"] = False
+            power_off_end_time = datetime.now()  # 用于关机计时结束时间
+            if GL.res_event_mgr[0][-1] == "Once":
+                logging.info(f"移除Once类型当前触发事件前的列表：{GL.res_event_mgr}")
+                GL.res_event_mgr.remove(GL.res_event_mgr[0])
+                logging.info(f"移除Once类型当前触发事件后的列表：{GL.res_event_mgr}")
+            elif GL.res_event_mgr[0][-1] == "Daily" or GL.res_event_mgr[0][-1] in weekly_event_mode:
+                GL.event_already_triggered_numb += 1  # 预约事件触发后，次数加1
+                logging.info(f"{GL.res_event_mgr[0]}事件不需要从数据库中删除")
+            GL.report_data[3] = str(power_off_end_time - power_off_start_time)[:7]
+
     logging.info("预约事件数据处理，----------------------------------------------------")
+    if TEST_CASE_INFO[9] != "Power On":
+        if current_triggered_event_info[-1] == "Once":  # Once事件触发后，需要从数据库中移除
+            logging.info(f"移除Once类型当前触发事件前的列表：{GL.res_event_mgr}")
+            GL.res_event_mgr.remove(list(current_triggered_event_info))
+            logging.info(f"移除Once类型当前触发事件后的列表：{GL.res_event_mgr}")
 
-    if current_triggered_event_info[-1] == "Once":  # Once事件触发后，需要从数据库中移除
-        logging.info(f"移除Once类型当前触发事件前的列表：{GL.res_event_mgr}")
-        GL.res_event_mgr.remove(list(current_triggered_event_info))
-        logging.info(f"移除Once类型当前触发事件后的列表：{GL.res_event_mgr}")
+        elif current_triggered_event_info[-1] == "Daily":
+            GL.event_already_triggered_numb += 1  # 预约事件触发后，次数加1
+            logging.info(f"{current_triggered_event_info[-1]}事件不需要从数据库中删除")
+        elif current_triggered_event_info[-1] in weekly_event_mode:
+            GL.event_already_triggered_numb += 1    # 预约事件触发后，次数加1
+            logging.info(f"{current_triggered_event_info[-1]}事件不需要从数据库中删除")
 
-    elif current_triggered_event_info[-1] == "Daily":
-        GL.event_already_triggered_numb += 1  # 预约事件触发后，次数加1
-        logging.info(f"{current_triggered_event_info[-1]}事件不需要从数据库中删除")
-    elif current_triggered_event_info[-1] in weekly_event_mode:
-        GL.event_already_triggered_numb += 1    # 预约事件触发后，次数加1
-        logging.info(f"{current_triggered_event_info[-1]}事件不需要从数据库中删除")
-
-    if TEST_CASE_INFO[6] == "Cancel_jump":
-        send_more_commds(exit_to_screen)
+        if TEST_CASE_INFO[6] == "Cancel_jump":
+            send_more_commds(exit_to_screen)
+    else:
+        logging.info("预约事件为Power On，不能从响应的事件来获取当前触发的事件信息")
 
 
 def res_triggered_later_check_timer_setting_event_list():
@@ -1059,7 +1104,15 @@ def write_data_to_excel():
     excel_title_1 = ["用例编号", "新增的预约事件信息", "编辑修改后的预约事件信息", "触发响应结果"]
     excel_title_2 = ["用例编号", "起始时间", "事件类型", "节目名称", "持续时间", "事件模式",
                      "起始时间", "事件类型", "节目名称", "持续时间", "事件模式",
-                     "系统时间日期", "触发时间", "等待节目", "跳转节目", "录制时长", "用例测试时间"]
+                     "系统时间日期", "触发时间/关机等待时间", "等待节目", "跳转节目", "录制时长", "用例测试时间"]
+    # if TEST_CASE_INFO[9] == "Power On":
+    #     excel_title_2 = ["用例编号", "起始时间", "事件类型", "节目名称", "持续时间", "事件模式",
+    #                      "起始时间", "事件类型", "节目名称", "持续时间", "事件模式",
+    #                      "系统时间日期", "关机等待时间", "等待节目", "跳转节目", "录制时长", "用例测试时间"]
+    # else:
+    #     excel_title_2 = ["用例编号", "起始时间", "事件类型", "节目名称", "持续时间", "事件模式",
+    #                      "起始时间", "事件类型", "节目名称", "持续时间", "事件模式",
+    #                      "系统时间日期", "触发时间", "等待节目", "跳转节目", "录制时长", "用例测试时间"]
 
     alignment = Alignment(horizontal="center", vertical="center", wrapText=True)
     blue_font = Font(color=BLUE)
@@ -1244,23 +1297,27 @@ def write_data_to_excel():
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
 
                 elif edit_data == 2:   # ch
-                    if TEST_CASE_INFO[4] != "Power Off" and TEST_CASE_INFO[9] != "Power Off":
+                    if (TEST_CASE_INFO[4] != "Power Off" and TEST_CASE_INFO[4] != "Power On") \
+                            and (TEST_CASE_INFO[9] != "Power Off" and TEST_CASE_INFO[9] != "Power On"):
                         if GL.report_data[d][edit_data] == GL.report_data[0][2]:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                         elif GL.report_data[d][edit_data] != GL.report_data[0][2]:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
-                    elif TEST_CASE_INFO[4] == "Power Off" and TEST_CASE_INFO[9] != "Power Off":
+                    elif (TEST_CASE_INFO[4] == "Power Off" or TEST_CASE_INFO[4] == "Power On") \
+                            and (TEST_CASE_INFO[9] != "Power Off" and TEST_CASE_INFO[9] != "Power On"):
                         if GL.report_data[d][edit_data] != GL.report_data[0][2]:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                         else:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
-                    elif TEST_CASE_INFO[4] != "Power Off" and TEST_CASE_INFO[9] == "Power Off":
+                    elif (TEST_CASE_INFO[4] != "Power Off" and TEST_CASE_INFO[4] != "Power On") \
+                            and (TEST_CASE_INFO[9] == "Power Off" or TEST_CASE_INFO[9] == "Power On"):
                         if GL.report_data[d][edit_data] != GL.report_data[0][2] \
                                 and GL.report_data[d][edit_data] == "----":
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                         else:
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
-                    elif TEST_CASE_INFO[4] == "Power Off" and TEST_CASE_INFO[9] == "Power Off":
+                    elif (TEST_CASE_INFO[4] == "Power Off" or TEST_CASE_INFO[4] == "Power On") \
+                            and (TEST_CASE_INFO[9] == "Power Off" or TEST_CASE_INFO[9] == "Power On"):
                         if GL.report_data[d][edit_data] == GL.report_data[0][2] == "----":
                             ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
                         else:
@@ -1315,41 +1372,54 @@ def write_data_to_excel():
         elif d == 3:  # 触发时间
             ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
             ws.cell(max_row + 1, d + len_total).alignment = alignment
-
-            if TEST_CASE_INFO[8] == "Once":     # （触发时间+1）后与预约事件起始时间进行比对
-                str_triggered_time = change_str_time_and_fmt_time(GL.report_data[3][:12], 1)  # 加1分钟后的触发时间
-                if str_triggered_time == GL.report_data[1][0]:
+            if TEST_CASE_INFO[9] != "Power On":
+                if TEST_CASE_INFO[8] == "Once":     # （触发时间+1）后与预约事件起始时间进行比对
+                    str_triggered_time = change_str_time_and_fmt_time(GL.report_data[3][:12], 1)  # 加1分钟后的触发时间
+                    if str_triggered_time == GL.report_data[1][0]:
+                        ws.cell(max_row + 1, d + len_total).font = blue_font
+                    elif str_triggered_time != GL.report_data[1][0]:
+                        ws.cell(max_row + 1, d + len_total).font = red_font
+                elif TEST_CASE_INFO[8] == "Daily":
+                    if GL.report_data[3][:12][8:] == "2359":  # （触发时间的时分+1）与（系统时间日期+预约事件起始时间）进行比对
+                        str_triggered_time = GL.report_data[3][:8] + \
+                                             change_str_time_and_fmt_time(GL.report_data[3][8:12], 1)
+                        if str_triggered_time == GL.report_data[2] + GL.report_data[1][0]:
+                            ws.cell(max_row + 1, d + len_total).font = blue_font
+                        elif str_triggered_time != GL.report_data[2] + GL.report_data[1][0]:
+                            ws.cell(max_row + 1, d + len_total).font = red_font
+                    elif GL.report_data[3][:12][8:] != "2359":     # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
+                        str_triggered_time = change_str_time_and_fmt_time(GL.report_data[3][:12], 1)  # 加1分钟后的触发时间
+                        if str_triggered_time == GL.report_data[2] + GL.report_data[1][0]:
+                            ws.cell(max_row + 1, d + len_total).font = blue_font
+                        elif str_triggered_time != GL.report_data[2] + GL.report_data[1][0]:
+                            ws.cell(max_row + 1, d + len_total).font = red_font
+                elif TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:
+                    if GL.report_data[3][:12][8:] == "2359":  # （触发时间的时分+1）与（系统时间日期+预约事件起始时间）进行比对
+                        str_triggered_time = GL.report_data[3][:8] + \
+                                             change_str_time_and_fmt_time(GL.report_data[3][8:12], 1)
+                        if str_triggered_time == GL.report_data[2] + GL.report_data[1][0]:
+                            ws.cell(max_row + 1, d + len_total).font = blue_font
+                        elif str_triggered_time != GL.report_data[2] + GL.report_data[1][0]:
+                            ws.cell(max_row + 1, d + len_total).font = red_font
+                    elif GL.report_data[3][:12][8:] != "2359":  # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
+                        str_triggered_time = change_str_time_and_fmt_time(GL.report_data[3][:12], 1)  # 加1分钟后的触发时间
+                        if str_triggered_time == GL.report_data[2] + GL.report_data[1][0]:
+                            ws.cell(max_row + 1, d + len_total).font = blue_font
+                        elif str_triggered_time != GL.report_data[2] + GL.report_data[1][0]:
+                            ws.cell(max_row + 1, d + len_total).font = red_font
+            elif TEST_CASE_INFO[9] == "Power On":
+                standby_dur_time = GL.report_data[3]
+                standby_dur_time_split = re.split(r":", standby_dur_time)
+                standby_dur_hour = int(standby_dur_time_split[0])
+                standby_dur_minute = int(standby_dur_time_split[1])
+                standby_dur_second = int(standby_dur_time_split[2])
+                standby_dur_time_second = standby_dur_hour * 3600 + standby_dur_minute * 60 + standby_dur_second * 1
+                stb_boot_time = 14
+                real_standby_dur_time = standby_dur_time_second - stb_boot_time
+                if (60 - 5) <= real_standby_dur_time <= (60 + 5):
                     ws.cell(max_row + 1, d + len_total).font = blue_font
-                elif str_triggered_time != GL.report_data[1][0]:
+                else:
                     ws.cell(max_row + 1, d + len_total).font = red_font
-            elif TEST_CASE_INFO[8] == "Daily":
-                if GL.report_data[3][:12][8:] == "2359":  # （触发时间的时分+1）与（系统时间日期+预约事件起始时间）进行比对
-                    str_triggered_time = GL.report_data[3][:8] + \
-                                         change_str_time_and_fmt_time(GL.report_data[3][8:12], 1)
-                    if str_triggered_time == GL.report_data[2] + GL.report_data[1][0]:
-                        ws.cell(max_row + 1, d + len_total).font = blue_font
-                    elif str_triggered_time != GL.report_data[2] + GL.report_data[1][0]:
-                        ws.cell(max_row + 1, d + len_total).font = red_font
-                elif GL.report_data[3][:12][8:] != "2359":     # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
-                    str_triggered_time = change_str_time_and_fmt_time(GL.report_data[3][:12], 1)  # 加1分钟后的触发时间
-                    if str_triggered_time == GL.report_data[2] + GL.report_data[1][0]:
-                        ws.cell(max_row + 1, d + len_total).font = blue_font
-                    elif str_triggered_time != GL.report_data[2] + GL.report_data[1][0]:
-                        ws.cell(max_row + 1, d + len_total).font = red_font
-            elif TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:
-                if GL.report_data[3][:12][8:] == "2359":  # （触发时间的时分+1）与（系统时间日期+预约事件起始时间）进行比对
-                    str_triggered_time = GL.report_data[3][:8] + \
-                                         change_str_time_and_fmt_time(GL.report_data[3][8:12], 1)
-                    if str_triggered_time == GL.report_data[2] + GL.report_data[1][0]:
-                        ws.cell(max_row + 1, d + len_total).font = blue_font
-                    elif str_triggered_time != GL.report_data[2] + GL.report_data[1][0]:
-                        ws.cell(max_row + 1, d + len_total).font = red_font
-                elif GL.report_data[3][:12][8:] != "2359":  # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
-                    str_triggered_time = change_str_time_and_fmt_time(GL.report_data[3][:12], 1)  # 加1分钟后的触发时间
-                    if str_triggered_time == GL.report_data[2] + GL.report_data[1][0]:
-                        ws.cell(max_row + 1, d + len_total).font = blue_font
-                    elif str_triggered_time != GL.report_data[2] + GL.report_data[1][0]:
-                        ws.cell(max_row + 1, d + len_total).font = red_font
 
         elif d == 5:  # 跳转节目
             ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
@@ -1365,7 +1435,7 @@ def write_data_to_excel():
                         ws.cell(max_row + 1, d + len_total).font = blue_font
                     else:
                         ws.cell(max_row + 1, d + len_total).font = red_font
-            elif TEST_CASE_INFO[9] == "Power Off":
+            elif TEST_CASE_INFO[9] == "Power Off" or TEST_CASE_INFO[9] == "Power On":
                 if GL.report_data[d] == "----":
                     ws.cell(max_row + 1, d + len_total).font = blue_font
                 else:
@@ -1389,7 +1459,7 @@ def write_data_to_excel():
                         ws.cell(max_row + 1, d + len_total).font = blue_font
                     else:
                         ws.cell(max_row + 1, d + len_total).font = red_font
-            elif TEST_CASE_INFO[9] == "Play" or TEST_CASE_INFO[9] == "Power Off":
+            elif TEST_CASE_INFO[9] == "Play" or TEST_CASE_INFO[9] == "Power Off" or TEST_CASE_INFO[9] == "Power On":
                 if GL.report_data[d] == "--:--":
                     ws.cell(max_row + 1, d + len_total).font = blue_font
                 else:
@@ -1430,6 +1500,13 @@ def manage_report_data_and_write_data():
         GL.report_data[7] = TEST_CASE_INFO[0]  # 用例编号
         GL.report_data[8] = str(datetime.now())[:19]  # 写该用例报告的时间
     elif TEST_CASE_INFO[9] == "Power Off":
+        # GL.report_data[3] = list(res_event_list)[0][0]
+        GL.report_data[4] = "----"
+        GL.report_data[5] = "----"
+        GL.report_data[6] = "--:--"
+        GL.report_data[7] = TEST_CASE_INFO[0]  # 用例编号
+        GL.report_data[8] = str(datetime.now())[:19]  # 写该用例报告的时间
+    elif TEST_CASE_INFO[9] == "Power On":
         # GL.report_data[3] = list(res_event_list)[0][0]
         GL.report_data[4] = "----"
         GL.report_data[5] = "----"
@@ -1593,6 +1670,14 @@ def create_expected_edit_event_info():
         expected_edit_event_info[2] = "----"
         expected_edit_event_info[3] = "--:--"
         expected_edit_event_info[4] = TEST_CASE_INFO[8]
+
+    elif TEST_CASE_INFO[9] == "Power On":
+        expected_event_full_time = calculate_expected_edit_event_start_time()
+        expected_edit_event_info[0] = expected_event_full_time
+        expected_edit_event_info[1] = TEST_CASE_INFO[9]
+        expected_edit_event_info[2] = "----"
+        expected_edit_event_info[3] = "--:--"
+        expected_edit_event_info[4] = TEST_CASE_INFO[8]
     return expected_edit_event_info
 
 
@@ -1679,10 +1764,10 @@ def modify_edit_add_new_res_event_info():
             send_commd(KEY["DOWN"])
     # 设置Channel参数
     logging.info("Edit Channel")
-    if TEST_CASE_INFO[9] == "Power Off":
-        logging.info(f"当前事件类型为Power Off，不需要设置Channel：{TEST_CASE_INFO[9]}")
+    if TEST_CASE_INFO[9] == "Power Off" or TEST_CASE_INFO[9] == "Power On":
+        logging.info(f"当前事件类型为：{TEST_CASE_INFO[9]}，不需要设置Channel")
     elif TEST_CASE_INFO[9] != "Power Off":
-        logging.info(f"当前事件类型不为Power Off，需要设置Channel：{TEST_CASE_INFO[9]}")
+        logging.info(f"当前事件类型不为Power Off/On，需要设置Channel：{TEST_CASE_INFO[9]}")
         while rsv_kws["edit_event_focus_pos"] != "Channel":
             send_commd(KEY["DOWN"])
         else:
@@ -1846,7 +1931,8 @@ def receive_serial_process(
 
             if other_kws[0] in data2:   # 红外接收打印
                 rsv_cmd = re.split(":", data2)[-1]
-                infrared_rsv_cmd.append(rsv_cmd)        # 存放可以共享的接受命令的列表
+                if reverse_rsv_key[rsv_cmd] != "POWER":
+                    infrared_rsv_cmd.append(rsv_cmd)        # 存放可以共享的接受命令的列表
                 if rsv_cmd not in reverse_rsv_key.keys():
                     logging.info("红外键值{}不在当前字典中，被其他遥控影响".format(rsv_cmd))
                 else:
@@ -1854,7 +1940,8 @@ def receive_serial_process(
                         infrared_send_cmd[-1], reverse_rsv_key[infrared_rsv_cmd[-1]]))
                     logging.info("红外次数统计(发送和接受):{}--{}".format(
                         len(infrared_send_cmd), len(infrared_rsv_cmd)))
-                    receive_cmd_list.append(rsv_cmd)
+                    if reverse_rsv_key[rsv_cmd] != "POWER":
+                        receive_cmd_list.append(rsv_cmd)
                 if state["control_power_on_info_rsv_state"]:    # 用于Power Off事件触发后，软开机没有检测到开机关键字用来避免死循环
                     state["stb_already_power_on_state"] = True
 
