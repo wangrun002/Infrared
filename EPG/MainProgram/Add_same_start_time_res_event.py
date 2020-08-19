@@ -87,16 +87,9 @@ class MyGlobal(object):
             self.res_triggered_numb = 1                 # 其他界面预约响应的次数
 
         self.choice_res_ch = ''                         # 预约Play或PVR事件时所选预约节目
-        self.res_event_mgr = []                         # 预约事件管理
-        self.start_row = 0                              # 用于每次预约事件响应后，写数据增加行数
-        self.pvr_rec_dur_time = ''                      # 用于记录PVR事件录制持续时间
-        self.event_already_triggered_numb = 0           # 用于控制循环事件第二次前后的运行代码界限
-        self.res_event_info_1 = []
 
-        # 报告数据汇总[[预约事件1信息]，[预约事件2信息], "事件列表事件个数", "无效事件提示", "case编号", "执行case时间"]
-        self.report_data = [[], [], '', '', '', '', ]
-        # ["报告名称", "预约事件类型", "预约事件模式", "预约节目类型", "预约等待界面", "预约跳转模式", "预约执行次数"]
-        self.title_data = ['', '', '', '', '', '', '']
+        # 报告数据汇总[[预期事件1]，[保存事件1], [保存事件2]，[预期事件2], "保存事件个数", "无效事件提示", "case编号", "执行case时间"]
+        self.report_data = [[], [], [], [], '', '', '', '']
 
 
 def logging_info_setting():
@@ -253,17 +246,6 @@ def get_current_system_time():
         time.sleep(1)
     else:
         logging.info(f"当前系统时间为:{rsv_kws['current_sys_time']}")
-
-
-def get_exist_event_info():
-    # 获取当前已预约的事件信息
-    if len(res_event_list) == 0:
-        logging.info("当前没有预约事件")
-        logging.info(f"预约事件列表为:{res_event_list}")
-    else:
-        logging.info("当前所有预约事件如下")
-        for event in res_event_list:
-            logging.info(event)
 
 
 def choice_ch_for_res_event_type(choice_event):
@@ -518,7 +500,13 @@ def edit_add_new_res_event_info():
     # 进入事件编辑界面(Add按键)
     send_cmd(KEY["GREEN"])
     # 生成预期的预约事件
-    expected_res_event_info = create_expected_add_event_info()
+    if TEST_CASE_INFO[3] == "Once":
+        expected_res_event_info = create_expected_add_event_info()
+    else:
+        pretreatment_res_event_info = create_expected_add_event_info()    # 预处理预约事件信息
+        expected_res_event_info = pretreatment_res_event_info.copy()
+        expected_res_event_info[0] = expected_res_event_info[0][8:]
+    logging.info(f"创建的事件为{expected_res_event_info}")
     # 根据用例来编辑不同的事件
     # 检查是否进入到Timer Edit界面
     while rsv_kws["edit_event_focus_pos"] == "":
@@ -565,7 +553,10 @@ def edit_add_new_res_event_info():
     while rsv_kws["edit_event_focus_pos"] != "Start Time":
         send_cmd(KEY["DOWN"])
     else:
-        start_time_list.append(expected_res_event_info[0][8:])
+        if TEST_CASE_INFO[3] == "Once":
+            start_time_list.append(expected_res_event_info[0][8:])
+        else:
+            start_time_list.append(expected_res_event_info[0])
         start_time_cmd = change_numbs_to_cmds_list(start_time_list)
         for i in range(len(start_time_cmd)):
             for j in start_time_cmd[i]:
@@ -604,26 +595,20 @@ def edit_add_new_res_event_info():
     state["update_event_list_state"] = True
     send_cmd(KEY["EXIT"])
     send_cmd(KEY["OK"])
+    # 添加新预约事件到report
+    if TEST_CASE_INFO[4] == "PVR":  # 手动指定dur的‘：’间隔
+        new_expected_res_event_info = expected_res_event_info
+        dur_time = new_expected_res_event_info[3]
+        new_expected_res_event_info[3] = dur_time[:2] + ":" + dur_time[2:]
+        GL.report_data[0].extend(new_expected_res_event_info)
+    else:
+        GL.report_data[0].extend(expected_res_event_info)
     # 退回大画面
     send_more_cmds(exit_to_screen)
 
 
-def add_new_res_event_to_event_mgr_list():
-    logging.info("add_new_res_event_to_event_mgr_list")
-    # 添加新预约事件到事件管理列表
-    # if list(res_event_list) not in GL.res_event_mgr:
-    #     GL.res_event_mgr.extend(list(res_event_list))
-    # GL.res_event_info_1.extend(list(res_event_list))
-    GL.report_data[0].extend(list(res_event_list)[0])
-    logging.info(type(GL.res_event_mgr))
-    logging.info("分割线===============================================================================================")
-    logging.info(GL.res_event_mgr)
-    logging.info(list(res_event_list))
-    state["update_event_list_state"] = False
-
-
 def new_add_res_event_1():
-    logging.info("new_add_res_event")
+    logging.info("new_add_res_event_1")
     # 新增预约事件
     enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
     # 进入Timer_Setting界面
@@ -632,32 +617,6 @@ def new_add_res_event_1():
     get_current_system_time()
     # 进入事件编辑界面，设置预约事件参数
     edit_add_new_res_event_info()
-    # 添加新预约事件到事件管理列表
-    add_new_res_event_to_event_mgr_list()
-
-
-def res_triggered_later_check_timer_setting_event_list():
-    logging.info("res_triggered_later_check_timer_setting_event_list")
-    # 预约事件触发后，事件列表事件检查
-    enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
-    exit_to_screen = [KEY["EXIT"], KEY["EXIT"]]
-    send_more_cmds(enter_timer_setting_interface)
-    if rsv_kws["res_event_numb"] == '0':
-        if len(GL.res_event_mgr) == int(rsv_kws["res_event_numb"]):
-            logging.info("数据库与事件列表中的事件个数匹配，都为空")
-        else:
-            logging.info(f"警告：数据库与事件列表中的事件数不匹配，{len(GL.res_event_mgr)}--{int(rsv_kws['res_event_numb'])}")
-    elif rsv_kws["res_event_numb"] != '0':
-        if len(GL.res_event_mgr) == int(rsv_kws["res_event_numb"]):
-            logging.info("数据库与事件列表中的事件个数匹配，再检查事件信息是否匹配")
-            if GL.res_event_mgr == list(res_event_list):
-                logging.info(f"数据库与事件列表中的事件信息一致，{GL.res_event_mgr}--{list(res_event_list)}")
-            else:
-                logging.info(f"警告：数据库与事件列表中的事件信息不一致，{GL.res_event_mgr}--{list(res_event_list)}")
-        else:
-            logging.info("数据库与事件列表中的事件个数不匹配，请检查事件信息")
-            logging.info(f"警告：数据库与事件列表中的事件个数不一致，{GL.res_event_mgr}--{list(res_event_list)}")
-    send_more_cmds(exit_to_screen)
 
 
 def cale_str_time_for_add_day(str_time, interval_day):
@@ -726,8 +685,8 @@ def change_str_time_and_fmt_time(str_time, interval_time):
 def manage_report_data_and_write_data():
     logging.info("manage_report_data_and_write_data")
     # 整理数据以及写数据
-    GL.report_data[4] = TEST_CASE_INFO[0]   # 用例编号
-    GL.report_data[5] = str(datetime.now())[:19]    # 写该用例报告的时间
+    GL.report_data[6] = TEST_CASE_INFO[0]   # 用例编号
+    GL.report_data[7] = str(datetime.now())[:19]    # 写该用例报告的时间
 
     logging.info(GL.report_data)
     time.sleep(2)
@@ -737,48 +696,51 @@ def write_data_to_excel():
     logging.info("write_data_to_excel")
     wb = ''
     ws = ''
-    excel_title_1 = ["用例编号", "新增预约事件1信息", "新增预约事件2信息", "新增事件结果"]
-    excel_title_2 = ["用例编号", "起始时间", "事件类型", "节目名称", "持续时间", "事件模式",
+    excel_title_1 = ["用例编号", "预期新增事件1", "保存事件1", "保存事件2", "预期新增事件2", "新增相同起始时间事件结果"]
+    excel_title_2 = ["用例编号", "预期新增事件1", "保存事件1", "保存事件2",
                      "起始时间", "事件类型", "节目名称", "持续时间", "事件模式",
                      "事件列表预约事件个数", "无效事件提示", "用例测试时间"]
 
     alignment = Alignment(horizontal="center", vertical="center", wrapText=True)
     blue_font = Font(color=BLUE)
     red_font = Font(color=RED)
+    dark_cyan = '00008B8B'
+    dark_cyan_font = Font(color=dark_cyan, bold=True)
     a_column_numb = column_index_from_string("A")
     if not os.path.exists(file_path[1]):
         wb = Workbook()
         ws = wb.active
         ws.title = file_path[2]
         # 写excel_title_1的内容
-        ws.cell(1, 1).value = excel_title_1[0]
-        ws["A" + str(1)].alignment = alignment
-
-        ws.cell(1, 2).value = excel_title_1[1]
-        ws["B" + str(1)].alignment = alignment
-        ws.merge_cells(start_row=1, start_column=2, end_row=1, end_column=6)
-
-        ws.cell(1, 7).value = excel_title_1[2]
-        ws["G" + str(1)].alignment = alignment
-        ws.merge_cells(start_row=1, start_column=7, end_row=1, end_column=11)
-
-        ws.cell(1, 12).value = excel_title_1[3]
-        ws["L" + str(1)].alignment = alignment
-        ws.merge_cells(start_row=1, start_column=12, end_row=1, end_column=14)
+        for i in range(len(excel_title_1)):
+            if i == 4:
+                ws.cell(1, i + 1).value = excel_title_1[i]
+                ws.cell(1, i + 1).alignment = alignment
+                ws.merge_cells(start_row=1, start_column=5, end_row=1, end_column=9)
+            elif i == 5:
+                ws.cell(1, i + 5).value = excel_title_1[i]
+                ws.cell(1, i + 5).alignment = alignment
+                ws.merge_cells(start_row=1, start_column=10, end_row=1, end_column=12)
+            else:
+                ws.cell(1, i + 1).value = excel_title_1[i]
+                ws.cell(1, i + 1).alignment = alignment
 
         # 写excel_title_2的内容
         for j in range(len(excel_title_2)):
             ws.cell(2, j + 1).value = excel_title_2[j]
             ws.cell(2, j + 1).alignment = alignment
             if j == 0:
-                ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 10
+                ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 8
+            elif j in [1, 2, 3]:
+                ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 16
             else:
-                ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 11.5
+                ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 11
         # 设置Title的行高
         ws.row_dimensions[1].height = 30  # 设置每次执行的report预约事件信息的行高
         ws.row_dimensions[2].height = 30  # 设置每次执行的report预约事件信息的行高
-        # 合并用例编号单元格
-        ws.merge_cells(start_row=1, start_column=1, end_row=2, end_column=1)
+        # 合并用例编号单元格，以及report前4个数据的单元格
+        for column in range(4):
+            ws.merge_cells(start_row=1, start_column=column + 1, end_row=2, end_column=column + 1)
 
     elif os.path.exists(file_path[1]):
         wb = load_workbook(file_path[1])
@@ -789,60 +751,77 @@ def write_data_to_excel():
         elif file_path[2] not in sheets_name_list:
             ws = wb.create_sheet(file_path[2])
             # 写excel_title_1的内容
-            ws.cell(1, 1).value = excel_title_1[0]
-            ws["A" + str(1)].alignment = alignment
-
-            ws.cell(1, 2).value = excel_title_1[1]
-            ws["B" + str(1)].alignment = alignment
-            ws.merge_cells(start_row=1, start_column=2, end_row=1, end_column=6)
-
-            ws.cell(1, 7).value = excel_title_1[2]
-            ws["G" + str(1)].alignment = alignment
-            ws.merge_cells(start_row=1, start_column=7, end_row=1, end_column=11)
-
-            ws.cell(1, 12).value = excel_title_1[3]
-            ws["L" + str(1)].alignment = alignment
-            ws.merge_cells(start_row=1, start_column=12, end_row=1, end_column=14)
+            for i in range(len(excel_title_1)):
+                if i == 4:
+                    ws.cell(1, i + 1).value = excel_title_1[i]
+                    ws.cell(1, i + 1).alignment = alignment
+                    ws.merge_cells(start_row=1, start_column=5, end_row=1, end_column=9)
+                elif i == 5:
+                    ws.cell(1, i + 5).value = excel_title_1[i]
+                    ws.cell(1, i + 5).alignment = alignment
+                    ws.merge_cells(start_row=1, start_column=10, end_row=1, end_column=12)
+                else:
+                    ws.cell(1, i + 1).value = excel_title_1[i]
+                    ws.cell(1, i + 1).alignment = alignment
 
             # 写excel_title_2的内容
             for j in range(len(excel_title_2)):
                 ws.cell(2, j + 1).value = excel_title_2[j]
                 ws.cell(2, j + 1).alignment = alignment
                 if j == 0:
-                    ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 10
+                    ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 8
+                elif j in [1, 2, 3]:
+                    ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 16
                 else:
-                    ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 11.5
+                    ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 11
             # 设置Title的行高
             ws.row_dimensions[1].height = 30  # 设置每次执行的report预约事件信息的行高
             ws.row_dimensions[2].height = 30  # 设置每次执行的report预约事件信息的行高
-            # 合并用例编号单元格
-            ws.merge_cells(start_row=1, start_column=1, end_row=2, end_column=1)
+            # 合并用例编号单元格，以及report前4个数据的单元格
+            for column in range(4):
+                ws.merge_cells(start_row=1, start_column=column + 1, end_row=2, end_column=column + 1)
 
     # 获取当前用例修改类型的sheet表的Max_row
     max_row = ws.max_row
 
-    # 写新增和编辑后的预约事件数据
-    len_res_1 = len(GL.report_data[0])          # 新增预约事件的长度
-    len_res_2 = len(GL.report_data[1])          # 编辑修改后的预约事件的长度
-    len_total = len_res_1 + len_res_2           # 新增和编辑修改后的预约事件的总长度
+    # 写新增预约事件数据
     for d in range(len(GL.report_data)):
-        if d == 0:      # 新增预约事件的信息
-            for add_data in range(len(GL.report_data[d])):
-                ws.cell(max_row + 1, add_data + 2).value = GL.report_data[d][add_data]
-                ws.cell(max_row + 1, add_data + 2).alignment = alignment
-                # ws.column_dimensions[get_column_letter(a_column_numb + add_data + 1)].width = 15
+        if d in [0, 1, 2]:
+            ws.cell(max_row + 1, d + 2).value = str(GL.report_data[d])
+            ws.cell(max_row + 1, d + 2).alignment = alignment
 
-        elif d == 1:    # 修改后的预约事件的信息
+            if d == 1:  # 保存事件1
+                if GL.report_data[d] == GL.report_data[0]:
+                    ws.cell(max_row + 1, d + 2).font = blue_font
+                else:
+                    ws.cell(max_row + 1, d + 2).font = red_font
+
+            elif d == 2:
+                if TEST_CASE_INFO[7] == "Same[mode]+Diff[time+type+dur]" \
+                        or TEST_CASE_INFO[7] == "Diff[time+type+dur+mode]" \
+                        or TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode+date]" \
+                        or TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode+date]":
+                    if GL.report_data[d] == GL.report_data[3]:
+                        ws.cell(max_row + 1, d + 2).font = dark_cyan_font
+                    else:
+                        ws.cell(max_row + 1, d + 2).font = red_font
+                else:
+                    if GL.report_data[d] == ["----", "----", "----", "----", "----"]:
+                        ws.cell(max_row + 1, d + 2).font = dark_cyan_font
+                    else:
+                        ws.cell(max_row + 1, d + 2).font = red_font
+
+        elif d == 3:    # 新增预期事件2
             for edit_data in range(len(GL.report_data[d])):
-                ws.cell(max_row + 1, len_res_1 + edit_data + 2).value = GL.report_data[d][edit_data]
-                ws.cell(max_row + 1, len_res_1 + edit_data + 2).alignment = alignment
+                ws.cell(max_row + 1, (d + 1) + edit_data + 1).value = GL.report_data[d][edit_data]
+                ws.cell(max_row + 1, (d + 1) + edit_data + 1).alignment = alignment
                 if edit_data == 0:  # 起始时间
                     if TEST_CASE_INFO[7] == "Same[time+type+mode]" or \
                             TEST_CASE_INFO[7] == "Same[time+mode]+Diff[type]":
                         if GL.report_data[d][edit_data] == GL.report_data[0][0]:
-                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                            ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = blue_font
                         else:
-                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                            ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
                     elif TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode]" or \
                             TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode]" or \
                             TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode+date]" or \
@@ -850,33 +829,33 @@ def write_data_to_excel():
                         if TEST_CASE_INFO[8] == "Once" and TEST_CASE_INFO[3] == "Once":
                             if GL.report_data[d][edit_data] == GL.report_data[0][0] and \
                                     len(GL.report_data[d][edit_data]) == 12:
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = blue_font
                             else:
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
                         elif TEST_CASE_INFO[8] == "Once" and TEST_CASE_INFO[3] != "Once":
                             if GL.report_data[d][edit_data][8:] == GL.report_data[0][0] and \
                                     len(GL.report_data[d][edit_data]) == 12:
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = blue_font
                             else:
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
                         elif TEST_CASE_INFO[8] != "Once" and TEST_CASE_INFO[3] == "Once":
                             if GL.report_data[d][edit_data] == GL.report_data[0][0][8:] and \
                                     len(GL.report_data[d][edit_data]) == 4:
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = blue_font
                             else:
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
                         elif TEST_CASE_INFO[8] != "Once" and TEST_CASE_INFO[3] != "Once":
                             if GL.report_data[d][edit_data] == GL.report_data[0][0] and \
                                     len(GL.report_data[d][edit_data]) == 4:
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = blue_font
                             else:
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
                     elif TEST_CASE_INFO[7] == "Same[type+dur+mode]+Diff[time]" \
                             or TEST_CASE_INFO[7] == "Same[mode]+Diff[time+type+dur]":   # 起始时间需要+5
                         if GL.report_data[d][edit_data] == change_str_time_and_fmt_time(GL.report_data[0][0], 5):
-                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                            ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = blue_font
                         else:
-                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                            ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
 
                     elif TEST_CASE_INFO[7] == "Same[type+dur]+Diff[time+mode]" \
                             or TEST_CASE_INFO[7] == "Diff[time+type+dur+mode]":     # 起始时间需要+5
@@ -884,25 +863,25 @@ def write_data_to_excel():
                             if GL.report_data[0][0] == \
                                     change_str_time_and_fmt_time(GL.report_data[d][edit_data], -5)[8:] \
                                     and len(GL.report_data[d][edit_data]) == 12:
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = blue_font
                             else:
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
                         elif TEST_CASE_INFO[8] != "Once" and TEST_CASE_INFO[3] == "Once":
                             if GL.report_data[d][edit_data] == \
                                     change_str_time_and_fmt_time(GL.report_data[0][0], 5)[8:] \
                                     and len(GL.report_data[d][edit_data]) == 4:
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = blue_font
                             else:
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
                         elif TEST_CASE_INFO[8] != "Once" and TEST_CASE_INFO[3] != "Once":
                             if GL.report_data[d][edit_data] == \
                                     change_str_time_and_fmt_time(GL.report_data[0][0], 5) \
                                     and len(GL.report_data[d][edit_data]) == 4:
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = blue_font
                             else:
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
                     else:
-                        ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                        ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
 
                 elif edit_data == 1:  # 事件type
                     if TEST_CASE_INFO[7] == "Same[time+type+mode]" \
@@ -912,9 +891,9 @@ def write_data_to_excel():
                             or TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode+date]":
                         if GL.report_data[d][edit_data] == GL.report_data[0][1] and \
                                 GL.report_data[d][edit_data] == TEST_CASE_INFO[9]:
-                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                            ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = blue_font
                         else:
-                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                            ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
                     elif TEST_CASE_INFO[7] == "Same[time+mode]+Diff[type]" or \
                             TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode]" or \
                             TEST_CASE_INFO[7] == "Same[mode]+Diff[time+type+dur]" or \
@@ -922,32 +901,32 @@ def write_data_to_excel():
                             TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode+date]":
                         if GL.report_data[d][edit_data] != GL.report_data[0][1] and \
                                 GL.report_data[d][edit_data] == TEST_CASE_INFO[9]:
-                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                            ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = blue_font
                         else:
-                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                            ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
                     else:
-                        ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                        ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
 
                 elif edit_data == 3:  # duration
                     if TEST_CASE_INFO[9] == "PVR":
                         if TEST_CASE_INFO[7] == "Same[type+dur+mode]+Diff[time]" \
                                 or TEST_CASE_INFO[7] == "Same[type+dur]+Diff[time+mode]":
                             if GL.report_data[d][edit_data] == "00:10":
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = blue_font
                             else:
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
                         else:
                             if GL.report_data[d][edit_data] == "00:01":
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = blue_font
                             else:
-                                ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                                ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
                     elif TEST_CASE_INFO[9] != "PVR":
                         if GL.report_data[d][edit_data] == "--:--":
-                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                            ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = blue_font
                         else:
-                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                            ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
                     else:
-                        ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                        ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
 
                 elif edit_data == 4:    # 事件Mode
                     if TEST_CASE_INFO[7] == "Same[time+type+mode]" \
@@ -956,9 +935,9 @@ def write_data_to_excel():
                             or TEST_CASE_INFO[7] == "Same[mode]+Diff[time+type+dur]":
                         if GL.report_data[d][edit_data] == GL.report_data[0][4] and \
                                 GL.report_data[d][edit_data] == TEST_CASE_INFO[8]:
-                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                            ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = blue_font
                         else:
-                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                            ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
                     elif TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode]" or \
                             TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode]" or \
                             TEST_CASE_INFO[7] == "Same[type+dur]+Diff[time+mode]" or \
@@ -967,58 +946,54 @@ def write_data_to_excel():
                             TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode+date]":
                         if GL.report_data[d][edit_data] != GL.report_data[0][4] and \
                                 GL.report_data[d][edit_data] == TEST_CASE_INFO[8]:
-                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = blue_font
+                            ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = blue_font
                         else:
-                            ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                            ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
                     else:
-                        ws.cell(max_row + 1, len_res_1 + edit_data + 2).font = red_font
+                        ws.cell(max_row + 1, (d + 1) + edit_data + 1).font = red_font
 
-        elif d == 2:    # 事件列表事件个数
-            ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
-            ws.cell(max_row + 1, d + len_total).alignment = alignment
+        elif d == 4:    # 事件列表事件个数
+            ws.cell(max_row + 1, d + 5 + 1).value = GL.report_data[d]
+            ws.cell(max_row + 1, d + 5 + 1).alignment = alignment
             if TEST_CASE_INFO[7] == "Same[mode]+Diff[time+type+dur]" \
                     or TEST_CASE_INFO[7] == "Diff[time+type+dur+mode]"\
                     or TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode+date]"\
                     or TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode+date]":
                 if GL.report_data[d] == '2':
-                    ws.cell(max_row + 1, d + len_total).font = blue_font
+                    ws.cell(max_row + 1, d + 5 + 1).font = dark_cyan_font
                 else:
-                    ws.cell(max_row + 1, d + len_total).font = red_font
+                    ws.cell(max_row + 1, d + 5 + 1).font = red_font
             else:
                 if GL.report_data[d] == '1':
-                    ws.cell(max_row + 1, d + len_total).font = blue_font
+                    ws.cell(max_row + 1, d + 5 + 1).font = blue_font
                 else:
-                    ws.cell(max_row + 1, d + len_total).font = red_font
+                    ws.cell(max_row + 1, d + 5 + 1).font = red_font
 
-        elif d == 3:    # 无效事件提示
-            ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
-            ws.cell(max_row + 1, d + len_total).alignment = alignment
+        elif d == 5:    # 无效事件提示
+            ws.cell(max_row + 1, d + 5 + 1).value = GL.report_data[d]
+            ws.cell(max_row + 1, d + 5 + 1).alignment = alignment
             if TEST_CASE_INFO[7] == "Same[mode]+Diff[time+type+dur]" \
                     or TEST_CASE_INFO[7] == "Diff[time+type+dur+mode]" \
                     or TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode+date]" \
                     or TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode+date]":
-                if GL.report_data[d] == 'Res_event_success':
-                    ws.cell(max_row + 1, d + len_total).font = blue_font
+                if GL.report_data[d] == 'Add_same_start_time_res_event_success':
+                    ws.cell(max_row + 1, d + 5 + 1).font = dark_cyan_font
                 else:
-                    ws.cell(max_row + 1, d + len_total).font = red_font
+                    ws.cell(max_row + 1, d + 5 + 1).font = red_font
             else:
                 if GL.report_data[d] == '[PTD]Res_invalid_timer':
-                    ws.cell(max_row + 1, d + len_total).font = blue_font
+                    ws.cell(max_row + 1, d + 5 + 1).font = blue_font
                 else:
-                    ws.cell(max_row + 1, d + len_total).font = red_font
+                    ws.cell(max_row + 1, d + 5 + 1).font = red_font
 
-        elif d == 4:    # 用例编号
+        elif d == 6:    # 用例编号
             ws.cell(max_row + 1, 1).value = GL.report_data[d]
             ws.cell(max_row + 1, 1).alignment = alignment
 
-        elif d == 5:    # 写报告时间
-            ws.cell(max_row + 1, d + len_total - 1).value = GL.report_data[d]   # 由于d==7的坑填到第一列，所以这里需要列数减一
-            ws.cell(max_row + 1, d + len_total - 1).alignment = alignment
-
-        # else:
-        #     ws.cell(max_row + 1, d + len_total).value = GL.report_data[d]
-        #     ws.cell(max_row + 1, d + len_total).alignment = alignment
-    ws.row_dimensions[(max_row + 1)].height = 27    # 设置每次执行的report预约事件信息的行高
+        elif d == 7:    # 写报告时间
+            ws.cell(max_row + 1, d + 5).value = GL.report_data[d]
+            ws.cell(max_row + 1, d + 5).alignment = alignment
+    ws.row_dimensions[(max_row + 1)].height = 70    # 设置每次执行的report预约事件信息的行高
 
     wb.save(file_path[1])
 
@@ -1026,13 +1001,9 @@ def write_data_to_excel():
 def before_cycle_test_clear_data_and_state():
     # 循环测试前，清理数据和状态变量
     logging.info("before_cycle_test_clear_data_and_state")
-    # GL.res_event_mgr.clear()
     GL.choice_res_ch = ''
     state["clear_variate_state"] = True
-    GL.pvr_rec_dur_time = ''
     GL.report_data = [[], [], '', '', '', '', ]
-    GL.res_event_mgr.clear()
-    GL.res_event_info_1.clear()
     GL.res_triggered_numb -= 1
     logging.info("循环测试，延时5秒")
     time.sleep(5)
@@ -1377,7 +1348,7 @@ def calculate_expected_event_2_start_time():
 
 
 def calculate_expected_event_2_duration_time():
-    logging.info("calculate_expected_edit_event_duration_time")
+    logging.info("calculate_expected_event_2_duration_time")
     str_expected_dur_time = ''
     interval_dur = 1        # 更改录制时长的变量
     specified_dur_time = "0002"   # ModifyType+ModifyDuration时会出现无Dur_time改有Dur_time的情况，直接指定时间
@@ -1538,40 +1509,21 @@ def edit_add_new_res_event_2_info():
         new_expected_res_event_info = expected_res_event_info
         dur_time = new_expected_res_event_info[3]
         new_expected_res_event_info[3] = dur_time[:2] + ":" + dur_time[2:]
-        GL.report_data[1] = new_expected_res_event_info
+        GL.report_data[3] = new_expected_res_event_info
     else:
-        GL.report_data[1] = expected_res_event_info
+        GL.report_data[3] = expected_res_event_info
 
-    if TEST_CASE_INFO[7] == "Same[mode]+Diff[time+type+dur]" \
-            or TEST_CASE_INFO[7] == "Diff[time+type+dur+mode]"\
-            or TEST_CASE_INFO[7] == "Same[time+type]+Diff[mode+date]"\
-            or TEST_CASE_INFO[7] == "Same[time]+Diff[type+mode+date]":
-        GL.report_data[3] = "Res_event_success"
-    else:
-        GL.report_data[3] = rsv_kws["event_invalid_msg"]
-    # send_cmd(KEY["EXIT"])
-    # send_cmd(KEY["OK"])
     if rsv_kws["event_invalid_msg"] != '':
+        GL.report_data[5] = rsv_kws["event_invalid_msg"]
         send_cmd(KEY["OK"])
+    elif rsv_kws["event_invalid_msg"] == '':
+        GL.report_data[5] = "Add_same_start_time_res_event_success"
     # 退回大画面
     send_more_cmds(exit_to_screen)
 
 
-def update_edit_res_event_to_event_mgr_list():
-    logging.info("update_edit_res_event_to_event_mgr_list")
-    # 先清除之前的新增事件
-    GL.res_event_mgr.clear()
-    # 添加编辑修改后的预约事件到事件管理列表
-    if list(res_event_list) not in GL.res_event_mgr:
-        GL.res_event_mgr.extend(list(res_event_list))
-    GL.report_data[1] = GL.res_event_mgr[0]
-    logging.info(type(GL.res_event_mgr))
-    logging.info(GL.res_event_mgr)
-    logging.info(list(res_event_list))
-
-
 def new_add_res_event_2():
-    logging.info("edit_res_event")
+    logging.info("new_add_res_event_2")
     # 编辑修改新增的预约事件
     enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
     # 进入Timer_Setting界面
@@ -1581,9 +1533,13 @@ def new_add_res_event_2():
 
 
 def check_event_numb():
+    logging.info("check_event_numb")
     # 检查Timer_setting界面所有的事件
     enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
     exit_to_screen = [KEY["EXIT"], KEY["EXIT"]]
+    # 获取已预约的事件信息，清除获取预约事件的list，并激活获取预约事件状态标志
+    state["clear_res_event_list_state"] = True
+    state["update_event_list_state"] = True
     # 进入定时器设置界面
     send_more_cmds(enter_timer_setting_interface)
     # 对定时器设置界面的事件判断和清除
@@ -1593,8 +1549,21 @@ def check_event_numb():
         time.sleep(1)
     else:
         logging.info(rsv_kws["res_event_numb"])
-        GL.report_data[2] = rsv_kws["res_event_numb"]
+        GL.report_data[4] = rsv_kws["res_event_numb"]
         state["res_event_numb_state"] = False
+        # 获取预约事件的状态标志关闭
+        state["update_event_list_state"] = False
+        logging.info(list(res_event_list))
+        # 根据获取到的事件个数来决定保存事件1和保存事件2的信息
+        if int(rsv_kws["res_event_numb"]) == 1 and len(list(res_event_list)) == 1:
+            GL.report_data[1] = list(res_event_list)[0]
+            GL.report_data[2] = ["----", "----", "----", "----", "----"]
+        elif int(rsv_kws["res_event_numb"]) == 2 and len(list(res_event_list)) == 2:
+            for event in list(res_event_list):
+                if event == GL.report_data[0]:
+                    GL.report_data[1] = event
+                else:
+                    GL.report_data[2] = event
     # 退回大画面
     send_more_cmds(exit_to_screen)
 
@@ -1697,29 +1666,17 @@ def receive_serial_process(
                 state["sys_time_mode_state"] = False
                 state["current_sys_time_state"] = False
                 state["res_event_numb_state"] = False
-                state["res_event_triggered_state"] = False
-                state["res_event_confirm_jump_state"] = False
-                state["res_event_cancel_jump_state"] = False
-                state["rec_start_state"] = False
-                state["rec_end_state"] = False
-                state["no_storage_device_state"] = False
-                state["no_enough_space_state"] = False
-                state["pvr_not_supported_state"] = False
                 state["update_event_list_state"] = False
                 state["clear_variate_state"] = False
-                state["power_off_state"] = False
-                state["stb_already_power_on_state"] = False
                 state["event_no_channel_msg_state"] = False
                 state["event_invalid_date_msg_state"] = False
                 state["event_invalid_timer_msg_state"] = False
 
                 rsv_kws["event_invalid_msg"] = ''
 
-                # del res_event_list[:]
                 del current_triggered_event_info[:]
                 if prs_data["case_res_event_mode"] == "Once":
                     del res_event_list[:]
-                # channel_info = ['', '', '', '', '', '', '']
 
             if state["clear_res_event_list_state"]:
                 del res_event_list[:]
@@ -1736,8 +1693,6 @@ def receive_serial_process(
                     logging.info("红外次数统计(发送和接受):{}--{}".format(
                         len(infrared_send_cmd), len(infrared_rsv_cmd)))
                     receive_cmd_list.append(rsv_cmd)
-                if state["control_power_on_info_rsv_state"]:    # 用于Power Off事件触发后，软开机没有检测到开机关键字用来避免死循环
-                    state["stb_already_power_on_state"] = True
 
             if res_kws[0] in data2:     # 获取系统时间模式（自动还是手动）
                 state["sys_time_mode_state"] = True
@@ -1752,7 +1707,6 @@ def receive_serial_process(
                 rsv_kws["res_event_numb"] = re.split(r"=", data2)[-1]
 
             if res_kws[3] in data2:     # 获取预约事件信息
-                # state["res_event_info_state"] = True
                 event_split_info = re.split(r"event:|,", data2)
                 event_info = ['', '', '', '', '']
                 for info in event_split_info:
@@ -1772,60 +1726,6 @@ def receive_serial_process(
                         event_info[4] = re.split(r"=", info)[-1]
                 if state["update_event_list_state"]:
                     res_event_list.append(event_info)
-
-            if res_kws[4] in data2:     # 获取预约事件跳转触发信息，以及当前响应事件的信息
-                state["res_event_triggered_state"] = True
-                current_event_split_info = re.split(r"triggered:|,", data2)
-                current_event_info = ['', '', '', '', '']
-                for info in current_event_split_info:
-                    if "Start_time" in info:
-                        current_event_start_time = re.split(r"=", info)[-1]
-                        if len(current_event_start_time) == 5:
-                            current_event_info[0] = ''.join(re.split(r":", current_event_start_time))
-                        elif len(current_event_start_time) == 16:
-                            current_event_info[0] = ''.join(re.split(r"[/:\s]", current_event_start_time))
-                    if "Event_type" in info:
-                        current_event_info[1] = re.split(r"=", info)[-1]
-                    if "Ch_name" in info:
-                        current_event_info[2] = re.split(r"=", info)[-1]
-                    if "Duration" in info:
-                        current_event_info[3] = re.split(r"=", info)[-1]
-                    if "Event_mode" in info:
-                        current_event_info[4] = re.split(r"=", info)[-1]
-                current_triggered_event_info.extend(current_event_info)
-
-            if res_kws[5] in data2:     # 获取预约事件确认跳转信息
-                state["res_event_confirm_jump_state"] = True
-
-            if res_kws[6] in data2:     # 获取预约事件取消跳转信息
-                state["res_event_cancel_jump_state"] = True
-
-            if res_kws[7] in data2:     # 获取PVR预约事件录制开始信息
-                state["rec_start_state"] = True
-
-            if res_kws[8] in data2:     # 获取PVR预约事件录制结束信息
-                state["rec_end_state"] = True
-
-            if res_kws[9] in data2:     # 存储设备没有插入的打印信息
-                state["no_storage_device_state"] = True
-
-            if res_kws[10] in data2:    # 存储设备没有足够空间的打印信息
-                state["no_enough_space_state"] = True
-
-            if res_kws[11] in data2:    # 软关机打印信息
-                state["power_off_state"] = True
-
-            if res_kws[12] in data2 or res_kws[13] in data2:    # 开机解码成功打印信息,或开机存储设备挂载成功信息
-                if state["control_power_on_info_rsv_state"]:
-                    state["stb_already_power_on_state"] = True
-
-            if res_kws[14] in data2:    # 录制无信号、加锁节目、加密节目，跳出PVR is not supported!提示
-                state["pvr_not_supported_state"] = True
-
-            if res_kws[15] in data2:    # 预约事件触发时系统时间信息(备注：此系统时间为年月日 时分秒信息)
-                cur_sys_time = re.split(r"=", data2)[-1]
-                cur_sys_time_split = re.split(r"[/\s:]", cur_sys_time)
-                rsv_kws["res_triggered_sys_time"] = ''.join(cur_sys_time_split)
 
             if switch_ch_kws[0] in data2:
                 ch_info_split = re.split(r"[\],]", data2)
@@ -1936,18 +1836,15 @@ if __name__ == "__main__":
         "sys_time_mode": '', "current_sys_time": '', "res_event_numb": '', "prog_group_name": '',
         "prog_group_total": '', "edit_event_focus_pos": '', "edit_event_mode": '', "edit_event_type": '',
         "edit_event_date": '', "edit_event_time": '', "edit_event_duration": '', "edit_event_ch": '',
-        "res_triggered_sys_time": '', "event_invalid_msg": '',
+        "event_invalid_msg": '',
     })
 
     state = Manager().dict({
-        "res_event_numb_state": False, "res_event_triggered_state": False, "res_event_confirm_jump_state": False,
-        "res_event_cancel_jump_state": False, "rec_start_state": False, "rec_end_state": False,
-        "no_storage_device_state": False, "no_enough_space_state": False, "power_off_state": False,
-        "sys_time_mode_state": False, "current_sys_time_state": False, "update_event_list_state": False,
-        "clear_variate_state": False, "receive_loop_state": False, "control_power_on_info_rsv_state": False,
-        "stb_already_power_on_state": False, "res_event_info_state": False, "pvr_not_supported_state": False,
-        "clear_res_event_list_state": False, "event_no_channel_msg_state": False, "event_invalid_date_msg_state": False,
-        "event_invalid_timer_msg_state": False
+        "res_event_numb_state": False, "sys_time_mode_state": False,
+        "current_sys_time_state": False, "update_event_list_state": False,
+        "clear_variate_state": False, "receive_loop_state": False,
+        "clear_res_event_list_state": False, "event_no_channel_msg_state": False,
+        "event_invalid_date_msg_state": False, "event_invalid_timer_msg_state": False
     })
 
     prs_data = Manager().dict({
