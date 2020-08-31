@@ -8,6 +8,7 @@ from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Font
 from openpyxl.styles.colors import RED, BLUE
 from openpyxl.utils import get_column_letter, column_index_from_string
+from openpyxl.comments import Comment
 from datetime import datetime, timedelta, date
 from random import randint
 import platform
@@ -1196,6 +1197,8 @@ def write_data_to_excel():
                         ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
                     else:
                         ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
+                        error_comment = Comment(f"{rsv_kws['pvr_not_work_info']}", "wangrun")
+                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).comment = error_comment
                 elif TEST_CASE_INFO[6] == "Cancel_jump":
                     if GL.report_data[d] == "0s":
                         ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
@@ -1467,9 +1470,11 @@ def receive_serial_process(
 
             if res_kws[9] in data2:     # 存储设备没有插入的打印信息
                 state["no_storage_device_state"] = True
+                rsv_kws["pvr_not_work_info"] = data2
 
             if res_kws[10] in data2:    # 存储设备没有足够空间的打印信息
                 state["no_enough_space_state"] = True
+                rsv_kws["pvr_not_work_info"] = data2
 
             if res_kws[11] in data2:    # 软关机打印信息
                 state["power_off_state"] = True
@@ -1480,6 +1485,7 @@ def receive_serial_process(
 
             if res_kws[14] in data2:    # 录制无信号、加锁节目、加密节目，跳出PVR is not supported!提示
                 state["pvr_not_supported_state"] = True
+                rsv_kws["pvr_not_work_info"] = data2
 
             if res_kws[15] in data2:    # 预约事件触发时系统时间信息(备注：此系统时间为年月日 时分秒信息)
                 cur_sys_time = re.split(r"=", data2)[-1]
@@ -1583,7 +1589,7 @@ if __name__ == "__main__":
         "sys_time_mode": '', "current_sys_time": '', "res_event_numb": '', "prog_group_name": '',
         "prog_group_total": '', "edit_event_focus_pos": '', "edit_event_mode": '', "edit_event_type": '',
         "edit_event_date": '', "edit_event_time": '', "edit_event_duration": '', "edit_event_ch": '',
-        "res_triggered_sys_time": '',
+        "res_triggered_sys_time": '', "pvr_not_work_info": '',
     })
 
     state = Manager().dict({
