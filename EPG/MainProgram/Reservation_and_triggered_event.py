@@ -40,8 +40,8 @@ class MyGlobal(object):
         self.pvr_rec_dur_time = ''                      # 用于记录PVR事件录制持续时间
         self.event_already_triggered_numb = 0           # 用于控制循环事件第二次前后的运行代码界限
 
-        # 报告数据汇总[[预约事件信息]，"系统时间日期", "触发时间", "等待节目", "跳转节目", "录制时长"]
-        self.report_data = [[], '', '', '', '', '']
+        # 报告数据汇总[[预期事件信息], [预约事件信息], "系统时间日期", "触发时间", "等待节目", "跳转节目", "录制时长", "预约节目类型", "跳转模式", "case编号", "执行case时间"]
+        self.report_data = [[], [], '', '', '', '', '', '', '', '', '']
         # ["报告名称", "预约事件类型", "预约事件模式", "预约节目类型", "预约等待界面", "预约跳转模式", "预约执行次数"]
         self.title_data = ['', '', '', '', '', '', '']
 
@@ -133,9 +133,10 @@ def build_log_and_report_file_path():
         TEST_CASE_INFO[4], TEST_CASE_INFO[3], TEST_CASE_INFO[5], TEST_CASE_INFO[6])
     log_file_name = "Log_{}_{}.txt".format(fmt_name, time_info)
     log_file_path = os.path.join(log_directory_path, log_file_name)
-    report_file_name = "{}_{}.xlsx".format(fmt_name, time_info)
+    # report_file_name = "{}_{}.xlsx".format(fmt_name, time_info)
+    report_file_name = "Reservation_Respond_result_report.xlsx"
     report_file_path = os.path.join(report_directory_path, report_file_name)
-    sheet_name = "{}_{}_{}".format(TEST_CASE_INFO[2], TEST_CASE_INFO[4], TEST_CASE_INFO[3])
+    sheet_name = "{}".format(TEST_CASE_INFO[5])
     return log_file_path, report_file_path, sheet_name
 
 
@@ -354,7 +355,13 @@ def edit_res_event_info():
     # 进入事件编辑界面
     send_commd(KEY["GREEN"])
     # 生成预期的预约事件
-    expected_res_event_info = create_expected_event_info()
+    if TEST_CASE_INFO[3] == "Once":
+        expected_res_event_info = create_expected_event_info()
+    else:
+        pretreatment_res_event_info = create_expected_event_info()    # 预处理预约事件信息
+        expected_res_event_info = pretreatment_res_event_info.copy()
+        expected_res_event_info[0] = expected_res_event_info[0][8:]
+    logging.info(f"创建的事件为{expected_res_event_info}")
     # 根据用例来编辑不同的事件
     # 检查是否进入到Timer Edit界面
     while rsv_kws["edit_event_focus_pos"] == "":
@@ -401,7 +408,10 @@ def edit_res_event_info():
     while rsv_kws["edit_event_focus_pos"] != "Start Time":
         send_commd(KEY["DOWN"])
     else:
-        start_time_list.append(expected_res_event_info[0][8:])
+        if TEST_CASE_INFO[3] == "Once":
+            start_time_list.append(expected_res_event_info[0][8:])
+        else:
+            start_time_list.append(expected_res_event_info[0])
         start_time_cmd = change_numbs_to_commds_list(start_time_list)
         for i in range(len(start_time_cmd)):
             for j in start_time_cmd[i]:
@@ -440,6 +450,15 @@ def edit_res_event_info():
     state["update_event_list_state"] = True
     send_commd(KEY["EXIT"])
     send_commd(KEY["OK"])
+    # 添加新预约事件到report
+    if TEST_CASE_INFO[4] == "PVR":  # 手动指定dur的‘：’间隔
+        new_expected_res_event_info = expected_res_event_info
+        dur_time = new_expected_res_event_info[3]
+        new_expected_res_event_info[3] = dur_time[:2] + ":" + dur_time[2:]
+        GL.report_data[0].extend(new_expected_res_event_info)
+    else:
+        GL.report_data[0].extend(expected_res_event_info)
+    logging.info(GL.report_data[0])
     # 退回大画面
     send_more_commds(exit_to_screen)
 
@@ -449,7 +468,8 @@ def add_new_res_event_to_event_mgr_list():
     # 添加新预约事件到事件管理列表
     if res_event_list not in GL.res_event_mgr:
         GL.res_event_mgr.extend(res_event_list)
-    GL.report_data[0] = GL.res_event_mgr[0]
+    GL.report_data[1] = GL.res_event_mgr[0]
+    logging.info(GL.report_data[1])
     logging.info(type(GL.res_event_mgr))
     logging.info(GL.res_event_mgr)
     logging.info(list(res_event_list))
@@ -576,7 +596,7 @@ def set_system_time():
     #     GL.report_data[1] = change_str_time_and_fmt_time(sys_date_time, 1)[:8]
     # else:
     #     GL.report_data[1] = sys_date_time[:8]
-    GL.report_data[1] = sys_date_time[:8]
+    GL.report_data[2] = sys_date_time[:8]
     # 进入时间设置界面
     # 在get_cycle_event_start_time_and_sys_date已经执行
     # 移动到Date选项
@@ -654,7 +674,7 @@ def goto_specified_interface_wait_for_event_triggered():
         send_commd(KEY["POWER"])
     # 等待节目信息赋值
     time.sleep(2)
-    GL.report_data[3] = channel_info[1]
+    GL.report_data[4] = channel_info[1]
     # 等待事件响应
     if TEST_CASE_INFO[4] == "Power On":
         logging.info("当前为Power On事件，等待唤醒自动唤醒")
@@ -665,7 +685,7 @@ def goto_specified_interface_wait_for_event_triggered():
         else:
             logging.info("事件已经触发，正确跳出预约跳转选择框")
             logging.info(f"触发事件时，系统时间信息为：{rsv_kws['res_triggered_sys_time']}")
-            GL.report_data[2] = rsv_kws['res_triggered_sys_time']
+            GL.report_data[3] = rsv_kws['res_triggered_sys_time']
             logging.info(type(current_triggered_event_info))
             logging.info(type(GL.res_event_mgr))
             if list(current_triggered_event_info) in GL.res_event_mgr:
@@ -971,7 +991,7 @@ def res_event_triggered_and_choice_jump_type():
             elif GL.res_event_mgr[0][-1] == "Daily" or GL.res_event_mgr[0][-1] in weekly_event_mode:
                 GL.event_already_triggered_numb += 1  # 预约事件触发后，次数加1
                 logging.info(f"{GL.res_event_mgr[0]}事件不需要从数据库中删除")
-            GL.report_data[2] = str(power_off_end_time - power_off_start_time)[:7]
+            GL.report_data[3] = str(power_off_end_time - power_off_start_time)[:7]  # 唤醒时间
 
     logging.info("预约事件数据处理，----------------------------------------------------")
     if TEST_CASE_INFO[4] != "Power On":
@@ -1052,22 +1072,10 @@ def write_data_to_excel():
     logging.info("write_data_to_excel")
     wb = ''
     ws = ''
-    excel_title_0 = [
-        "报告名称",
-        "预约节目类型",
-        "预约事件类型",
-        "预约事件模式",
-        "预约等待界面",
-        "预约跳转模式",
-        "预约执行次数",
-    ]
-    excel_title_1 = ["预约事件信息", "触发响应结果"]
-    if TEST_CASE_INFO[4] == "Power On":
-        excel_title_2 = ["起始时间", "事件类型", "节目名称", "持续时间", "事件模式",
-                         "系统时间日期", "关机等待时间", "等待节目", "跳转节目", "录制时长"]
-    else:
-        excel_title_2 = ["起始时间", "事件类型", "节目名称", "持续时间", "事件模式",
-                         "系统时间日期", "触发时间", "等待节目", "跳转节目", "录制时长"]
+    excel_title_1 = ["用例编号", "预期事件信息", "保存事件信息", "触发响应结果"]
+    excel_title_2 = ["用例编号", "预期事件信息", "保存事件信息",
+                     "系统时间日期", "触发时间/关机等待时间", "等待节目", "跳转节目", "录制时长",
+                     "预约节目类型", "跳转模式", "用例测试时间"]
 
     alignment = Alignment(horizontal="center", vertical="center", wrapText=True)
     blue_font = Font(color=BLUE)
@@ -1077,32 +1085,34 @@ def write_data_to_excel():
         wb = Workbook()
         ws = wb.active
         ws.title = file_path[2]
-        # 写excel_title_0的内容
-        for i in range(len(excel_title_0)):
-            if i == 0:
-                ws.cell(i + 1, 1).value = excel_title_0[i]
-                ws.cell(i + 1, 1).alignment = alignment
-                ws.row_dimensions[(i + 1)].height = 27
-            else:       # 主要是第一项的行高设置
-                ws.cell(i + 1, 1).value = excel_title_0[i]
-                ws.cell(i + 1, 1).alignment = alignment
+
         # 写excel_title_1的内容
-        ws.cell(len(excel_title_0) + 1, 1).value = excel_title_1[0]
-        ws["A" + str(len(excel_title_0) + 1)].alignment = alignment
-        ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=1, end_row=len(excel_title_0) + 1, end_column=5)
-        ws.cell(len(excel_title_0) + 1, 6).value = excel_title_1[1]
-        ws["F" + str(len(excel_title_0) + 1)].alignment = alignment
-        ws.merge_cells(start_row=len(excel_title_0) + 1, start_column=6, end_row=len(excel_title_0) + 1, end_column=10)
+        for i in range(len(excel_title_1)):
+            if i == 3:
+                ws.cell(1, i + 1).value = excel_title_1[i]
+                ws.cell(1, i + 1).alignment = alignment
+                ws.merge_cells(start_row=1, start_column=4, end_row=1, end_column=11)
+            else:
+                ws.cell(1, i + 1).value = excel_title_1[i]
+                ws.cell(1, i + 1).alignment = alignment
+
         # 写excel_title_2的内容
         for j in range(len(excel_title_2)):
-            ws.cell(len(excel_title_0) + 2, j + 1).value = excel_title_2[j]
-            ws.cell(len(excel_title_0) + 2, j + 1).alignment = alignment
-            ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 16
-        # 写Title数据
-        for x in range(len(GL.title_data)):
-            ws.cell(x + 1, 2).value = GL.title_data[x]
-            ws.cell(x + 1, 2).alignment = alignment
-            ws.merge_cells(start_row=x + 1, start_column=2, end_row=x + 1, end_column=10)
+            ws.cell(2, j + 1).value = excel_title_2[j]
+            ws.cell(2, j + 1).alignment = alignment
+            if j == 0:
+                ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 6
+            elif j == 1 or j == 2:
+                ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 25
+            else:
+                ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 11
+
+        # 设置Title的行高
+        ws.row_dimensions[1].height = 30  # 设置每次执行的report预约事件信息的行高
+        ws.row_dimensions[2].height = 30  # 设置每次执行的report预约事件信息的行高
+        # 合并用例编号单元格，以及report前3个数据的单元格
+        for column in range(3):
+            ws.merge_cells(start_row=1, start_column=column + 1, end_row=2, end_column=column + 1)
 
     elif os.path.exists(file_path[1]):
         wb = load_workbook(file_path[1])
@@ -1112,107 +1122,148 @@ def write_data_to_excel():
             ws = wb[file_path[2]]
         elif file_path[2] not in sheets_name_list:
             ws = wb.create_sheet(file_path[2])
+            # 写excel_title_1的内容
+            for i in range(len(excel_title_1)):
+                if i == 3:
+                    ws.cell(1, i + 1).value = excel_title_1[i]
+                    ws.cell(1, i + 1).alignment = alignment
+                    ws.merge_cells(start_row=1, start_column=4, end_row=1, end_column=11)
+                else:
+                    ws.cell(1, i + 1).value = excel_title_1[i]
+                    ws.cell(1, i + 1).alignment = alignment
+
+            # 写excel_title_2的内容
+            for j in range(len(excel_title_2)):
+                ws.cell(2, j + 1).value = excel_title_2[j]
+                ws.cell(2, j + 1).alignment = alignment
+                if j == 0:
+                    ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 6
+                elif j == 1 or j == 2:
+                    ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 25
+                else:
+                    ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 11
+
+            # 设置Title的行高
+            ws.row_dimensions[1].height = 30  # 设置每次执行的report预约事件信息的行高
+            ws.row_dimensions[2].height = 30  # 设置每次执行的report预约事件信息的行高
+            # 合并用例编号单元格，以及report前3个数据的单元格
+            for column in range(3):
+                ws.merge_cells(start_row=1, start_column=column + 1, end_row=2, end_column=column + 1)
+
+    # 获取当前用例修改类型的sheet表的Max_row
+    max_row = ws.max_row
 
     # 写预约事件数据
-    interval_row = len(excel_title_0) + 2
+    logging.info(f"写report之前查看数据{GL.report_data}")
     for d in range(len(GL.report_data)):
-        if d == 0:
-            for dd in range(len(GL.report_data[d])):
-                ws.cell(GL.start_row + interval_row + 1, dd + 1).value = GL.report_data[d][dd]
-                ws.cell(GL.start_row + interval_row + 1, dd + 1).alignment = alignment
-        elif d == 2:  # 触发时间
-            ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).value = GL.report_data[d]
-            ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).alignment = alignment
-            if TEST_CASE_INFO[4] != "Power On":
-                if TEST_CASE_INFO[3] == "Once":     # （触发时间+1）后与预约事件起始时间进行比对
-                    str_triggered_time = change_str_time_and_fmt_time(GL.report_data[2][:12], 1)  # 加1分钟后的触发时间
-                    if str_triggered_time == GL.report_data[0][0]:
-                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
-                    elif str_triggered_time != GL.report_data[0][0]:
-                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
-                elif TEST_CASE_INFO[3] == "Daily":
-                    if GL.report_data[2][:12][8:] == "2359":  # （触发时间的时分+1）与（系统时间日期+预约事件起始时间）进行比对
-                        str_triggered_time = GL.report_data[2][:8] + \
-                                             change_str_time_and_fmt_time(GL.report_data[2][8:12], 1)
-                    else:   # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
-                        str_triggered_time = change_str_time_and_fmt_time(GL.report_data[2][:12], 1)  # 加1分钟后的触发时间
-                    if str_triggered_time == GL.report_data[1] + GL.report_data[0][0]:
-                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
-                    elif str_triggered_time != GL.report_data[1] + GL.report_data[0][0]:
-                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
-                elif TEST_CASE_INFO[3] in WEEKLY_EVENT_MODE:    # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
-                    if GL.report_data[2][:12][8:] == "2359":  # （触发时间的时分+1）与（系统时间日期+预约事件起始时间）进行比对
-                        str_triggered_time = GL.report_data[2][:8] + \
-                                             change_str_time_and_fmt_time(GL.report_data[2][8:12], 1)
-                    else:   # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
-                        str_triggered_time = change_str_time_and_fmt_time(GL.report_data[2][:12], 1)  # 加1分钟后的触发时间
-                    if str_triggered_time == GL.report_data[1] + GL.report_data[0][0]:
-                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
-                    elif str_triggered_time != GL.report_data[1] + GL.report_data[0][0]:
-                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
-            elif TEST_CASE_INFO[4] == "Power On":
-                standby_dur_time = GL.report_data[2]
-                standby_dur_time_split = re.split(r":", standby_dur_time)
-                standby_dur_hour = int(standby_dur_time_split[0])
-                standby_dur_minute = int(standby_dur_time_split[1])
-                standby_dur_second = int(standby_dur_time_split[2])
-                standby_dur_time_second = standby_dur_hour * 3600 + standby_dur_minute * 60 + standby_dur_second * 1
-                stb_boot_time = 14
-                real_standby_dur_time = standby_dur_time_second - stb_boot_time
-                if (60 - 5) <= real_standby_dur_time <= (60 + 5):
-                    ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
-                else:
-                    ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
-
-        elif d == 4:  # 跳转节目
-            ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).value = GL.report_data[d]
-            ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).alignment = alignment
-            if TEST_CASE_INFO[4] == "Play" or TEST_CASE_INFO[4] == "PVR":
-                if TEST_CASE_INFO[6] == "Manual_jump" or TEST_CASE_INFO[6] == "Auto_jump":
-                    if GL.report_data[d] == GL.report_data[0][2]:
-                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
-                    elif GL.report_data[d] != GL.report_data[0][2]:
-                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
-                elif TEST_CASE_INFO[6] == "Cancel_jump":
-                    if GL.report_data[d] != GL.report_data[0][2]:
-                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
-                    else:
-                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
-            elif TEST_CASE_INFO[4] == "Power Off" or TEST_CASE_INFO[4] == "Power On":
-                if GL.report_data[d] == "----":
-                    ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
-                else:
-                    ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
-
-        elif d == 5:  # 录制时长
-            ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).value = GL.report_data[d]
-            ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).alignment = alignment
-            if TEST_CASE_INFO[4] == "PVR":
-                if TEST_CASE_INFO[6] == "Manual_jump" or TEST_CASE_INFO[6] == "Auto_jump":
-                    res_dur_split = re.split(":", GL.report_data[0][3])
-                    # 换算录制时常信息与预约时间的Duration时长信息对比值
-                    res_dur_sec_time = int(res_dur_split[0]) * 3600 + int(res_dur_split[1]) * 60
-                    actual_rec_time = int(GL.report_data[d][:-1])
-                    if (res_dur_sec_time - 5) <= actual_rec_time <= (res_dur_sec_time + 5):
-                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
-                    else:
-                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
-                        error_comment = Comment(f"{rsv_kws['pvr_not_work_info']}", "wangrun")
-                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).comment = error_comment
-                elif TEST_CASE_INFO[6] == "Cancel_jump":
-                    if GL.report_data[d] == "0s":
-                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
-                    else:
-                        ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
-            elif TEST_CASE_INFO[4] == "Play" or TEST_CASE_INFO[4] == "Power Off" or TEST_CASE_INFO[4] == "Power On":
-                if GL.report_data[d] == "--:--":
-                    ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = blue_font
-                else:
-                    ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).font = red_font
+        if d == 0:  # 预期事件信息
+            ws.cell(max_row + 1, d + 2).value = str(GL.report_data[d])
+            ws.cell(max_row + 1, d + 2).alignment = alignment
+        elif d == 1:    # 保存事件信息
+            ws.cell(max_row + 1, d + 2).value = str(GL.report_data[d])
+            ws.cell(max_row + 1, d + 2).alignment = alignment
+            if GL.report_data[d] == GL.report_data[0]:
+                ws.cell(max_row + 1, d + 2).font = blue_font
+            else:
+                ws.cell(max_row + 1, d + 2).font = red_font
+        elif d == 9:
+            ws.cell(max_row + 1, 1).value = GL.report_data[d]
+            ws.cell(max_row + 1, 1).alignment = alignment
+        elif d == 10:
+            ws.cell(max_row + 1, d + 1).value = GL.report_data[d]
+            ws.cell(max_row + 1, d + 1).alignment = alignment
         else:
-            ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).value = GL.report_data[d]
-            ws.cell(GL.start_row + interval_row + 1, d + len(GL.report_data[0])).alignment = alignment
-    ws.row_dimensions[(GL.start_row + interval_row + 1)].height = 27  # 设置每次执行的report预约事件信息的行高
+            ws.cell(max_row + 1, d + 2).value = GL.report_data[d]
+            ws.cell(max_row + 1, d + 2).alignment = alignment
+            if d == 3:      # 触发时间
+                if TEST_CASE_INFO[4] != "Power On":
+                    if TEST_CASE_INFO[3] == "Once":     # （触发时间+1）后与预约事件起始时间进行比对
+                        str_triggered_time = change_str_time_and_fmt_time(GL.report_data[3][:12], 1)  # 加1分钟后的触发时间
+                        if str_triggered_time == GL.report_data[0][0]:
+                            ws.cell(max_row + 1, d + 2).font = blue_font
+                        elif str_triggered_time != GL.report_data[0][0]:
+                            ws.cell(max_row + 1, d + 2).font = red_font
+                    elif TEST_CASE_INFO[3] == "Daily":
+                        if GL.report_data[3][:12][8:] == "2359":  # （触发时间的时分+1）与（系统时间日期+预约事件起始时间）进行比对
+                            str_triggered_time = GL.report_data[3][:8] + \
+                                                 change_str_time_and_fmt_time(GL.report_data[3][8:12], 1)
+                        else:   # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
+                            str_triggered_time = change_str_time_and_fmt_time(GL.report_data[3][:12], 1)  # 加1分钟后的触发时间
+                        if str_triggered_time == GL.report_data[2] + GL.report_data[0][0]:
+                            ws.cell(max_row + 1, d + 2).font = blue_font
+                        elif str_triggered_time != GL.report_data[2] + GL.report_data[0][0]:
+                            ws.cell(max_row + 1, d + 2).font = red_font
+                    elif TEST_CASE_INFO[3] in WEEKLY_EVENT_MODE:    # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
+                        if GL.report_data[3][:12][8:] == "2359":  # （触发时间的时分+1）与（系统时间日期+预约事件起始时间）进行比对
+                            str_triggered_time = GL.report_data[3][:8] + \
+                                                 change_str_time_and_fmt_time(GL.report_data[3][8:12], 1)
+                        else:   # （触发时间+1）与（系统时间日期+预约事件起始时间）进行比对
+                            str_triggered_time = change_str_time_and_fmt_time(GL.report_data[3][:12], 1)  # 加1分钟后的触发时间
+                        if str_triggered_time == GL.report_data[2] + GL.report_data[0][0]:
+                            ws.cell(max_row + 1, d + 2).font = blue_font
+                        elif str_triggered_time != GL.report_data[2] + GL.report_data[0][0]:
+                            ws.cell(max_row + 1, d + 2).font = red_font
+                elif TEST_CASE_INFO[4] == "Power On":
+                    standby_dur_time = GL.report_data[3]
+                    standby_dur_time_split = re.split(r":", standby_dur_time)
+                    standby_dur_hour = int(standby_dur_time_split[0])
+                    standby_dur_minute = int(standby_dur_time_split[1])
+                    standby_dur_second = int(standby_dur_time_split[2])
+                    standby_dur_time_second = standby_dur_hour * 3600 + standby_dur_minute * 60 + standby_dur_second * 1
+                    stb_boot_time = 14
+                    real_standby_dur_time = standby_dur_time_second - stb_boot_time
+                    if (60 - 5) <= real_standby_dur_time <= (60 + 5):
+                        ws.cell(max_row + 1, d + 2).font = blue_font
+                    else:
+                        ws.cell(max_row + 1, d + 2).font = red_font
+
+            elif d == 5:  # 跳转节目
+                ws.cell(max_row + 1, d + 2).value = GL.report_data[d]
+                ws.cell(max_row + 1, d + 2).alignment = alignment
+                if TEST_CASE_INFO[4] == "Play" or TEST_CASE_INFO[4] == "PVR":
+                    if TEST_CASE_INFO[6] == "Manual_jump" or TEST_CASE_INFO[6] == "Auto_jump":
+                        if GL.report_data[d] == GL.report_data[0][2]:
+                            ws.cell(max_row + 1, d + 2).font = blue_font
+                        elif GL.report_data[d] != GL.report_data[0][2]:
+                            ws.cell(max_row + 1, d + 2).font = red_font
+                    elif TEST_CASE_INFO[6] == "Cancel_jump":
+                        if GL.report_data[d] != GL.report_data[0][2]:
+                            ws.cell(max_row + 1, d + 2).font = blue_font
+                        else:
+                            ws.cell(max_row + 1, d + 2).font = red_font
+                elif TEST_CASE_INFO[4] == "Power Off" or TEST_CASE_INFO[4] == "Power On":
+                    if GL.report_data[d] == "----":
+                        ws.cell(max_row + 1, d + 2).font = blue_font
+                    else:
+                        ws.cell(max_row + 1, d + 2).font = red_font
+
+            elif d == 6:  # 录制时长
+                ws.cell(max_row + 1, d + 2).value = GL.report_data[d]
+                ws.cell(max_row + 1, d + 2).alignment = alignment
+                if TEST_CASE_INFO[4] == "PVR":
+                    if TEST_CASE_INFO[6] == "Manual_jump" or TEST_CASE_INFO[6] == "Auto_jump":
+                        res_dur_split = re.split(":", GL.report_data[0][3])
+                        # 换算录制时常信息与预约时间的Duration时长信息对比值
+                        res_dur_sec_time = int(res_dur_split[0]) * 3600 + int(res_dur_split[1]) * 60
+                        actual_rec_time = int(GL.report_data[d][:-1])
+                        if (res_dur_sec_time - 5) <= actual_rec_time <= (res_dur_sec_time + 5):
+                            ws.cell(max_row + 1, d + 2).font = blue_font
+                        else:
+                            ws.cell(max_row + 1, d + 2).font = red_font
+                            error_comment = Comment(f"{rsv_kws['pvr_not_work_info']}", "wangrun")
+                            ws.cell(max_row + 1, d + 2).comment = error_comment
+                    elif TEST_CASE_INFO[6] == "Cancel_jump":
+                        if GL.report_data[d] == "0s":
+                            ws.cell(max_row + 1, d + 2).font = blue_font
+                        else:
+                            ws.cell(max_row + 1, d + 2).font = red_font
+                elif TEST_CASE_INFO[4] == "Play" or TEST_CASE_INFO[4] == "Power Off" or TEST_CASE_INFO[4] == "Power On":
+                    if GL.report_data[d] == "--:--":
+                        ws.cell(max_row + 1, d + 2).font = blue_font
+                    else:
+                        ws.cell(max_row + 1, d + 2).font = red_font
+
+    ws.row_dimensions[(max_row + 1)].height = 70  # 设置每次执行的report预约事件信息的行高
     GL.start_row += 1
 
     wb.save(file_path[1])
@@ -1221,37 +1272,33 @@ def write_data_to_excel():
 def manage_report_data_and_write_data():
     logging.info("manage_report_data_and_write_data")
     # 整理数据以及写数据
-    GL.title_data[0] = file_path[2]
-    GL.title_data[1] = TEST_CASE_INFO[2]
-    GL.title_data[2] = TEST_CASE_INFO[4]
-    GL.title_data[3] = TEST_CASE_INFO[3]
-    GL.title_data[4] = TEST_CASE_INFO[5]
-    GL.title_data[5] = TEST_CASE_INFO[6]
-    GL.title_data[6] = str(GL.res_triggered_numb)
+    GL.report_data[7] = TEST_CASE_INFO[2]  # 预约节目类型
+    GL.report_data[8] = TEST_CASE_INFO[6]  # 事件跳转模式
+    GL.report_data[9] = TEST_CASE_INFO[0]  # 用例编号
+    GL.report_data[10] = str(datetime.now())[:19]  # 写该用例报告的时间
 
     if TEST_CASE_INFO[4] == "Play":
-        # GL.report_data[1] = "pass"                # 系统时间日期
-        # GL.report_data[2] = list(res_event_list)[0][0]      # 事件响应时间（跳出跳转提示框的时间）
-        # GL.report_data[3] = TEST_CASE_INFO[6]   # 等待节目
-        GL.report_data[4] = channel_info[1]     # 跳转节目
-        GL.report_data[5] = "--:--"              # 录制时长
+        # GL.report_data[2] = "pass"                # 系统时间日期
+        # GL.report_data[3] = list(res_event_list)[0][0]      # 事件响应时间（跳出跳转提示框的时间）
+        # GL.report_data[4] = TEST_CASE_INFO[6]   # 等待节目
+        GL.report_data[5] = channel_info[1]     # 跳转节目
+        GL.report_data[6] = "--:--"              # 录制时长
     elif TEST_CASE_INFO[4] == "PVR":
-        # GL.report_data[2] = list(res_event_list)[0][0]
-        # GL.report_data[3] = TEST_CASE_INFO[6]
-        GL.report_data[4] = channel_info[1]
-        GL.report_data[5] = str(GL.pvr_rec_dur_time) + 's'
+        # GL.report_data[3] = list(res_event_list)[0][0]
+        # GL.report_data[4] = TEST_CASE_INFO[6]
+        GL.report_data[5] = channel_info[1]
+        GL.report_data[6] = str(GL.pvr_rec_dur_time) + 's'
     elif TEST_CASE_INFO[4] == "Power Off":
-        # GL.report_data[2] = list(res_event_list)[0][0]
-        GL.report_data[3] = "----"
+        # GL.report_data[3] = list(res_event_list)[0][0]
         GL.report_data[4] = "----"
-        GL.report_data[5] = "--:--"
+        GL.report_data[5] = "----"
+        GL.report_data[6] = "--:--"
     elif TEST_CASE_INFO[4] == "Power On":
-        # GL.report_data[2] = list(res_event_list)[0][0]
-        GL.report_data[3] = "----"
+        # GL.report_data[3] = list(res_event_list)[0][0]
         GL.report_data[4] = "----"
-        GL.report_data[5] = "--:--"
+        GL.report_data[5] = "----"
+        GL.report_data[6] = "--:--"
 
-    logging.info(GL.title_data)
     logging.info(GL.report_data)
     time.sleep(2)
 
@@ -1260,6 +1307,8 @@ def before_cycle_test_clear_data_and_state():
     # 循环测试前，清理数据和状态变量
     logging.info("before_cycle_test_clear_data_and_state")
     # GL.res_event_mgr.clear()
+    if TEST_CASE_INFO[3] == "Once":     # 只有当为Once类型时，才恢复默认，循环类型不能恢复，否则出现
+        GL.report_data = [[], [], '', '', '', '', '', '', '', '', '']
     GL.choice_res_ch = ''
     state["clear_variate_state"] = True
     GL.pvr_rec_dur_time = ''
