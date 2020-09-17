@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 
@@ -104,13 +104,13 @@ class MyGlobal(object):
 
         self.all_sat_commd = [
                                     [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
-                                        ["Chinas6b_C", "Polar=0", "5150/5750", "22K=1", "2", "0", "Blind"],
+                                        ["Chinas6b_C", "Polar=0", "5150/0", "22K=1", "2", "0", "Blind"],
                                         CHOICE_BLIND_MODE, CHOICE_SAVE_TYPE[0],
                                         EXIT_ANTENNA_SETTING, NOT_OTHER_OPERATE,
                                         NORMAL_SEARCH_TIMES, NOT_UPPER_LIMIT_LATER_SEARCH_TIME],
 
                                     [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[1],
-                                        ["Chinas6b_C", "Polar=0", "5150/5750", "22K=1", "2", "0", "SuperBlind"],
+                                        ["Chinas6b_C", "Polar=0", "5150/0", "22K=1", "2", "0", "SuperBlind"],
                                         CHOICE_SUPERBLIND_MODE, CHOICE_SAVE_TYPE[0],
                                         EXIT_ANTENNA_SETTING, NOT_OTHER_OPERATE,
                                         SUPER_SEARCH_TIMES, NOT_UPPER_LIMIT_LATER_SEARCH_TIME],
@@ -188,19 +188,19 @@ class MyGlobal(object):
                                         UPPER_LIMIT_SEARCH_TIMES, UPPER_LIMIT_LATER_SEARCH_TIMES],
 
                                     [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[0],
-                                        ["Chinas6b_C", "Polar=0", "5150/5750", "22K=1", "2", "0", "TpUL"],
+                                        ["Chinas6b_C", "Polar=0", "5150/0", "22K=1", "2", "0", "TpUL"],
                                         CHOICE_BLIND_MODE, CHOICE_SAVE_TYPE[1],
                                         EXIT_ANTENNA_SETTING, RESET_FACTORY,
                                         UPPER_LIMIT_SEARCH_TIMES, UPPER_LIMIT_CYCLE_TIMES],
 
                                     [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[0],
-                                        ["Chinas6b_C", "Polar=0", "5150/5750", "22K=1", "2", "0", "TpUL_Cont."],
+                                        ["Chinas6b_C", "Polar=0", "5150/0", "22K=1", "2", "0", "TpUL_Cont."],
                                         CHOICE_BLIND_MODE, CHOICE_SAVE_TYPE[1],
                                         EXIT_ANTENNA_SETTING, UPPER_LIMIT_LATER_NOT_DEL_SAT_TP_SEARCH_CONT,
                                         UPPER_LIMIT_SEARCH_TIMES, UPPER_LIMIT_LATER_SEARCH_TIMES],
 
                                     [ENTER_ANTENNA_SETTING, SEARCH_PREPARATORY_WORK[0],
-                                        ["Chinas6b_C", "Polar=0", "5150/5750", "22K=1", "2", "0", "TpUL_DelTp_Cont."],
+                                        ["Chinas6b_C", "Polar=0", "5150/0", "22K=1", "2", "0", "TpUL_DelTp_Cont."],
                                         CHOICE_BLIND_MODE, CHOICE_SAVE_TYPE[1],
                                         EXIT_ANTENNA_SETTING, DELETE_SPECIFY_SAT_ALL_TP,
                                         UPPER_LIMIT_SEARCH_TIMES, UPPER_LIMIT_LATER_SEARCH_TIMES],
