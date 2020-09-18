@@ -1035,18 +1035,20 @@ if __name__ == "__main__":
         "PREVIOUS": "0xbbad", "NEXT": "0xbb6d", "TIMESHIFT": "0xbbed", "STOP": "0xbb4d"
     }
     reverse_rsv_key = dict([val, key] for key, val in rsv_key.items())
-    PRESET_SAT_NAME = ['Nilesat', 'Hotbird', 'Badr 4/5/6/7 K', 'Thor 5/6/7', 'Turksat 2A/3A', 'BulgariaSat-1',
-                       'Eutelsat 3B C', 'Eutelsat 4A', 'Eutelsat 9B', 'Amos 5 K', 'Astra 1E/3B', 'Arabsat 5A C',
-                       'Arabsat 5A K', 'Eutelsat 33E K', 'C_Paksat 1R', 'Intelsat 12', 'Azerspace K', 'Intelsat 10',
-                       'Yamal 202', 'Turksat 4B K', 'Belintersat K', 'TurkmenAlem', 'Yahsat 1A', 'Intelsat 707 C',
-                       'Yamal 402 K', 'NSS 12 C', 'Intelsat 33e C', 'Intelsat 33e K', 'Intelsat 902 C', 'Intelsat 20 K',
-                       'ABS 2/2A K', 'APSTAR 7 C', 'Thaicom 5/6 C', 'Thaicom 5/8 K', 'Express MD1 C', 'Insat 4A K',
-                       'ST 2 K', 'Yamal 201 K', 'Measat 3/3A K', 'Measat 3/3A C', 'NSS 6', 'Express AM33 K',
-                       'Koreasat 5 K', 'JCSat 3A K', 'JCSat 3A C', 'Vinasat 1 K', 'Telstar 18 K', 'Express AM5 K',
-                       'Express AM5 C', 'Optus D1', 'Superbird B2', 'Intelsat 2/8', 'Amos 2/3/7', 'Eutelsat 5 C',
-                       'Eutelsat 5 K', 'Eutelsat 8 C', 'Express AM44 K', 'Eutelsat 12', 'Telstar 12V', 'ABS-3 K',
-                       'SES 4 K', 'Intelsat 905 C', 'AlComSat 1', 'Intelsat 907 C', 'Intelsat 907 K', 'Hispasat 4/5/6',
-                       'Intelsat 35e', 'Intelsat 707 K', 'Intelsat 21 K', 'Amazonas 2/3 K', 'Asiasat 7 C', 'Chinas6b_C']
+
+    PRESET_SAT_NAME = [
+         'Nilesat', 'Hotbird', 'Badr 4/5/6/7 K', 'Thor 5/6/7', 'Turksat 2A/3A', 'BulgariaSat-1', 'Eutelsat 3B C',
+         'Eutelsat 4A', 'Eutelsat 9B', 'Amos 5 K', 'Astra 1E/3B', 'Arabsat 5A C', 'Arabsat 5A K', 'Eutelsat 33E K',
+         'C_Paksat 1R', 'Intelsat 12', 'Azerspace K', 'Intelsat 10', 'Yamal 202', 'Turksat 4B K', 'Belintersat K',
+         'TurkmenAlem', 'Yahsat 1A', 'Express AM6', 'Yamal 402 K', 'NSS 12 C', 'Intelsat 33e C', 'Intelsat 33e K',
+         'Intelsat 902 C', 'Intelsat 20 K', 'ABS 2/2A K', 'APSTAR 7 C', 'Thaicom 5/6 C', 'Thaicom 5/8 K',
+         'Express MD1 C', 'Insat 4A K', 'ST 2 K', 'Yamal 201 K', 'Measat 3/3A K', 'Measat 3/3A C', 'SES 8',
+         'Express AM33 K', 'Koreasat 5 K', 'JCSat 3A K', 'JCSat 3A C', 'Vinasat 1 K', 'Telstar 18 K', 'Express AM5 K',
+         'Express AM5 C', 'Optus D1', 'Superbird B2', 'Intelsat 2/8', 'Amos 2/3/7', 'Eutelsat 5 C', 'Eutelsat 5 K',
+         'Eutelsat 8 C', 'Express AM44 K', 'Eutelsat 12', 'Telstar 12V', 'ABS-3 K', 'SES 4 K', 'Intelsat 905 C',
+         'AlComSat 1', 'Intelsat 907 C', 'Intelsat 907 K', 'Hispasat 4/5/6', 'Intelsat 35e', 'Intelsat 707 K',
+         'Intelsat 21 K', 'Amazonas 2/3 K', 'Asiasat 7 C', 'Chinas6b_C'
+    ]
 
     NORMAL_SEARCH_TIMES = 10  # 10 普通盲扫次数
     SUPER_SEARCH_TIMES = 10  # 10 超级盲扫次数
