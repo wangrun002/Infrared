@@ -740,7 +740,7 @@ def other_operate_del_specify_sat_all_tp():
         logging.info(f"当前卫星的位置为：{cur_sat_pos}，预期卫星的位置为：{choice_sat_pos}")
         if cur_sat_pos > choice_sat_pos:
             left_move_steps = cur_sat_pos - choice_sat_pos
-            right_move_steps = choice_sat_pos + (len(PRESET_SAT_NAME) - choice_sat_pos)
+            right_move_steps = choice_sat_pos + (len(PRESET_SAT_NAME) - cur_sat_pos)
             logging.info(f"向左移动的步数：{left_move_steps}，向右移动的步数：{right_move_steps}")
             if left_move_steps > right_move_steps:
                 logging.info("应该向右移动")
