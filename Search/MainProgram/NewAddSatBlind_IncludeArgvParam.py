@@ -327,10 +327,12 @@ def build_print_log_and_report_file_path():
     timestamp = re.sub(r'[-: ]', '_', str(datetime.now())[:19])
     sheet_name = "{}_{}".format(sat_name, search_mode)
 
-    report_file_name = "{}_{}_{}_{}_Result_{}.xlsx".format(choice_search_sat, simplify_sat_name[sat_name], sat_name, search_mode, timestamp)
+    report_file_name = "{}_{}_{}_{}_Result_{}.xlsx".format(
+        choice_search_sat, simplify_sat_name[sat_name], sat_name, search_mode, timestamp)
     report_file_path = os.path.join(report_file_directory, report_file_name)
 
-    case_log_file_name = "{}_{}_{}_{}_{}.txt".format(choice_search_sat, simplify_sat_name[sat_name], sat_name, search_mode, timestamp)
+    case_log_file_name = "{}_{}_{}_{}_{}.txt".format(
+        choice_search_sat, simplify_sat_name[sat_name], sat_name, search_mode, timestamp)
     case_log_txt_path = os.path.join(case_log_file_directory, case_log_file_name)
 
 
@@ -727,10 +729,41 @@ def other_operate_del_specify_sat_all_tp():
     enter_antenna_setting()
     GL.random_choice_sat.append(random.choice(GL.searched_sat_name))
     while GL.sat_param_save[0] != GL.random_choice_sat[0]:
-        if PRESET_SAT_NAME.index(GL.sat_param_save[0]) > PRESET_SAT_NAME.index(GL.random_choice_sat[0]):
-            send_commd(KEY["LEFT"])
-        elif PRESET_SAT_NAME.index(GL.sat_param_save[0]) < PRESET_SAT_NAME.index(GL.random_choice_sat[0]):
-            send_commd(KEY["RIGHT"])
+        # if PRESET_SAT_NAME.index(GL.sat_param_save[0]) > PRESET_SAT_NAME.index(GL.random_choice_sat[0]):
+        #     send_commd(KEY["LEFT"])
+        # elif PRESET_SAT_NAME.index(GL.sat_param_save[0]) < PRESET_SAT_NAME.index(GL.random_choice_sat[0]):
+        #     send_commd(KEY["RIGHT"])
+
+        logging.info(f'当前卫星为：{GL.sat_param_save[0]}，预期卫星为：{GL.random_choice_sat[0]}')
+        cur_sat_pos = PRESET_SAT_NAME.index(GL.sat_param_save[0])
+        choice_sat_pos = PRESET_SAT_NAME.index(GL.random_choice_sat[0])
+        logging.info(f"当前卫星的位置为：{cur_sat_pos}，预期卫星的位置为：{choice_sat_pos}")
+        if cur_sat_pos > choice_sat_pos:
+            left_move_steps = cur_sat_pos - choice_sat_pos
+            right_move_steps = choice_sat_pos + (len(PRESET_SAT_NAME) - choice_sat_pos)
+            logging.info(f"向左移动的步数：{left_move_steps}，向右移动的步数：{right_move_steps}")
+            if left_move_steps > right_move_steps:
+                logging.info("应该向右移动")
+                send_commd(KEY["RIGHT"])
+            elif left_move_steps < right_move_steps:
+                logging.info("应该向左移动")
+                send_commd(KEY["LEFT"])
+            elif left_move_steps == right_move_steps:
+                logging.info("向左或向右移动距离相等")
+                send_commd(KEY["RIGHT"])
+        elif cur_sat_pos < choice_sat_pos:
+            left_move_steps = cur_sat_pos + (len(PRESET_SAT_NAME) - choice_sat_pos)
+            right_move_steps = choice_sat_pos - cur_sat_pos
+            logging.info(f"向左移动的步数：{left_move_steps}，向右移动的步数：{right_move_steps}")
+            if left_move_steps > right_move_steps:
+                logging.info("应该向右移动")
+                send_commd(KEY["RIGHT"])
+            elif left_move_steps < right_move_steps:
+                logging.info("应该向左移动")
+                send_commd(KEY["LEFT"])
+            elif left_move_steps == right_move_steps:
+                logging.info("向左或向右移动距离相等")
+                send_commd(KEY["RIGHT"])
     logging.info("{},{},{}".format(GL.sat_param_save[0], GL.random_choice_sat[0], GL.searched_sat_name))
     GL.searched_sat_name.remove(GL.random_choice_sat[0])  # 避免搜索时该卫星在已搜索的卫星列表中，不能进行搜索
     GL.random_choice_sat.clear()
@@ -903,7 +936,7 @@ def data_receiver_thread():
                 GL.sat_param_save[0] = re.split("=", data2)[-1]
 
             if GL.sat_param_kws[1] in data2:  # 判断LNB Fre
-                lnb_split = re.split(r"[\],]", data2)
+                lnb_split = re.split(r"[],]", data2)
                 lnb1 = lnb_split[1].split("=")[-1]
                 lnb2 = lnb_split[2].split("=")[-1]
                 GL.sat_param_save[2] = "{}/{}".format(lnb1, lnb2)
