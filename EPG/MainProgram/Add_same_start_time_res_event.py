@@ -158,12 +158,16 @@ def create_log_and_report_file_path():
     # 用于创建打印和报告文件路径
     # 构建存放数据的总目录，以及构建存放打印和报告的目录
     parent_path = os.path.dirname(os.getcwd())
+    case_name = "Add_same_start_time_res_event"
     test_data_directory_name = "test_data"
     test_data_directory_path = os.path.join(parent_path, test_data_directory_name)
     log_directory_name = "print_log"
     log_directory_path = os.path.join(test_data_directory_path, log_directory_name)
     report_directory_name = "report"
     report_directory_path = os.path.join(test_data_directory_path, report_directory_name)
+
+    log_case_directory_path = os.path.join(test_data_directory_path, log_directory_name, case_name)
+    report_case_directory_path = os.path.join(test_data_directory_path, report_directory_name, case_name)
     # 判断目录是否存在，否则创建目录
     if not os.path.exists(test_data_directory_path):
         os.mkdir(test_data_directory_path)
@@ -171,6 +175,10 @@ def create_log_and_report_file_path():
         os.mkdir(log_directory_path)
     if not os.path.exists(report_directory_path):
         os.mkdir(report_directory_path)
+    if not os.path.exists(log_case_directory_path):
+        os.mkdir(log_case_directory_path)
+    if not os.path.exists(report_case_directory_path):
+        os.mkdir(report_case_directory_path)
     # 创建打印和报告文件的名称和路径
     time_info = re.sub(r"[-: ]", "_", str(datetime.now())[:19])
     sheet_name = TEST_CASE_INFO[7].replace('[', '(').replace(']', ')')
@@ -179,9 +187,9 @@ def create_log_and_report_file_path():
         TEST_CASE_INFO[0], TEST_CASE_INFO[1], TEST_CASE_INFO[2], TEST_CASE_INFO[4],
         TEST_CASE_INFO[3], sheet_name, TEST_CASE_INFO[9], TEST_CASE_INFO[8])
     log_file_name = "Log_{}_{}.txt".format(fmt_name, time_info)
-    log_file_path = os.path.join(log_directory_path, log_file_name)
+    log_file_path = os.path.join(log_case_directory_path, log_file_name)
     report_file_name = "Add_same_start_time_res_event_result_report.xlsx"
-    report_file_path = os.path.join(report_directory_path, report_file_name)
+    report_file_path = os.path.join(report_case_directory_path, report_file_name)
     # sheet_name = "{}_{}_{}_{}".format(TEST_CASE_INFO[2], TEST_CASE_INFO[4], TEST_CASE_INFO[3], TEST_CASE_INFO[7])
     return log_file_path, report_file_path, sheet_name
 
@@ -1003,7 +1011,7 @@ def before_cycle_test_clear_data_and_state():
     logging.info("before_cycle_test_clear_data_and_state")
     GL.choice_res_ch = ''
     state["clear_variate_state"] = True
-    GL.report_data = [[], [], '', '', '', '', ]
+    GL.report_data = [[], [], [], [], '', '', '', '']
     GL.res_triggered_numb -= 1
     logging.info("循环测试，延时5秒")
     time.sleep(5)
