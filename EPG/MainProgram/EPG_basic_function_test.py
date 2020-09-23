@@ -27,15 +27,15 @@ class MyGlobal(object):
 
     def __init__(self):
         if TEST_CASE_INFO[4] == "EnterExitEPGInterface":
-            self.send_test_case_commd_numb = 100                     # 进入退出EPG界面的次数
+            self.send_test_case_commd_numb = 50                     # 进入退出EPG界面的次数
         elif TEST_CASE_INFO[4] == "EPGSwitchChannel":
             if TEST_CASE_INFO[3] == "UP" or TEST_CASE_INFO[3] == "DOWN":
-                self.send_test_case_commd_numb = 500                 # EPG界面切台执行次数
+                self.send_test_case_commd_numb = 100                 # EPG界面切台执行次数
             else:
-                self.send_test_case_commd_numb = 50
+                self.send_test_case_commd_numb = 30
         elif TEST_CASE_INFO[4] == "SwitchEPGEvent":
-            self.send_test_case_commd_numb = 50                     # EPG界面切换事件次数
-            self.each_ch_test_numb = 50                             # 每个节目的固定测试次数，一般与发送测试case次数保持一致
+            self.send_test_case_commd_numb = 20                     # EPG界面切换事件次数
+            self.each_ch_test_numb = 20                             # 每个节目的固定测试次数，一般与发送测试case次数保持一致
 
         self.TV_channel_groups = {}                                 # 存放电视节目的组别和节目数信息
         self.Radio_channel_groups = {}                              # 存放广播节目的组别和节目数信息
@@ -121,12 +121,16 @@ def build_log_and_report_file_path():
     # 用于创建打印和报告文件路径
     # 构建存放数据的总目录，以及构建存放打印和报告的目录
     parent_path = os.path.dirname(os.getcwd())
+    case_name = "EPG_basic_function_test"
     test_data_directory_name = "test_data"
     test_data_directory_path = os.path.join(parent_path, test_data_directory_name)
     log_directory_name = "print_log"
     log_directory_path = os.path.join(test_data_directory_path, log_directory_name)
     report_directory_name = "report"
     report_directory_path = os.path.join(test_data_directory_path, report_directory_name)
+
+    log_case_directory_path = os.path.join(test_data_directory_path, log_directory_name, case_name)
+    report_case_directory_path = os.path.join(test_data_directory_path, report_directory_name, case_name)
     # 判断目录是否存在，否则创建目录
     if not os.path.exists(test_data_directory_path):
         os.mkdir(test_data_directory_path)
@@ -134,15 +138,19 @@ def build_log_and_report_file_path():
         os.mkdir(log_directory_path)
     if not os.path.exists(report_directory_path):
         os.mkdir(report_directory_path)
+    if not os.path.exists(log_case_directory_path):
+        os.mkdir(log_case_directory_path)
+    if not os.path.exists(report_case_directory_path):
+        os.mkdir(report_case_directory_path)
     # 创建打印和报告文件的名称和路径
     time_info = re.sub(r"[-: ]", "_", str(datetime.now())[:19])
     fmt_name = "{}_{}_{}_{}_{}".format(
         TEST_CASE_INFO[0], TEST_CASE_INFO[1], TEST_CASE_INFO[2],
         TEST_CASE_INFO[3], TEST_CASE_INFO[4])
     log_file_name = "Log_{}_{}.txt".format(fmt_name, time_info)
-    log_file_path = os.path.join(log_directory_path, log_file_name)
+    log_file_path = os.path.join(log_case_directory_path, log_file_name)
     report_file_name = "{}_{}.xlsx".format(fmt_name, time_info)
-    report_file_path = os.path.join(report_directory_path, report_file_name)
+    report_file_path = os.path.join(report_case_directory_path, report_file_name)
     sheet_name = "{}".format(TEST_CASE_INFO[4])
     return log_file_path, report_file_path, sheet_name
 
