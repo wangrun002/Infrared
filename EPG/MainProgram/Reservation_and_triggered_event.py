@@ -113,12 +113,16 @@ def build_log_and_report_file_path():
     # 用于创建打印和报告文件路径
     # 构建存放数据的总目录，以及构建存放打印和报告的目录
     parent_path = os.path.dirname(os.getcwd())
+    case_name = "Reservation_and_triggered_event"
     test_data_directory_name = "test_data"
     test_data_directory_path = os.path.join(parent_path, test_data_directory_name)
     log_directory_name = "print_log"
     log_directory_path = os.path.join(test_data_directory_path, log_directory_name)
     report_directory_name = "report"
     report_directory_path = os.path.join(test_data_directory_path, report_directory_name)
+
+    log_case_directory_path = os.path.join(test_data_directory_path, log_directory_name, case_name)
+    report_case_directory_path = os.path.join(test_data_directory_path, report_directory_name, case_name)
     # 判断目录是否存在，否则创建目录
     if not os.path.exists(test_data_directory_path):
         os.mkdir(test_data_directory_path)
@@ -126,16 +130,20 @@ def build_log_and_report_file_path():
         os.mkdir(log_directory_path)
     if not os.path.exists(report_directory_path):
         os.mkdir(report_directory_path)
+    if not os.path.exists(log_case_directory_path):
+        os.mkdir(log_case_directory_path)
+    if not os.path.exists(report_case_directory_path):
+        os.mkdir(report_case_directory_path)
     # 创建打印和报告文件的名称和路径
     time_info = re.sub(r"[-: ]", "_", str(datetime.now())[:19])
     fmt_name = "{}_{}_{}_{}_{}_event_{}_triggered_{}".format(
         TEST_CASE_INFO[0], TEST_CASE_INFO[1], TEST_CASE_INFO[2],
         TEST_CASE_INFO[4], TEST_CASE_INFO[3], TEST_CASE_INFO[5], TEST_CASE_INFO[6])
     log_file_name = "Log_{}_{}.txt".format(fmt_name, time_info)
-    log_file_path = os.path.join(log_directory_path, log_file_name)
+    log_file_path = os.path.join(log_case_directory_path, log_file_name)
     # report_file_name = "{}_{}.xlsx".format(fmt_name, time_info)
     report_file_name = "Reservation_Respond_result_report.xlsx"
-    report_file_path = os.path.join(report_directory_path, report_file_name)
+    report_file_path = os.path.join(report_case_directory_path, report_file_name)
     sheet_name = "{}".format(TEST_CASE_INFO[5])
     return log_file_path, report_file_path, sheet_name
 
@@ -1015,6 +1023,7 @@ def res_event_triggered_and_choice_jump_type():
 
 def res_triggered_later_check_timer_setting_event_list():
     logging.info("res_triggered_later_check_timer_setting_event_list")
+    time.sleep(2)
     # 预约事件触发后，事件列表事件检查
     enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
     exit_to_screen = [KEY["EXIT"], KEY["EXIT"]]
