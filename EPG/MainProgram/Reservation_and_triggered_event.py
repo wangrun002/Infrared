@@ -40,8 +40,9 @@ class MyGlobal(object):
         self.pvr_rec_dur_time = ''                      # 用于记录PVR事件录制持续时间
         self.event_already_triggered_numb = 0           # 用于控制循环事件第二次前后的运行代码界限
 
-        # 报告数据汇总[[预期事件信息], [预约事件信息], "系统时间日期", "触发时间", "等待节目", "跳转节目", "录制时长", "预约节目类型", "跳转模式", "case编号", "执行case时间"]
-        self.report_data = [[], [], '', '', '', '', '', '', '', '', '']
+        # 报告数据汇总[[预期事件信息], [预约事件信息], "系统时间日期", "触发时间", "等待节目", "跳转节目", "录制时长", "预约节目类型",
+        # "跳转模式", "case编号", "执行case时间", "触发后列表事件个数"]
+        self.report_data = [[], [], '', '', '', '', '', '', '', '', '', '']
         # ["报告名称", "预约事件类型", "预约事件模式", "预约节目类型", "预约等待界面", "预约跳转模式", "预约执行次数"]
         self.title_data = ['', '', '', '', '', '', '']
 
@@ -1023,7 +1024,8 @@ def res_event_triggered_and_choice_jump_type():
 
 def res_triggered_later_check_timer_setting_event_list():
     logging.info("res_triggered_later_check_timer_setting_event_list")
-    time.sleep(2)
+    state["clear_res_event_numb_state"] = True
+    time.sleep(1)
     # 预约事件触发后，事件列表事件检查
     enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
     exit_to_screen = [KEY["EXIT"], KEY["EXIT"]]
@@ -1043,6 +1045,7 @@ def res_triggered_later_check_timer_setting_event_list():
         else:
             logging.info("数据库与事件列表中的事件个数不匹配，请检查事件信息")
             logging.info(f"警告：数据库与事件列表中的事件个数不一致，{GL.res_event_mgr}--{list(res_event_list)}")
+    GL.report_data[11] = rsv_kws["res_event_numb"]
     send_more_commds(exit_to_screen)
 
 
@@ -1084,7 +1087,7 @@ def write_data_to_excel():
     excel_title_1 = ["用例编号", "预期事件信息", "保存事件信息", "触发响应结果"]
     excel_title_2 = ["用例编号", "预期事件信息", "保存事件信息",
                      "系统时间日期", "触发时间/关机等待时间", "等待节目", "跳转节目", "录制时长",
-                     "预约节目类型", "跳转模式", "用例测试时间"]
+                     "预约节目类型", "跳转模式", "用例测试时间", "触发后事件个数"]
 
     alignment = Alignment(horizontal="center", vertical="center", wrapText=True)
     blue_font = Font(color=BLUE)
@@ -1100,7 +1103,7 @@ def write_data_to_excel():
             if i == 3:
                 ws.cell(1, i + 1).value = excel_title_1[i]
                 ws.cell(1, i + 1).alignment = alignment
-                ws.merge_cells(start_row=1, start_column=4, end_row=1, end_column=11)
+                ws.merge_cells(start_row=1, start_column=4, end_row=1, end_column=12)
             else:
                 ws.cell(1, i + 1).value = excel_title_1[i]
                 ws.cell(1, i + 1).alignment = alignment
@@ -1114,7 +1117,7 @@ def write_data_to_excel():
             elif j == 1 or j == 2:
                 ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 25
             else:
-                ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 11
+                ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 10
 
         # 设置Title的行高
         ws.row_dimensions[1].height = 30  # 设置每次执行的report预约事件信息的行高
@@ -1136,7 +1139,7 @@ def write_data_to_excel():
                 if i == 3:
                     ws.cell(1, i + 1).value = excel_title_1[i]
                     ws.cell(1, i + 1).alignment = alignment
-                    ws.merge_cells(start_row=1, start_column=4, end_row=1, end_column=11)
+                    ws.merge_cells(start_row=1, start_column=4, end_row=1, end_column=12)
                 else:
                     ws.cell(1, i + 1).value = excel_title_1[i]
                     ws.cell(1, i + 1).alignment = alignment
@@ -1150,7 +1153,7 @@ def write_data_to_excel():
                 elif j == 1 or j == 2:
                     ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 25
                 else:
-                    ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 11
+                    ws.column_dimensions[get_column_letter(a_column_numb + j)].width = 10
 
             # 设置Title的行高
             ws.row_dimensions[1].height = 30  # 设置每次执行的report预约事件信息的行高
@@ -1175,12 +1178,25 @@ def write_data_to_excel():
                 ws.cell(max_row + 1, d + 2).font = blue_font
             else:
                 ws.cell(max_row + 1, d + 2).font = red_font
-        elif d == 9:
+        elif d == 9:    # 用例序号
             ws.cell(max_row + 1, 1).value = GL.report_data[d]
             ws.cell(max_row + 1, 1).alignment = alignment
-        elif d == 10:
+        elif d == 10:   # 写报告时间
             ws.cell(max_row + 1, d + 1).value = GL.report_data[d]
             ws.cell(max_row + 1, d + 1).alignment = alignment
+        elif d == 11:   # 触发后事件个数
+            ws.cell(max_row + 1, d + 1).value = GL.report_data[d]
+            ws.cell(max_row + 1, d + 1).alignment = alignment
+            if TEST_CASE_INFO[3] == "Once":
+                if GL.report_data[d] == "0":
+                    ws.cell(max_row + 1, d + 1).font = blue_font
+                else:
+                    ws.cell(max_row + 1, d + 1).font = red_font
+            else:
+                if GL.report_data[d] == "1":
+                    ws.cell(max_row + 1, d + 1).font = blue_font
+                else:
+                    ws.cell(max_row + 1, d + 1).font = red_font
         else:
             ws.cell(max_row + 1, d + 2).value = GL.report_data[d]
             ws.cell(max_row + 1, d + 2).alignment = alignment
@@ -1317,7 +1333,7 @@ def before_cycle_test_clear_data_and_state():
     logging.info("before_cycle_test_clear_data_and_state")
     # GL.res_event_mgr.clear()
     if TEST_CASE_INFO[3] == "Once":     # 只有当为Once类型时，才恢复默认，循环类型不能恢复，否则出现
-        GL.report_data = [[], [], '', '', '', '', '', '', '', '', '']
+        GL.report_data = [[], [], '', '', '', '', '', '', '', '', '', '']
     GL.choice_res_ch = ''
     state["clear_variate_state"] = True
     GL.pvr_rec_dur_time = ''
@@ -1442,6 +1458,10 @@ def receive_serial_process(
                 if prs_data["case_res_event_mode"] == "Once":
                     del res_event_list[:]
                 # channel_info = ['', '', '', '', '', '', '']
+
+            if state["clear_res_event_numb_state"]:
+                rsv_kws["res_event_numb"] = ''
+                state["clear_res_event_numb_state"] = False
 
             if other_kws[0] in data2:   # 红外接收打印
                 rsv_cmd = re.split(":", data2)[-1]
@@ -1656,7 +1676,8 @@ if __name__ == "__main__":
         "no_storage_device_state": False, "no_enough_space_state": False, "power_off_state": False,
         "sys_time_mode_state": False, "current_sys_time_state": False, "update_event_list_state": False,
         "clear_variate_state": False, "receive_loop_state": False, "control_power_on_info_rsv_state": False,
-        "stb_already_power_on_state": False, "res_event_info_state": False, "pvr_not_supported_state": False
+        "stb_already_power_on_state": False, "res_event_info_state": False, "pvr_not_supported_state": False,
+        "clear_res_event_numb_state": False
     })
 
     prs_data = Manager().dict({
@@ -1685,9 +1706,10 @@ if __name__ == "__main__":
             set_system_time()
             goto_specified_interface_wait_for_event_triggered()
             res_event_triggered_and_choice_jump_type()
+            res_triggered_later_check_timer_setting_event_list()
             manage_report_data_and_write_data()
             write_data_to_excel()
-            res_triggered_later_check_timer_setting_event_list()
+
             before_cycle_test_clear_data_and_state()
         elif TEST_CASE_INFO[3] == "Daily":
             while GL.event_already_triggered_numb < 1 and GL.res_triggered_numb > 0:
@@ -1697,18 +1719,20 @@ if __name__ == "__main__":
                 set_system_time()
                 goto_specified_interface_wait_for_event_triggered()
                 res_event_triggered_and_choice_jump_type()
+                res_triggered_later_check_timer_setting_event_list()
                 manage_report_data_and_write_data()
                 write_data_to_excel()
-                res_triggered_later_check_timer_setting_event_list()
+
                 before_cycle_test_clear_data_and_state()
                 break
             while GL.event_already_triggered_numb >= 1 and GL.res_triggered_numb >= 1:
                 set_system_time()
                 goto_specified_interface_wait_for_event_triggered()
                 res_event_triggered_and_choice_jump_type()
+                res_triggered_later_check_timer_setting_event_list()
                 manage_report_data_and_write_data()
                 write_data_to_excel()
-                res_triggered_later_check_timer_setting_event_list()
+
                 before_cycle_test_clear_data_and_state()
                 break
         elif TEST_CASE_INFO[3] in WEEKLY_EVENT_MODE:
@@ -1719,18 +1743,20 @@ if __name__ == "__main__":
                 set_system_time()
                 goto_specified_interface_wait_for_event_triggered()
                 res_event_triggered_and_choice_jump_type()
+                res_triggered_later_check_timer_setting_event_list()
                 manage_report_data_and_write_data()
                 write_data_to_excel()
-                res_triggered_later_check_timer_setting_event_list()
+
                 before_cycle_test_clear_data_and_state()
                 break
             while GL.event_already_triggered_numb >= 1 and GL.res_triggered_numb >= 1:
                 set_system_time()
                 goto_specified_interface_wait_for_event_triggered()
                 res_event_triggered_and_choice_jump_type()
+                res_triggered_later_check_timer_setting_event_list()
                 manage_report_data_and_write_data()
                 write_data_to_excel()
-                res_triggered_later_check_timer_setting_event_list()
+
                 before_cycle_test_clear_data_and_state()
                 break
     if state["receive_loop_state"]:
