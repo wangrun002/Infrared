@@ -132,12 +132,16 @@ def build_log_and_report_file_path():
     # 用于创建打印和报告文件路径
     # 构建存放数据的总目录，以及构建存放打印和报告的目录
     parent_path = os.path.dirname(os.getcwd())
+    case_name = "Add_and_edit_res_event"
     test_data_directory_name = "test_data"
     test_data_directory_path = os.path.join(parent_path, test_data_directory_name)
     log_directory_name = "print_log"
     log_directory_path = os.path.join(test_data_directory_path, log_directory_name)
     report_directory_name = "report"
     report_directory_path = os.path.join(test_data_directory_path, report_directory_name)
+
+    log_case_directory_path = os.path.join(test_data_directory_path, log_directory_name, case_name)
+    report_case_directory_path = os.path.join(test_data_directory_path, report_directory_name, case_name)
     # 判断目录是否存在，否则创建目录
     if not os.path.exists(test_data_directory_path):
         os.mkdir(test_data_directory_path)
@@ -145,6 +149,10 @@ def build_log_and_report_file_path():
         os.mkdir(log_directory_path)
     if not os.path.exists(report_directory_path):
         os.mkdir(report_directory_path)
+    if not os.path.exists(log_case_directory_path):
+        os.mkdir(log_case_directory_path)
+    if not os.path.exists(report_case_directory_path):
+        os.mkdir(report_case_directory_path)
     # 创建打印和报告文件的名称和路径
     time_info = re.sub(r"[-: ]", "_", str(datetime.now())[:19])
     rename_modify_type = TEST_CASE_INFO[7].replace('Modify', '')        # 用于提取TEST_CASE_INFO[7]中重复的Modify
@@ -154,9 +162,9 @@ def build_log_and_report_file_path():
         TEST_CASE_INFO[0], TEST_CASE_INFO[1], TEST_CASE_INFO[2], TEST_CASE_INFO[4],
         TEST_CASE_INFO[3], sheet_name, TEST_CASE_INFO[9], TEST_CASE_INFO[8])
     log_file_name = "Log_{}_{}.txt".format(fmt_name, time_info)
-    log_file_path = os.path.join(log_directory_path, log_file_name)
+    log_file_path = os.path.join(log_case_directory_path, log_file_name)
     report_file_name = "Edit_modify_res_event_result_report.xlsx"
-    report_file_path = os.path.join(report_directory_path, report_file_name)
+    report_file_path = os.path.join(report_case_directory_path, report_file_name)
     # sheet_name = "{}_{}_{}_{}".format(TEST_CASE_INFO[2], TEST_CASE_INFO[4], TEST_CASE_INFO[3], TEST_CASE_INFO[7])
     return log_file_path, report_file_path, sheet_name
 
@@ -1455,7 +1463,7 @@ def write_data_to_excel():
                         ws.cell(max_row + 1, d + len_total).font = blue_font
                     else:
                         ws.cell(max_row + 1, d + len_total).font = red_font
-                        error_comment = Comment(f"{rsv_kws['pvr_not_work_info']}", "wangrun")
+                        error_comment = Comment(f'{rsv_kws["pvr_not_work_info"]}', "wangrun")
                         ws.cell(max_row + 1, d + len_total).comment = error_comment
                 elif TEST_CASE_INFO[6] == "Cancel_jump":
                     if GL.report_data[d] == "0s":
@@ -2014,7 +2022,6 @@ def receive_serial_process(
 
             if res_kws[8] in data2:     # 获取PVR预约事件录制结束信息
                 state["rec_end_state"] = True
-                rsv_kws["pvr_not_work_info"] = data2
 
             if res_kws[9] in data2:     # 存储设备没有插入的打印信息
                 state["no_storage_device_state"] = True
@@ -2022,6 +2029,7 @@ def receive_serial_process(
 
             if res_kws[10] in data2:    # 存储设备没有足够空间的打印信息
                 state["no_enough_space_state"] = True
+                rsv_kws["pvr_not_work_info"] = data2
 
             if res_kws[11] in data2:    # 软关机打印信息
                 state["power_off_state"] = True
