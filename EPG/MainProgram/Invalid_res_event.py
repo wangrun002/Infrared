@@ -10,12 +10,16 @@ from openpyxl.styles.colors import RED, BLUE
 from openpyxl.utils import get_column_letter, column_index_from_string
 from datetime import datetime, date, timedelta
 from random import randint, choice
+from email.mime.text import MIMEText
+from email.header import Header
+import smtplib
 import platform
 import os
 import time
 import logging
 import re
 import sys
+import traceback
 
 
 class MyGlobal(object):
@@ -40,9 +44,12 @@ class MyGlobal(object):
 
 def logging_info_setting():
     # 配置logging输出格式
-    LOG_FORMAT = "%(asctime)s %(name)s %(levelname)s %(message)s"  # 配置输出日志的格式
-    DATE_FORMAT = "%Y-%m-%d %H:%M:%S %a"  # 配置输出时间的格式
-    logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
+    # LOG_FORMAT = "%(asctime)s %(name)s %(levelname)s %(message)s"  # 配置输出日志的格式
+    # DATE_FORMAT = "%Y-%m-%d %H:%M:%S %a"  # 配置输出时间的格式
+    # logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
+    log_format = "%(asctime)s %(name)s %(levelname)s %(message)s"  # 配置输出日志的格式
+    date_format = "%Y-%m-%d %H:%M:%S %a"  # 配置输出时间的格式
+    logging.basicConfig(level=logging.DEBUG, format=log_format, datefmt=date_format)
 
 
 def hex_strs_to_bytes(strings):
@@ -92,12 +99,16 @@ def build_log_and_report_file_path():
     # 用于创建打印和报告文件路径
     # 构建存放数据的总目录，以及构建存放打印和报告的目录
     parent_path = os.path.dirname(os.getcwd())
+    case_name = "Invalid_res_event"
     test_data_directory_name = "test_data"
     test_data_directory_path = os.path.join(parent_path, test_data_directory_name)
     log_directory_name = "print_log"
     log_directory_path = os.path.join(test_data_directory_path, log_directory_name)
     report_directory_name = "report"
     report_directory_path = os.path.join(test_data_directory_path, report_directory_name)
+
+    log_case_directory_path = os.path.join(test_data_directory_path, log_directory_name, case_name)
+    report_case_directory_path = os.path.join(test_data_directory_path, report_directory_name, case_name)
     # 判断目录是否存在，否则创建目录
     if not os.path.exists(test_data_directory_path):
         os.mkdir(test_data_directory_path)
@@ -105,6 +116,10 @@ def build_log_and_report_file_path():
         os.mkdir(log_directory_path)
     if not os.path.exists(report_directory_path):
         os.mkdir(report_directory_path)
+    if not os.path.exists(log_case_directory_path):
+        os.mkdir(log_case_directory_path)
+    if not os.path.exists(report_case_directory_path):
+        os.mkdir(report_case_directory_path)
     # 创建打印和报告文件的名称和路径
     time_info = re.sub(r"[-: ]", "_", str(datetime.now())[:19])
     fmt_name = ''
@@ -113,14 +128,14 @@ def build_log_and_report_file_path():
             TEST_CASE_INFO[0], TEST_CASE_INFO[1], TEST_CASE_INFO[2],
             TEST_CASE_INFO[3], TEST_CASE_INFO[4], TEST_CASE_INFO[5], TEST_CASE_INFO[6])
     elif TEST_CASE_INFO[6] == "Timer":
-        fmt_name = "{}_{}_{}_{}_{}_{}_{}_{}_{}".format(
+        fmt_name = "{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format(
             TEST_CASE_INFO[0], TEST_CASE_INFO[1], TEST_CASE_INFO[2],
             TEST_CASE_INFO[3], TEST_CASE_INFO[4], TEST_CASE_INFO[5],
-            TEST_CASE_INFO[6], TEST_CASE_INFO[7], TEST_CASE_INFO[8])
+            TEST_CASE_INFO[6], TEST_CASE_INFO[7], TEST_CASE_INFO[8], TEST_CASE_INFO[9])
     log_file_name = "Log_{}_{}.txt".format(fmt_name, time_info)
-    log_file_path = os.path.join(log_directory_path, log_file_name)
-    report_file_name = "Invalid_res_event.xlsx"
-    report_file_path = os.path.join(report_directory_path, report_file_name)
+    log_file_path = os.path.join(log_case_directory_path, log_file_name)
+    report_file_name = "Invalid_res_event_result_report.xlsx"
+    report_file_path = os.path.join(report_case_directory_path, report_file_name)
     sheet_name = "{}_{}".format(TEST_CASE_INFO[6], TEST_CASE_INFO[5])
     return log_file_path, report_file_path, sheet_name
 
@@ -227,16 +242,185 @@ def get_sys_time_info():
 
 def set_timezone_and_summertime():
     logging.info("set_timezone_and_summertime")
-    other_timezone = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12',
-                      '-1', '-2', '-3', '-4', '-5', '-6', '-7', '-8', '-9', '-10', '-11', '-12']
-    # enter_time_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["OK"]]
-    # send_more_commds(enter_time_setting_interface)
-    if TEST_CASE_INFO[8] == "ZeroTimezone":
-        GL.choice_timezone = "0"
-    elif TEST_CASE_INFO[8] == "OtherTimezone":
-        # GL.choice_timezone = choice(other_timezone)v
-        GL.choice_timezone = "8"
-    # exit_to_screen()
+    other_timezone = [
+        '0.5', '1', '1.5', '2', '2.5', '3', '3.5', '4', '4.5', '5', '5.5', '6', '6.5', '7', '7.5', '8', '8.5', '9',
+        '9.5', '10', '10.5', '11', '11.5', '12',
+        '-0.5', '-1', '-1.5', '-2', '-2.5', '-3', '-3.5', '-4', '-4.5', '-5', '-5.5', '-6', '-6.5', '-7', '-7.5', '-8',
+        '-8.5', '-9', '-9.5', '-10', '-10.5', '-11', '-11.5', '-12'
+    ]
+
+    timezone = [
+        '-12', '-11.5', '-11', '-10.5', '-10', '-9.5', '-9', '-8.5', '-8', '-7.5', '-7', '-6.5', '-6', '-5.5', '-5',
+        '-4.5', '-4', '-3.5', '-3', '-2.5', '-2', '-1.5', '-1', '-0.5', '0',
+        '0.5', '1', '1.5', '2', '2.5', '3', '3.5', '4', '4.5', '5', '5.5', '6', '6.5', '7', '7.5', '8', '8.5', '9',
+        '9.5', '10', '10.5', '11', '11.5', '12'
+    ]
+    enter_time_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["OK"]]
+    send_more_commds(enter_time_setting_interface)
+    # 检查是否进入到Time setting界面
+    while rsv_kws["sys_time_setting_focus_pos"] == "":
+        time.sleep(2)  # 用于还没有进入和接收到焦点关键字时加的延时
+    # 设置Mode参数
+    logging.info("Time Mode")
+    while rsv_kws["sys_time_setting_focus_pos"] != "Mode":
+        send_commd(KEY["DOWN"])
+    else:
+        while rsv_kws["sys_time_mode"] != "Auto":
+            logging.info(f'Mode参数与预期不符:{rsv_kws["sys_time_mode"]}--Auto')
+            send_commd(KEY["RIGHT"])
+        else:
+            logging.info(f'Mode参数与预期相符:{rsv_kws["sys_time_mode"]}--Auto')
+            send_commd(KEY["DOWN"])
+    # 设置Timezone参数
+    logging.info("Timezone")
+    while rsv_kws["sys_time_setting_focus_pos"] != "Timezone":
+        send_commd(KEY["DOWN"])
+    else:
+        if TEST_CASE_INFO[6] == "Timer":
+            if TEST_CASE_INFO[8] == "ZeroTimezone":
+                GL.choice_timezone = "0"
+                while rsv_kws["sys_time_timezone"] != GL.choice_timezone:
+                    logging.info(f'Timezone参数与预期不符:{rsv_kws["sys_time_timezone"]}--{GL.choice_timezone}')
+                    logging.info(f'当前时区为：{rsv_kws["sys_time_timezone"]}，预期时区为：{GL.choice_timezone}')
+                    cur_tz_pos = timezone.index(rsv_kws["sys_time_timezone"])
+                    expected_tz_pos = timezone.index(GL.choice_timezone)
+                    logging.info(f"当前时区的位置为：{cur_tz_pos}，预期时区的位置为：{expected_tz_pos}")
+                    if cur_tz_pos > expected_tz_pos:
+                        left_move_steps = cur_tz_pos - expected_tz_pos
+                        right_move_steps = expected_tz_pos + (len(timezone) - cur_tz_pos)
+                        logging.info(f"向左移动的步数：{left_move_steps}，向右移动的步数：{right_move_steps}")
+                        if left_move_steps > right_move_steps:
+                            logging.info("应该向右移动")
+                            send_commd(KEY["RIGHT"])
+                        elif left_move_steps < right_move_steps:
+                            logging.info("应该向左移动")
+                            send_commd(KEY["LEFT"])
+                        elif left_move_steps == right_move_steps:
+                            logging.info("向左或向右移动距离相等")
+                            send_commd(KEY["RIGHT"])
+                    elif cur_tz_pos < expected_tz_pos:
+                        left_move_steps = cur_tz_pos + (len(timezone) - expected_tz_pos)
+                        right_move_steps = expected_tz_pos - cur_tz_pos
+                        logging.info(f"向左移动的步数：{left_move_steps}，向右移动的步数：{right_move_steps}")
+                        if left_move_steps > right_move_steps:
+                            logging.info("应该向右移动")
+                            send_commd(KEY["RIGHT"])
+                        elif left_move_steps < right_move_steps:
+                            logging.info("应该向左移动")
+                            send_commd(KEY["LEFT"])
+                        elif left_move_steps == right_move_steps:
+                            logging.info("向左或向右移动距离相等")
+                            send_commd(KEY["RIGHT"])
+                else:
+                    logging.info(f'Timezone参数与预期相符:{rsv_kws["sys_time_timezone"]}--{GL.choice_timezone}')
+                    send_commd(KEY["DOWN"])
+            elif TEST_CASE_INFO[8] == "OtherTimezone":
+                GL.choice_timezone = choice(other_timezone)
+                logging.info(f"所选系统时区为：{GL.choice_timezone}")
+                while rsv_kws["sys_time_timezone"] != GL.choice_timezone:
+                    logging.info(f'Timezone参数与预期不符:{rsv_kws["sys_time_timezone"]}--{GL.choice_timezone}')
+                    logging.info(f'当前时区为：{rsv_kws["sys_time_timezone"]}，预期时区为：{GL.choice_timezone}')
+                    cur_tz_pos = timezone.index(rsv_kws["sys_time_timezone"])
+                    expected_tz_pos = timezone.index(GL.choice_timezone)
+                    logging.info(f"当前时区的位置为：{cur_tz_pos}，预期时区的位置为：{expected_tz_pos}")
+                    if cur_tz_pos > expected_tz_pos:
+                        left_move_steps = cur_tz_pos - expected_tz_pos
+                        right_move_steps = expected_tz_pos + (len(timezone) - cur_tz_pos)
+                        logging.info(f"向左移动的步数：{left_move_steps}，向右移动的步数：{right_move_steps}")
+                        if left_move_steps > right_move_steps:
+                            logging.info("应该向右移动")
+                            send_commd(KEY["RIGHT"])
+                        elif left_move_steps < right_move_steps:
+                            logging.info("应该向左移动")
+                            send_commd(KEY["LEFT"])
+                        elif left_move_steps == right_move_steps:
+                            logging.info("向左或向右移动距离相等")
+                            send_commd(KEY["RIGHT"])
+                    elif cur_tz_pos < expected_tz_pos:
+                        left_move_steps = cur_tz_pos + (len(timezone) - expected_tz_pos)
+                        right_move_steps = expected_tz_pos - cur_tz_pos
+                        logging.info(f"向左移动的步数：{left_move_steps}，向右移动的步数：{right_move_steps}")
+                        if left_move_steps > right_move_steps:
+                            logging.info("应该向右移动")
+                            send_commd(KEY["RIGHT"])
+                        elif left_move_steps < right_move_steps:
+                            logging.info("应该向左移动")
+                            send_commd(KEY["LEFT"])
+                        elif left_move_steps == right_move_steps:
+                            logging.info("向左或向右移动距离相等")
+                            send_commd(KEY["RIGHT"])
+                else:
+                    logging.info(f'Timezone参数与预期相符:{rsv_kws["sys_time_timezone"]}--{GL.choice_timezone}')
+                    send_commd(KEY["DOWN"])
+
+        elif TEST_CASE_INFO[6] == "EPG":
+            GL.choice_timezone = "0"
+            while rsv_kws["sys_time_timezone"] != GL.choice_timezone:
+                logging.info(f'Timezone参数与预期不符:{rsv_kws["sys_time_timezone"]}--{GL.choice_timezone}')
+                logging.info(f'当前时区为：{rsv_kws["sys_time_timezone"]}，预期时区为：{GL.choice_timezone}')
+                cur_tz_pos = timezone.index(rsv_kws["sys_time_timezone"])
+                expected_tz_pos = timezone.index(GL.choice_timezone)
+                logging.info(f"当前时区的位置为：{cur_tz_pos}，预期时区的位置为：{expected_tz_pos}")
+                if cur_tz_pos > expected_tz_pos:
+                    left_move_steps = cur_tz_pos - expected_tz_pos
+                    right_move_steps = expected_tz_pos + (len(timezone) - cur_tz_pos)
+                    logging.info(f"向左移动的步数：{left_move_steps}，向右移动的步数：{right_move_steps}")
+                    if left_move_steps > right_move_steps:
+                        logging.info("应该向右移动")
+                        send_commd(KEY["RIGHT"])
+                    elif left_move_steps < right_move_steps:
+                        logging.info("应该向左移动")
+                        send_commd(KEY["LEFT"])
+                    elif left_move_steps == right_move_steps:
+                        logging.info("向左或向右移动距离相等")
+                        send_commd(KEY["RIGHT"])
+                elif cur_tz_pos < expected_tz_pos:
+                    left_move_steps = cur_tz_pos + (len(timezone) - expected_tz_pos)
+                    right_move_steps = expected_tz_pos - cur_tz_pos
+                    logging.info(f"向左移动的步数：{left_move_steps}，向右移动的步数：{right_move_steps}")
+                    if left_move_steps > right_move_steps:
+                        logging.info("应该向右移动")
+                        send_commd(KEY["RIGHT"])
+                    elif left_move_steps < right_move_steps:
+                        logging.info("应该向左移动")
+                        send_commd(KEY["LEFT"])
+                    elif left_move_steps == right_move_steps:
+                        logging.info("向左或向右移动距离相等")
+                        send_commd(KEY["RIGHT"])
+            else:
+                logging.info(f'Timezone参数与预期相符:{rsv_kws["sys_time_timezone"]}--{GL.choice_timezone}')
+                send_commd(KEY["DOWN"])
+    # 设置Summertime参数
+    logging.info("Timezone")
+    while rsv_kws["sys_time_setting_focus_pos"] != "Summertime":
+        send_commd(KEY["DOWN"])
+    else:
+        if TEST_CASE_INFO[6] == "Timer":
+            if TEST_CASE_INFO[9] == "NoSummertime":
+                while rsv_kws["sys_time_summertime"] != "Off":
+                    logging.info(f'Summertime参数与预期不符:{rsv_kws["sys_time_summertime"]}--Off')
+                    send_commd(KEY["RIGHT"])
+                else:
+                    logging.info(f'Summertime参数与预期相符:{rsv_kws["sys_time_summertime"]}--Off')
+            elif TEST_CASE_INFO[9] == "Summertime":
+                while rsv_kws["sys_time_summertime"] != "On":
+                    logging.info(f'Summertime参数与预期不符:{rsv_kws["sys_time_summertime"]}--On')
+                    send_commd(KEY["RIGHT"])
+                else:
+                    logging.info(f'Summertime参数与预期相符:{rsv_kws["sys_time_summertime"]}--On')
+
+        elif TEST_CASE_INFO[6] == "EPG":
+            while rsv_kws["sys_time_summertime"] != "Off":
+                logging.info(f'Summertime参数与预期不符:{rsv_kws["sys_time_summertime"]}--Off')
+                send_commd(KEY["RIGHT"])
+            else:
+                logging.info(f'Summertime参数与预期相符:{rsv_kws["sys_time_summertime"]}--Off')
+
+    # 退出保存
+    send_commd(KEY["EXIT"])
+    send_commd(KEY["OK"])
+    # 退回大画面
+    exit_to_screen()
 
 
 def get_group_channel_total_info():
@@ -470,7 +654,7 @@ def get_random_time_between_time_period(start_time, end_time):
     # 在指定的起始和结束时间范围内随机取一个时间值
     start_time_secs = deal_with_time(start_time)
     end_time_secs = deal_with_time(end_time)
-    get_random_time = randint(start_time_secs, end_time_secs)
+    get_random_time = randint(int(start_time_secs), int(end_time_secs))
     random_time_tuple = time.localtime(get_random_time)     # 将时间戳生成时间元组
     fmt_random_time = time.strftime("%Y-%m-%d %H:%M", random_time_tuple)    # 将时间元组转成格式化字符串
     logging.info(fmt_random_time)
@@ -543,7 +727,7 @@ def calculate_other_timezone_save_time(str_time):
         '''
     # 字符串时间和格式化时间之间转换
     new_str_time = ''
-    interval_timezone = int(GL.choice_timezone)
+    interval_timezone = float(GL.choice_timezone)
     str_time_split = re.split(r"[/:\s]", str_time)
     deal_str_time = ''.join(str_time_split)
     if len(deal_str_time) == 12:  # once事件时间计算
@@ -570,95 +754,227 @@ def calculate_expected_event_start_time():
     default_save_range_start_time = "2000/01/01 00:00"
     default_save_range_end_time = "2037/12/31 23:59"
     if TEST_CASE_INFO[8] == "ZeroTimezone":
-        if TEST_CASE_INFO[5] == "OutOfSaveTimeRange":
-            if TEST_CASE_INFO[7] == "Boundary_before_upper_limit":
-                # str_expected_res_time = "199912312359"
-                str_expected_res_time = calculate_str_time_to_fmt_time(default_save_range_start_time, -1)
+        if TEST_CASE_INFO[9] == "NoSummertime":     # 无夏令时
+            if TEST_CASE_INFO[5] == "OutOfSaveTimeRange":
+                if TEST_CASE_INFO[7] == "Boundary_before_upper_limit":
+                    # str_expected_res_time = "199912312359"
+                    str_expected_res_time = calculate_str_time_to_fmt_time(default_save_range_start_time, -1)
 
-            elif TEST_CASE_INFO[7] == "Boundary_before_lower_limit":
-                # str_expected_res_time = "000101010000"
-                str_expected_res_time = calculate_str_time_to_fmt_time(input_range_start_time, 0)
+                elif TEST_CASE_INFO[7] == "Boundary_before_lower_limit":
+                    # str_expected_res_time = "000101010000"
+                    str_expected_res_time = calculate_str_time_to_fmt_time(input_range_start_time, 0)
 
-            elif TEST_CASE_INFO[7] == "Boundary_after_upper_limit":
-                str_expected_res_time = calculate_str_time_to_fmt_time(input_range_end_time, 0)
+                elif TEST_CASE_INFO[7] == "Boundary_after_upper_limit":
+                    str_expected_res_time = calculate_str_time_to_fmt_time(input_range_end_time, 0)
 
-            elif TEST_CASE_INFO[7] == "Boundary_after_lower_limit":
-                str_expected_res_time = calculate_str_time_to_fmt_time(default_save_range_end_time, 1)
+                elif TEST_CASE_INFO[7] == "Boundary_after_lower_limit":
+                    str_expected_res_time = calculate_str_time_to_fmt_time(default_save_range_end_time, 1)
 
-            elif TEST_CASE_INFO[7] == "Random_after_save_time_range":
-                # enter_end_time = "9999/12/31 23:59"
-                enter_end_time = input_range_end_time
-                after_save_time_range_start_time = "2038/01/01 00:00"
-                str_expected_res_time = get_random_time_between_time_period(
-                    after_save_time_range_start_time, enter_end_time
-                )
-                logging.info(str_expected_res_time)
+                elif TEST_CASE_INFO[7] == "Random_after_save_time_range":
+                    # enter_end_time = "9999/12/31 23:59"
+                    enter_end_time = input_range_end_time
+                    after_save_time_range_start_time = "2038/01/01 00:00"
+                    str_expected_res_time = get_random_time_between_time_period(
+                        after_save_time_range_start_time, enter_end_time
+                    )
+                    logging.info(str_expected_res_time)
 
-            elif TEST_CASE_INFO[7] == "Random_before_save_time_range":
-                # enter_start_time = "0001/01/01 00:00"
-                enter_start_time = input_range_start_time
-                before_save_time_range_end_time = "1999/12/31 23:59"
-                str_expected_res_time = get_random_time_between_time_period(
-                    enter_start_time, before_save_time_range_end_time
-                )
-                logging.info(str_expected_res_time)
+                elif TEST_CASE_INFO[7] == "Random_before_save_time_range":
+                    # enter_start_time = "0001/01/01 00:00"
+                    enter_start_time = input_range_start_time
+                    before_save_time_range_end_time = "1999/12/31 23:59"
+                    str_expected_res_time = get_random_time_between_time_period(
+                        enter_start_time, before_save_time_range_end_time
+                    )
+                    logging.info(str_expected_res_time)
 
-        elif TEST_CASE_INFO[5] == "Expired":
-            if TEST_CASE_INFO[7] == "Boundary_lower_limit":
-                # str_expected_res_time = "200001010000"
-                str_expected_res_time = calculate_str_time_to_fmt_time(default_save_range_start_time, 0)
-            elif TEST_CASE_INFO[7] == "Boundary_upper_limit":
+            elif TEST_CASE_INFO[5] == "Expired":
+                if TEST_CASE_INFO[7] == "Boundary_lower_limit":
+                    # str_expected_res_time = "200001010000"
+                    str_expected_res_time = calculate_str_time_to_fmt_time(default_save_range_start_time, 0)
+                elif TEST_CASE_INFO[7] == "Boundary_upper_limit":
+                    current_sys_time = rsv_kws["current_sys_time"]
+                    str_expected_res_time = calculate_str_time_to_fmt_time(current_sys_time, -1)
+                elif TEST_CASE_INFO[7] == "Random_expired_time_range":
+                    current_sys_time = rsv_kws["current_sys_time"]
+                    current_invalid_time = calculate_str_time_to_fmt_time(current_sys_time, -1)
+                    before_current_time_range_end_time = fmt_time_to_str_time(current_invalid_time)
+                    str_expected_res_time = get_random_time_between_time_period(
+                        default_save_range_start_time, before_current_time_range_end_time
+                    )
+            elif TEST_CASE_INFO[5] == "NowPlaying":
                 current_sys_time = rsv_kws["current_sys_time"]
-                str_expected_res_time = calculate_str_time_to_fmt_time(current_sys_time, -1)
-            elif TEST_CASE_INFO[7] == "Random_expired_time_range":
+                str_expected_res_time = str_time_to_fmt_time(current_sys_time)
+            elif TEST_CASE_INFO[5] == "InvalidDuration":
                 current_sys_time = rsv_kws["current_sys_time"]
-                current_invalid_time = calculate_str_time_to_fmt_time(current_sys_time, -1)
-                before_current_time_range_end_time = fmt_time_to_str_time(current_invalid_time)
-                str_expected_res_time = get_random_time_between_time_period(
-                    default_save_range_start_time, before_current_time_range_end_time
-                )
-        elif TEST_CASE_INFO[5] == "NowPlaying":
-            current_sys_time = rsv_kws["current_sys_time"]
-            str_expected_res_time = str_time_to_fmt_time(current_sys_time)
-        elif TEST_CASE_INFO[5] == "InvalidDuration":
-            current_sys_time = rsv_kws["current_sys_time"]
-            str_expected_res_time = calculate_str_time_to_fmt_time(current_sys_time, 5)
+                str_expected_res_time = calculate_str_time_to_fmt_time(current_sys_time, 5)
 
+        elif TEST_CASE_INFO[9] == "Summertime":     # 有夏令时
+            summertime_save_range_start_time = fmt_time_to_str_time(
+                calculate_str_time_to_fmt_time(default_save_range_start_time, 60))
+            summertime_save_range_end_time = fmt_time_to_str_time(
+                calculate_str_time_to_fmt_time(default_save_range_end_time, 60))
+            if TEST_CASE_INFO[5] == "OutOfSaveTimeRange":
+                if TEST_CASE_INFO[7] == "Boundary_before_upper_limit":
+                    # str_expected_res_time = "199912312359"
+                    str_expected_res_time = calculate_str_time_to_fmt_time(summertime_save_range_start_time, -1)
+
+                elif TEST_CASE_INFO[7] == "Boundary_before_lower_limit":
+                    # str_expected_res_time = "000101010000"
+                    str_expected_res_time = calculate_str_time_to_fmt_time(input_range_start_time, 0)
+
+                elif TEST_CASE_INFO[7] == "Boundary_after_upper_limit":
+                    str_expected_res_time = calculate_str_time_to_fmt_time(input_range_end_time, 0)
+
+                elif TEST_CASE_INFO[7] == "Boundary_after_lower_limit":
+                    str_expected_res_time = calculate_str_time_to_fmt_time(summertime_save_range_end_time, 1)
+
+                elif TEST_CASE_INFO[7] == "Random_after_save_time_range":
+                    # enter_end_time = "9999/12/31 23:59"
+                    enter_end_time = input_range_end_time
+                    after_save_time_range_start_time = fmt_time_to_str_time(
+                        calculate_str_time_to_fmt_time(summertime_save_range_end_time, 1))
+                    str_expected_res_time = get_random_time_between_time_period(
+                        after_save_time_range_start_time, enter_end_time
+                    )
+                    logging.info(str_expected_res_time)
+
+                elif TEST_CASE_INFO[7] == "Random_before_save_time_range":
+                    # enter_start_time = "0001/01/01 00:00"
+                    enter_start_time = input_range_start_time
+                    before_save_time_range_end_time = fmt_time_to_str_time(
+                        calculate_str_time_to_fmt_time(summertime_save_range_start_time, -1))
+                    str_expected_res_time = get_random_time_between_time_period(
+                        enter_start_time, before_save_time_range_end_time
+                    )
+                    logging.info(str_expected_res_time)
+
+            elif TEST_CASE_INFO[5] == "Expired":
+                if TEST_CASE_INFO[7] == "Boundary_lower_limit":
+                    # str_expected_res_time = "200001010000"
+                    str_expected_res_time = calculate_str_time_to_fmt_time(summertime_save_range_start_time, 0)
+                elif TEST_CASE_INFO[7] == "Boundary_upper_limit":
+                    current_sys_time = rsv_kws["current_sys_time"]
+                    str_expected_res_time = calculate_str_time_to_fmt_time(current_sys_time, -1)
+                elif TEST_CASE_INFO[7] == "Random_expired_time_range":
+                    current_sys_time = rsv_kws["current_sys_time"]
+                    current_invalid_time = calculate_str_time_to_fmt_time(current_sys_time, -1)
+                    before_current_time_range_end_time = fmt_time_to_str_time(current_invalid_time)
+                    str_expected_res_time = get_random_time_between_time_period(
+                        summertime_save_range_start_time, before_current_time_range_end_time
+                    )
     elif TEST_CASE_INFO[8] == "OtherTimezone":
-        choice_timezone_save_range_start_time = calculate_other_timezone_save_time(default_save_range_start_time)
-        choice_timezone_save_range_end_time = calculate_other_timezone_save_time(default_save_range_end_time)
-        logging.info(
-            f"计算后的保存范围为：{choice_timezone_save_range_start_time}-------{choice_timezone_save_range_end_time}")
-        if TEST_CASE_INFO[5] == "OutOfSaveTimeRange":
-            if TEST_CASE_INFO[7] == "Boundary_before_upper_limit":
-                str_expected_res_time = calculate_str_time_to_fmt_time(choice_timezone_save_range_start_time, -1)
+        if TEST_CASE_INFO[9] == "NoSummertime":
+            choice_timezone_save_range_start_time = calculate_other_timezone_save_time(default_save_range_start_time)
+            choice_timezone_save_range_end_time = calculate_other_timezone_save_time(default_save_range_end_time)
+            logging.info(
+                f"计算后的保存范围为：{choice_timezone_save_range_start_time}-------{choice_timezone_save_range_end_time}")
+            if TEST_CASE_INFO[5] == "OutOfSaveTimeRange":
+                if TEST_CASE_INFO[7] == "Boundary_before_upper_limit":
+                    str_expected_res_time = calculate_str_time_to_fmt_time(choice_timezone_save_range_start_time, -1)
 
-            elif TEST_CASE_INFO[7] == "Boundary_before_lower_limit":
-                str_expected_res_time = calculate_str_time_to_fmt_time(input_range_start_time, 0)
+                elif TEST_CASE_INFO[7] == "Boundary_before_lower_limit":
+                    str_expected_res_time = calculate_str_time_to_fmt_time(input_range_start_time, 0)
 
-            elif TEST_CASE_INFO[7] == "Boundary_after_upper_limit":
-                str_expected_res_time = calculate_str_time_to_fmt_time(input_range_end_time, 0)
+                elif TEST_CASE_INFO[7] == "Boundary_after_upper_limit":
+                    str_expected_res_time = calculate_str_time_to_fmt_time(input_range_end_time, 0)
 
-            elif TEST_CASE_INFO[7] == "Boundary_after_lower_limit":
-                str_expected_res_time = calculate_str_time_to_fmt_time(choice_timezone_save_range_end_time, 1)
+                elif TEST_CASE_INFO[7] == "Boundary_after_lower_limit":
+                    str_expected_res_time = calculate_str_time_to_fmt_time(choice_timezone_save_range_end_time, 1)
 
-            elif TEST_CASE_INFO[7] == "Random_after_save_time_range":
-                enter_end_time = input_range_end_time
-                after_save_time_range_start_time = fmt_time_to_str_time(calculate_str_time_to_fmt_time(
-                    choice_timezone_save_range_end_time, 1))
-                str_expected_res_time = get_random_time_between_time_period(
-                    after_save_time_range_start_time, enter_end_time
-                )
-                logging.info(str_expected_res_time)
+                elif TEST_CASE_INFO[7] == "Random_after_save_time_range":
+                    enter_end_time = input_range_end_time
+                    after_save_time_range_start_time = fmt_time_to_str_time(calculate_str_time_to_fmt_time(
+                        choice_timezone_save_range_end_time, 1))
+                    str_expected_res_time = get_random_time_between_time_period(
+                        after_save_time_range_start_time, enter_end_time
+                    )
+                    logging.info(str_expected_res_time)
 
-            elif TEST_CASE_INFO[7] == "Random_before_save_time_range":
-                enter_start_time = input_range_start_time
-                before_save_time_range_end_time = fmt_time_to_str_time(calculate_str_time_to_fmt_time(
-                    choice_timezone_save_range_start_time, -1))
-                str_expected_res_time = get_random_time_between_time_period(
-                    enter_start_time, before_save_time_range_end_time
-                )
-                logging.info(str_expected_res_time)
+                elif TEST_CASE_INFO[7] == "Random_before_save_time_range":
+                    enter_start_time = input_range_start_time
+                    before_save_time_range_end_time = fmt_time_to_str_time(calculate_str_time_to_fmt_time(
+                        choice_timezone_save_range_start_time, -1))
+                    str_expected_res_time = get_random_time_between_time_period(
+                        enter_start_time, before_save_time_range_end_time
+                    )
+                    logging.info(str_expected_res_time)
+
+            elif TEST_CASE_INFO[5] == "Expired":
+                if TEST_CASE_INFO[7] == "Boundary_lower_limit":
+                    # str_expected_res_time = "200001010000"
+                    str_expected_res_time = calculate_str_time_to_fmt_time(choice_timezone_save_range_start_time, 0)
+                elif TEST_CASE_INFO[7] == "Boundary_upper_limit":
+                    current_sys_time = rsv_kws["current_sys_time"]
+                    str_expected_res_time = calculate_str_time_to_fmt_time(current_sys_time, -1)
+                elif TEST_CASE_INFO[7] == "Random_expired_time_range":
+                    current_sys_time = rsv_kws["current_sys_time"]
+                    current_invalid_time = calculate_str_time_to_fmt_time(current_sys_time, -1)
+                    before_current_time_range_end_time = fmt_time_to_str_time(current_invalid_time)
+                    str_expected_res_time = get_random_time_between_time_period(
+                        choice_timezone_save_range_start_time, before_current_time_range_end_time
+                    )
+
+        elif TEST_CASE_INFO[9] == "Summertime":
+            choice_timezone_save_range_start_time = calculate_other_timezone_save_time(
+                default_save_range_start_time)
+            choice_timezone_save_range_end_time = calculate_other_timezone_save_time(
+                default_save_range_end_time)
+            summertime_choice_timezone_save_range_start_time = fmt_time_to_str_time(
+                calculate_str_time_to_fmt_time(choice_timezone_save_range_start_time, 60))
+            summertime_choice_timezone_save_range_end_time = fmt_time_to_str_time(
+                calculate_str_time_to_fmt_time(choice_timezone_save_range_end_time, 60))
+            logging.info(
+                f"计算后的保存范围为：{summertime_choice_timezone_save_range_start_time}-------"
+                f"{summertime_choice_timezone_save_range_end_time}")
+            if TEST_CASE_INFO[5] == "OutOfSaveTimeRange":
+                if TEST_CASE_INFO[7] == "Boundary_before_upper_limit":
+                    str_expected_res_time = calculate_str_time_to_fmt_time(
+                        summertime_choice_timezone_save_range_start_time, -1)
+
+                elif TEST_CASE_INFO[7] == "Boundary_before_lower_limit":
+                    str_expected_res_time = calculate_str_time_to_fmt_time(input_range_start_time, 0)
+
+                elif TEST_CASE_INFO[7] == "Boundary_after_upper_limit":
+                    str_expected_res_time = calculate_str_time_to_fmt_time(input_range_end_time, 0)
+
+                elif TEST_CASE_INFO[7] == "Boundary_after_lower_limit":
+                    str_expected_res_time = calculate_str_time_to_fmt_time(
+                        summertime_choice_timezone_save_range_end_time, 1)
+
+                elif TEST_CASE_INFO[7] == "Random_after_save_time_range":
+                    enter_end_time = input_range_end_time
+                    after_save_time_range_start_time = fmt_time_to_str_time(calculate_str_time_to_fmt_time(
+                        summertime_choice_timezone_save_range_end_time, 1))
+                    str_expected_res_time = get_random_time_between_time_period(
+                        after_save_time_range_start_time, enter_end_time
+                    )
+                    logging.info(str_expected_res_time)
+
+                elif TEST_CASE_INFO[7] == "Random_before_save_time_range":
+                    enter_start_time = input_range_start_time
+                    before_save_time_range_end_time = fmt_time_to_str_time(calculate_str_time_to_fmt_time(
+                        summertime_choice_timezone_save_range_start_time, -1))
+                    str_expected_res_time = get_random_time_between_time_period(
+                        enter_start_time, before_save_time_range_end_time
+                    )
+                    logging.info(str_expected_res_time)
+
+            elif TEST_CASE_INFO[5] == "Expired":
+                if TEST_CASE_INFO[7] == "Boundary_lower_limit":
+                    # str_expected_res_time = "200001010000"
+                    str_expected_res_time = calculate_str_time_to_fmt_time(
+                        summertime_choice_timezone_save_range_start_time, 0)
+                elif TEST_CASE_INFO[7] == "Boundary_upper_limit":
+                    current_sys_time = rsv_kws["current_sys_time"]
+                    str_expected_res_time = calculate_str_time_to_fmt_time(current_sys_time, -1)
+                elif TEST_CASE_INFO[7] == "Random_expired_time_range":
+                    current_sys_time = rsv_kws["current_sys_time"]
+                    current_invalid_time = calculate_str_time_to_fmt_time(current_sys_time, -1)
+                    before_current_time_range_end_time = fmt_time_to_str_time(current_invalid_time)
+                    str_expected_res_time = get_random_time_between_time_period(
+                        summertime_choice_timezone_save_range_start_time, before_current_time_range_end_time
+                    )
 
     logging.info(f"期望的完整的预约事件时间为{str_expected_res_time}")
     return str_expected_res_time
@@ -1192,188 +1508,425 @@ def write_data_to_report():
             if d == 4:  # 预期无效事件信息
                 ws.cell(max_row + 1, d + 1).value = str(GL.report_data[d])
                 ws.cell(max_row + 1, d + 1).alignment = alignment
-                if TEST_CASE_INFO[5] == "OutOfSaveTimeRange" and TEST_CASE_INFO[8] == "ZeroTimezone":
-                    if TEST_CASE_INFO[7] == "Boundary_before_lower_limit":
-                        if GL.report_data[d][0] == '000101010000' \
-                                and GL.report_data[d][1] == TEST_CASE_INFO[3] \
-                                and GL.report_data[d][4] == TEST_CASE_INFO[4]:
-                            ws.cell(max_row + 1, d + 1).font = blue_font
-                        else:
-                            ws.cell(max_row + 1, d + 1).font = red_font
-                    elif TEST_CASE_INFO[7] == "Boundary_before_upper_limit":
-                        if GL.report_data[d][0] == '199912312359' \
-                                and GL.report_data[d][1] == TEST_CASE_INFO[3] \
-                                and GL.report_data[d][4] == TEST_CASE_INFO[4]:
-                            ws.cell(max_row + 1, d + 1).font = blue_font
-                        else:
-                            ws.cell(max_row + 1, d + 1).font = red_font
-                    elif TEST_CASE_INFO[7] == "Boundary_after_lower_limit":
-                        if GL.report_data[d][0] == '203801010000' \
-                                and GL.report_data[d][1] == TEST_CASE_INFO[3] \
-                                and GL.report_data[d][4] == TEST_CASE_INFO[4]:
-                            ws.cell(max_row + 1, d + 1).font = blue_font
-                        else:
-                            ws.cell(max_row + 1, d + 1).font = red_font
-                    elif TEST_CASE_INFO[7] == "Boundary_after_upper_limit":
-                        if GL.report_data[d][0] == '999912312359' \
-                                and GL.report_data[d][1] == TEST_CASE_INFO[3] \
-                                and GL.report_data[d][4] == TEST_CASE_INFO[4]:
-                            ws.cell(max_row + 1, d + 1).font = blue_font
-                        else:
-                            ws.cell(max_row + 1, d + 1).font = red_font
-                    elif TEST_CASE_INFO[7] == "Random_before_save_time_range":
-                        enter_start_time = "0001/01/01 00:00"
-                        before_save_time_range_end_time = "1999/12/31 23:59"
-                        range_start_time = str_time_to_datetime_time(enter_start_time)
-                        range_end_time = str_time_to_datetime_time(before_save_time_range_end_time)
-                        event_start_time = fmt_time_to_str_time(GL.report_data[d][0])
-                        datetime_event_start_time = str_time_to_datetime_time(event_start_time)
-                        if range_start_time <= datetime_event_start_time <= range_end_time \
+                if TEST_CASE_INFO[8] == "ZeroTimezone" and TEST_CASE_INFO[9] == "NoSummertime":
+                    if TEST_CASE_INFO[5] == "OutOfSaveTimeRange":
+                        if TEST_CASE_INFO[7] == "Boundary_before_lower_limit":
+                            if GL.report_data[d][0] == '000101010000' \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Boundary_before_upper_limit":
+                            if GL.report_data[d][0] == '199912312359' \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Boundary_after_lower_limit":
+                            if GL.report_data[d][0] == '203801010000' \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Boundary_after_upper_limit":
+                            if GL.report_data[d][0] == '999912312359' \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Random_before_save_time_range":
+                            enter_start_time = "0001/01/01 00:00"
+                            before_save_time_range_end_time = "1999/12/31 23:59"
+                            range_start_time = str_time_to_datetime_time(enter_start_time)
+                            range_end_time = str_time_to_datetime_time(before_save_time_range_end_time)
+                            event_start_time = fmt_time_to_str_time(GL.report_data[d][0])
+                            datetime_event_start_time = str_time_to_datetime_time(event_start_time)
+                            if range_start_time <= datetime_event_start_time <= range_end_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+
+                        elif TEST_CASE_INFO[7] == "Random_after_save_time_range":
+                            enter_end_time = "9999/12/31 23:59"
+                            after_save_time_range_start_time = "2038/01/01 00:00"
+                            range_start_time = str_time_to_datetime_time(after_save_time_range_start_time)
+                            range_end_time = str_time_to_datetime_time(enter_end_time)
+                            event_start_time = fmt_time_to_str_time(GL.report_data[d][0])
+                            datetime_event_start_time = str_time_to_datetime_time(event_start_time)
+                            if range_start_time <= datetime_event_start_time <= range_end_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+
+                    elif TEST_CASE_INFO[5] == "Expired":
+                        if TEST_CASE_INFO[7] == "Boundary_lower_limit":
+                            if GL.report_data[d][0] == '200001010000' \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Boundary_upper_limit":
+                            str_expected_res_time = calculate_str_time_to_fmt_time(GL.report_data[1], -1)
+                            if GL.report_data[d][0] == str_expected_res_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Random_expired_time_range":
+                            default_save_range_start_time = "2000/01/01 00:00"
+                            fmt_expected_res_time = calculate_str_time_to_fmt_time(GL.report_data[1], -1)
+                            str_expected_res_time = fmt_time_to_str_time(fmt_expected_res_time)
+                            range_start_time = str_time_to_datetime_time(default_save_range_start_time)
+                            range_end_time = str_time_to_datetime_time(str_expected_res_time)
+                            event_start_time = fmt_time_to_str_time(GL.report_data[d][0])
+                            datetime_event_start_time = str_time_to_datetime_time(event_start_time)
+                            if range_start_time <= datetime_event_start_time <= range_end_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+
+                    elif TEST_CASE_INFO[5] == "NowPlaying":
+                        fmt_current_sys_time = str_time_to_fmt_time(GL.report_data[1])
+                        if GL.report_data[d][0] == fmt_current_sys_time \
                                 and GL.report_data[d][1] == TEST_CASE_INFO[3] \
                                 and GL.report_data[d][4] == TEST_CASE_INFO[4]:
                             ws.cell(max_row + 1, d + 1).font = blue_font
                         else:
                             ws.cell(max_row + 1, d + 1).font = red_font
 
-                    elif TEST_CASE_INFO[7] == "Random_after_save_time_range":
-                        enter_end_time = "9999/12/31 23:59"
-                        after_save_time_range_start_time = "2038/01/01 00:00"
-                        range_start_time = str_time_to_datetime_time(after_save_time_range_start_time)
-                        range_end_time = str_time_to_datetime_time(enter_end_time)
-                        event_start_time = fmt_time_to_str_time(GL.report_data[d][0])
-                        datetime_event_start_time = str_time_to_datetime_time(event_start_time)
-                        if range_start_time <= datetime_event_start_time <= range_end_time \
-                                and GL.report_data[d][1] == TEST_CASE_INFO[3] \
-                                and GL.report_data[d][4] == TEST_CASE_INFO[4]:
-                            ws.cell(max_row + 1, d + 1).font = blue_font
+                    elif TEST_CASE_INFO[5] == "InvalidDuration":
+                        event_start_time = calculate_str_time_to_fmt_time(GL.report_data[1], 5)
+                        if TEST_CASE_INFO[4] == "Once":
+                            if GL.report_data[d][0] == event_start_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4] \
+                                    and GL.report_data[d][3] == "00:00":
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
                         else:
-                            ws.cell(max_row + 1, d + 1).font = red_font
+                            if GL.report_data[d][0] == event_start_time[8:] \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4] \
+                                    and GL.report_data[d][3] == "00:00":
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
 
-                elif TEST_CASE_INFO[5] == "OutOfSaveTimeRange" and TEST_CASE_INFO[8] == "OtherTimezone":
-                    if TEST_CASE_INFO[7] == "Boundary_before_lower_limit":
-                        if GL.report_data[d][0] == '000101010000' \
-                                and GL.report_data[d][1] == TEST_CASE_INFO[3] \
-                                and GL.report_data[d][4] == TEST_CASE_INFO[4]:
-                            ws.cell(max_row + 1, d + 1).font = blue_font
-                        else:
-                            ws.cell(max_row + 1, d + 1).font = red_font
+                elif TEST_CASE_INFO[8] == "ZeroTimezone" and TEST_CASE_INFO[9] == "Summertime":
+                    summertime_save_range_start_time = fmt_time_to_str_time(
+                        calculate_str_time_to_fmt_time(default_save_range_start_time, 60))
+                    summertime_save_range_end_time = fmt_time_to_str_time(
+                        calculate_str_time_to_fmt_time(default_save_range_end_time, 60))
+                    if TEST_CASE_INFO[5] == "OutOfSaveTimeRange":
+                        if TEST_CASE_INFO[7] == "Boundary_before_lower_limit":
+                            if GL.report_data[d][0] == '000101010000' \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Boundary_before_upper_limit":
+                            if GL.report_data[d][0] == calculate_str_time_to_fmt_time(
+                                    summertime_save_range_start_time, -1) \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Boundary_after_lower_limit":
+                            if GL.report_data[d][0] == calculate_str_time_to_fmt_time(
+                                    summertime_save_range_end_time, 1) \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Boundary_after_upper_limit":
+                            if GL.report_data[d][0] == '999912312359' \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Random_before_save_time_range":
+                            enter_start_time = "0001/01/01 00:00"
+                            before_save_time_range_end_time = fmt_time_to_str_time(calculate_str_time_to_fmt_time(
+                                    summertime_save_range_start_time, -1))
+                            range_start_time = str_time_to_datetime_time(enter_start_time)
+                            range_end_time = str_time_to_datetime_time(before_save_time_range_end_time)
+                            event_start_time = fmt_time_to_str_time(GL.report_data[d][0])
+                            datetime_event_start_time = str_time_to_datetime_time(event_start_time)
+                            if range_start_time <= datetime_event_start_time <= range_end_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
 
-                    elif TEST_CASE_INFO[7] == "Boundary_before_upper_limit":
-                        boundary_before_upper_limit_time = calculate_str_time_to_fmt_time(
-                            choice_timezone_save_range_start_time, -1)
-                        if GL.report_data[d][0] == boundary_before_upper_limit_time \
-                                and GL.report_data[d][1] == TEST_CASE_INFO[3] \
-                                and GL.report_data[d][4] == TEST_CASE_INFO[4]:
-                            ws.cell(max_row + 1, d + 1).font = blue_font
-                        else:
-                            ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Random_after_save_time_range":
+                            enter_end_time = "9999/12/31 23:59"
+                            after_save_time_range_start_time = fmt_time_to_str_time(calculate_str_time_to_fmt_time(
+                                    summertime_save_range_end_time, 1))
+                            range_start_time = str_time_to_datetime_time(after_save_time_range_start_time)
+                            range_end_time = str_time_to_datetime_time(enter_end_time)
+                            event_start_time = fmt_time_to_str_time(GL.report_data[d][0])
+                            datetime_event_start_time = str_time_to_datetime_time(event_start_time)
+                            if range_start_time <= datetime_event_start_time <= range_end_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
 
-                    elif TEST_CASE_INFO[7] == "Boundary_after_lower_limit":
-                        boundary_after_lower_limit_time = calculate_str_time_to_fmt_time(
-                            choice_timezone_save_range_end_time, 1)
-                        if GL.report_data[d][0] == boundary_after_lower_limit_time \
-                                and GL.report_data[d][1] == TEST_CASE_INFO[3] \
-                                and GL.report_data[d][4] == TEST_CASE_INFO[4]:
-                            ws.cell(max_row + 1, d + 1).font = blue_font
-                        else:
-                            ws.cell(max_row + 1, d + 1).font = red_font
+                    elif TEST_CASE_INFO[5] == "Expired":
+                        if TEST_CASE_INFO[7] == "Boundary_lower_limit":
+                            if GL.report_data[d][0] == calculate_str_time_to_fmt_time(
+                                    default_save_range_start_time, 60) \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Boundary_upper_limit":
+                            str_expected_res_time = calculate_str_time_to_fmt_time(GL.report_data[1], -1)
+                            if GL.report_data[d][0] == str_expected_res_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Random_expired_time_range":
+                            # default_save_range_start_time = "2000/01/01 00:00"
+                            fmt_expected_res_time = calculate_str_time_to_fmt_time(GL.report_data[1], -1)
+                            str_expected_res_time = fmt_time_to_str_time(fmt_expected_res_time)
+                            range_start_time = str_time_to_datetime_time(summertime_save_range_start_time)
+                            range_end_time = str_time_to_datetime_time(str_expected_res_time)
+                            event_start_time = fmt_time_to_str_time(GL.report_data[d][0])
+                            datetime_event_start_time = str_time_to_datetime_time(event_start_time)
+                            if range_start_time <= datetime_event_start_time <= range_end_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
 
-                    elif TEST_CASE_INFO[7] == "Boundary_after_upper_limit":
-                        if GL.report_data[d][0] == '999912312359' \
-                                and GL.report_data[d][1] == TEST_CASE_INFO[3] \
-                                and GL.report_data[d][4] == TEST_CASE_INFO[4]:
-                            ws.cell(max_row + 1, d + 1).font = blue_font
-                        else:
-                            ws.cell(max_row + 1, d + 1).font = red_font
+                elif TEST_CASE_INFO[8] == "OtherTimezone" and TEST_CASE_INFO[9] == "NoSummertime":
+                    if TEST_CASE_INFO[5] == "OutOfSaveTimeRange":
+                        if TEST_CASE_INFO[7] == "Boundary_before_lower_limit":
+                            if GL.report_data[d][0] == '000101010000' \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
 
-                    elif TEST_CASE_INFO[7] == "Random_before_save_time_range":
-                        enter_start_time = "0001/01/01 00:00"
-                        before_save_time_range_end_time = fmt_time_to_str_time(calculate_str_time_to_fmt_time(
-                            choice_timezone_save_range_start_time, -1))
-                        range_start_time = str_time_to_datetime_time(enter_start_time)
-                        range_end_time = str_time_to_datetime_time(before_save_time_range_end_time)
-                        event_start_time = fmt_time_to_str_time(GL.report_data[d][0])
-                        datetime_event_start_time = str_time_to_datetime_time(event_start_time)
-                        if range_start_time <= datetime_event_start_time <= range_end_time \
-                                and GL.report_data[d][1] == TEST_CASE_INFO[3] \
-                                and GL.report_data[d][4] == TEST_CASE_INFO[4]:
-                            ws.cell(max_row + 1, d + 1).font = blue_font
-                        else:
-                            ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Boundary_before_upper_limit":
+                            boundary_before_upper_limit_time = calculate_str_time_to_fmt_time(
+                                choice_timezone_save_range_start_time, -1)
+                            if GL.report_data[d][0] == boundary_before_upper_limit_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
 
-                    elif TEST_CASE_INFO[7] == "Random_after_save_time_range":
-                        enter_end_time = "9999/12/31 23:59"
-                        after_save_time_range_start_time = fmt_time_to_str_time(calculate_str_time_to_fmt_time(
-                            choice_timezone_save_range_end_time, 1))
-                        range_start_time = str_time_to_datetime_time(after_save_time_range_start_time)
-                        range_end_time = str_time_to_datetime_time(enter_end_time)
-                        event_start_time = fmt_time_to_str_time(GL.report_data[d][0])
-                        datetime_event_start_time = str_time_to_datetime_time(event_start_time)
-                        if range_start_time <= datetime_event_start_time <= range_end_time \
-                                and GL.report_data[d][1] == TEST_CASE_INFO[3] \
-                                and GL.report_data[d][4] == TEST_CASE_INFO[4]:
-                            ws.cell(max_row + 1, d + 1).font = blue_font
-                        else:
-                            ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Boundary_after_lower_limit":
+                            boundary_after_lower_limit_time = calculate_str_time_to_fmt_time(
+                                choice_timezone_save_range_end_time, 1)
+                            if GL.report_data[d][0] == boundary_after_lower_limit_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
 
-                elif TEST_CASE_INFO[5] == "Expired" and TEST_CASE_INFO[8] == "ZeroTimezone":
-                    if TEST_CASE_INFO[7] == "Boundary_lower_limit":
-                        if GL.report_data[d][0] == '200001010000' \
-                                and GL.report_data[d][1] == TEST_CASE_INFO[3] \
-                                and GL.report_data[d][4] == TEST_CASE_INFO[4]:
-                            ws.cell(max_row + 1, d + 1).font = blue_font
-                        else:
-                            ws.cell(max_row + 1, d + 1).font = red_font
-                    elif TEST_CASE_INFO[7] == "Boundary_upper_limit":
-                        str_expected_res_time = calculate_str_time_to_fmt_time(GL.report_data[1], -1)
-                        if GL.report_data[d][0] == str_expected_res_time \
-                                and GL.report_data[d][1] == TEST_CASE_INFO[3] \
-                                and GL.report_data[d][4] == TEST_CASE_INFO[4]:
-                            ws.cell(max_row + 1, d + 1).font = blue_font
-                        else:
-                            ws.cell(max_row + 1, d + 1).font = red_font
-                    elif TEST_CASE_INFO[7] == "Random_expired_time_range":
-                        default_save_range_start_time = "2000/01/01 00:00"
-                        fmt_expected_res_time = calculate_str_time_to_fmt_time(GL.report_data[1], -1)
-                        str_expected_res_time = fmt_time_to_str_time(fmt_expected_res_time)
-                        range_start_time = str_time_to_datetime_time(default_save_range_start_time)
-                        range_end_time = str_time_to_datetime_time(str_expected_res_time)
-                        event_start_time = fmt_time_to_str_time(GL.report_data[d][0])
-                        datetime_event_start_time = str_time_to_datetime_time(event_start_time)
-                        if range_start_time <= datetime_event_start_time <= range_end_time \
-                                and GL.report_data[d][1] == TEST_CASE_INFO[3] \
-                                and GL.report_data[d][4] == TEST_CASE_INFO[4]:
-                            ws.cell(max_row + 1, d + 1).font = blue_font
-                        else:
-                            ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Boundary_after_upper_limit":
+                            if GL.report_data[d][0] == '999912312359' \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
 
-                elif TEST_CASE_INFO[5] == "NowPlaying" and TEST_CASE_INFO[8] == "ZeroTimezone":
-                    fmt_current_sys_time = str_time_to_fmt_time(GL.report_data[1])
-                    if GL.report_data[d][0] == fmt_current_sys_time \
-                            and GL.report_data[d][1] == TEST_CASE_INFO[3] \
-                            and GL.report_data[d][4] == TEST_CASE_INFO[4]:
-                        ws.cell(max_row + 1, d + 1).font = blue_font
-                    else:
-                        ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Random_before_save_time_range":
+                            enter_start_time = "0001/01/01 00:00"
+                            before_save_time_range_end_time = fmt_time_to_str_time(calculate_str_time_to_fmt_time(
+                                choice_timezone_save_range_start_time, -1))
+                            range_start_time = str_time_to_datetime_time(enter_start_time)
+                            range_end_time = str_time_to_datetime_time(before_save_time_range_end_time)
+                            event_start_time = fmt_time_to_str_time(GL.report_data[d][0])
+                            datetime_event_start_time = str_time_to_datetime_time(event_start_time)
+                            if range_start_time <= datetime_event_start_time <= range_end_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
 
-                elif TEST_CASE_INFO[5] == "InvalidDuration" and TEST_CASE_INFO[8] == "ZeroTimezone":
-                    event_start_time = calculate_str_time_to_fmt_time(GL.report_data[1], 5)
-                    if TEST_CASE_INFO[4] == "Once":
-                        if GL.report_data[d][0] == event_start_time \
-                                and GL.report_data[d][1] == TEST_CASE_INFO[3] \
-                                and GL.report_data[d][4] == TEST_CASE_INFO[4] \
-                                and GL.report_data[d][3] == "00:00":
-                            ws.cell(max_row + 1, d + 1).font = blue_font
-                        else:
-                            ws.cell(max_row + 1, d + 1).font = red_font
-                    else:
-                        if GL.report_data[d][0] == event_start_time[8:] \
-                                and GL.report_data[d][1] == TEST_CASE_INFO[3] \
-                                and GL.report_data[d][4] == TEST_CASE_INFO[4] \
-                                and GL.report_data[d][3] == "00:00":
-                            ws.cell(max_row + 1, d + 1).font = blue_font
-                        else:
-                            ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Random_after_save_time_range":
+                            enter_end_time = "9999/12/31 23:59"
+                            after_save_time_range_start_time = fmt_time_to_str_time(calculate_str_time_to_fmt_time(
+                                choice_timezone_save_range_end_time, 1))
+                            range_start_time = str_time_to_datetime_time(after_save_time_range_start_time)
+                            range_end_time = str_time_to_datetime_time(enter_end_time)
+                            event_start_time = fmt_time_to_str_time(GL.report_data[d][0])
+                            datetime_event_start_time = str_time_to_datetime_time(event_start_time)
+                            if range_start_time <= datetime_event_start_time <= range_end_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+
+                    elif TEST_CASE_INFO[5] == "Expired":
+                        if TEST_CASE_INFO[7] == "Boundary_lower_limit":
+                            if GL.report_data[d][0] == calculate_str_time_to_fmt_time(
+                                    choice_timezone_save_range_start_time, 0) \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Boundary_upper_limit":
+                            str_expected_res_time = calculate_str_time_to_fmt_time(GL.report_data[1], -1)
+                            if GL.report_data[d][0] == str_expected_res_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Random_expired_time_range":
+                            # default_save_range_start_time = "2000/01/01 00:00"
+                            fmt_expected_res_time = calculate_str_time_to_fmt_time(GL.report_data[1], -1)
+                            str_expected_res_time = fmt_time_to_str_time(fmt_expected_res_time)
+                            range_start_time = str_time_to_datetime_time(choice_timezone_save_range_start_time)
+                            range_end_time = str_time_to_datetime_time(str_expected_res_time)
+                            event_start_time = fmt_time_to_str_time(GL.report_data[d][0])
+                            datetime_event_start_time = str_time_to_datetime_time(event_start_time)
+                            if range_start_time <= datetime_event_start_time <= range_end_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+
+                elif TEST_CASE_INFO[8] == "OtherTimezone" and TEST_CASE_INFO[9] == "Summertime":
+                    summertime_choice_timezone_save_range_start_time = fmt_time_to_str_time(
+                        calculate_str_time_to_fmt_time(choice_timezone_save_range_start_time, 60))
+                    summertime_choice_timezone_save_range_end_time = fmt_time_to_str_time(
+                        calculate_str_time_to_fmt_time(choice_timezone_save_range_end_time, 60))
+                    if TEST_CASE_INFO[5] == "OutOfSaveTimeRange":
+                        if TEST_CASE_INFO[7] == "Boundary_before_lower_limit":
+                            if GL.report_data[d][0] == '000101010000' \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+
+                        elif TEST_CASE_INFO[7] == "Boundary_before_upper_limit":
+                            boundary_before_upper_limit_time = calculate_str_time_to_fmt_time(
+                                summertime_choice_timezone_save_range_start_time, -1)
+                            if GL.report_data[d][0] == boundary_before_upper_limit_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+
+                        elif TEST_CASE_INFO[7] == "Boundary_after_lower_limit":
+                            boundary_after_lower_limit_time = calculate_str_time_to_fmt_time(
+                                summertime_choice_timezone_save_range_end_time, 1)
+                            if GL.report_data[d][0] == boundary_after_lower_limit_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+
+                        elif TEST_CASE_INFO[7] == "Boundary_after_upper_limit":
+                            if GL.report_data[d][0] == '999912312359' \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+
+                        elif TEST_CASE_INFO[7] == "Random_before_save_time_range":
+                            enter_start_time = "0001/01/01 00:00"
+                            before_save_time_range_end_time = fmt_time_to_str_time(calculate_str_time_to_fmt_time(
+                                summertime_choice_timezone_save_range_start_time, -1))
+                            range_start_time = str_time_to_datetime_time(enter_start_time)
+                            range_end_time = str_time_to_datetime_time(before_save_time_range_end_time)
+                            event_start_time = fmt_time_to_str_time(GL.report_data[d][0])
+                            datetime_event_start_time = str_time_to_datetime_time(event_start_time)
+                            if range_start_time <= datetime_event_start_time <= range_end_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+
+                        elif TEST_CASE_INFO[7] == "Random_after_save_time_range":
+                            enter_end_time = "9999/12/31 23:59"
+                            after_save_time_range_start_time = fmt_time_to_str_time(calculate_str_time_to_fmt_time(
+                                summertime_choice_timezone_save_range_end_time, 1))
+                            range_start_time = str_time_to_datetime_time(after_save_time_range_start_time)
+                            range_end_time = str_time_to_datetime_time(enter_end_time)
+                            event_start_time = fmt_time_to_str_time(GL.report_data[d][0])
+                            datetime_event_start_time = str_time_to_datetime_time(event_start_time)
+                            if range_start_time <= datetime_event_start_time <= range_end_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+
+                    elif TEST_CASE_INFO[5] == "Expired":
+                        if TEST_CASE_INFO[7] == "Boundary_lower_limit":
+                            if GL.report_data[d][0] == calculate_str_time_to_fmt_time(
+                                    summertime_choice_timezone_save_range_start_time, 0) \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Boundary_upper_limit":
+                            str_expected_res_time = calculate_str_time_to_fmt_time(GL.report_data[1], -1)
+                            if GL.report_data[d][0] == str_expected_res_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
+                        elif TEST_CASE_INFO[7] == "Random_expired_time_range":
+                            # default_save_range_start_time = "2000/01/01 00:00"
+                            fmt_expected_res_time = calculate_str_time_to_fmt_time(GL.report_data[1], -1)
+                            str_expected_res_time = fmt_time_to_str_time(fmt_expected_res_time)
+                            range_start_time = str_time_to_datetime_time(
+                                summertime_choice_timezone_save_range_start_time)
+                            range_end_time = str_time_to_datetime_time(str_expected_res_time)
+                            event_start_time = fmt_time_to_str_time(GL.report_data[d][0])
+                            datetime_event_start_time = str_time_to_datetime_time(event_start_time)
+                            if range_start_time <= datetime_event_start_time <= range_end_time \
+                                    and GL.report_data[d][1] == TEST_CASE_INFO[3] \
+                                    and GL.report_data[d][4] == TEST_CASE_INFO[4]:
+                                ws.cell(max_row + 1, d + 1).font = blue_font
+                            else:
+                                ws.cell(max_row + 1, d + 1).font = red_font
 
             else:
                 ws.cell(max_row + 1, d + 1).value = GL.report_data[d]
@@ -1493,7 +2046,31 @@ def check_event_numb():
     exit_to_screen()
 
 
-def receive_serial_process(prs_data, infrared_send_cmd, rsv_kws, state, channel_info, rsv_info, ch_epg_info, receive_cmd_list):
+def mail(message):
+    my_sender = 'wangrun@nationalchip.com'  # 发件人邮箱账号
+    my_pass = 'Wr_75464052'  # 发件人邮箱密码
+    my_user = 'wangrun@nationalchip.com'  # 收件人邮箱账号，我这边发送给自己
+
+    return_state = True
+    try:
+        msg = MIMEText(message, 'plain', 'utf-8')
+        # msg['From'] = formataddr(["FromRunoob", my_sender])  # 括号里的对应发件人邮箱昵称、发件人邮箱账号
+        msg['From'] = Header("Auto_test", 'utf-8')
+        msg['To'] = Header("ME", 'utf-8')
+        # msg['To'] = formataddr(["FK", my_user])  # 括号里的对应收件人邮箱昵称、收件人邮箱账号
+        msg['Subject'] = "自动化测试终止提醒"  # 邮件的主题，也可以说是标题
+
+        server = smtplib.SMTP_SSL("smtp.exmail.qq.com", 465)  # 发件人邮箱中的SMTP服务器，端口是25
+        server.login(my_sender, my_pass)  # 括号中对应的是发件人邮箱账号、邮箱密码
+        server.sendmail(my_sender, [my_user, ], msg.as_string())  # 括号中对应的是发件人邮箱账号、收件人邮箱账号、发送邮件
+        server.quit()  # 关闭连接
+    except smtplib.SMTPException:  # 如果 try 中的语句没有执行，则会执行下面的 ret=False
+        return_state = False
+    return return_state
+
+
+def receive_serial_process(
+        prs_data, infrared_send_cmd, rsv_kws, state, channel_info, rsv_info, ch_epg_info, receive_cmd_list):
     logging_info_setting()
     rsv_key = {
         "POWER": "0xbbaf", "TV/R": "0xbbbd", "MUTE": "0xbbf7",
@@ -1542,6 +2119,12 @@ def receive_serial_process(prs_data, infrared_send_cmd, rsv_kws, state, channel_
         "Program_epg_info",
         "event_time",
         "event_name"
+    ]
+
+    sys_time_kws = [
+        "[PTD]Time_mode=",
+        "[PTD]Timezone=",
+        "[PTD]Summertime="
     ]
 
     other_kws = [
@@ -1634,7 +2217,7 @@ def receive_serial_process(prs_data, infrared_send_cmd, rsv_kws, state, channel_
                 rsv_kws["res_event_numb"] = re.split(r"=", data2)[-1]
 
             if switch_ch_kws[0] in data2:
-                ch_info_split = re.split(r"[\],]", data2)
+                ch_info_split = re.split(r"[],]", data2)
                 for i in range(len(ch_info_split)):
                     if ch_info_kws[0] in ch_info_split[i]:  # 提取频道号
                         channel_info[0] = re.split("=", ch_info_split[i])[-1]
@@ -1642,7 +2225,7 @@ def receive_serial_process(prs_data, infrared_send_cmd, rsv_kws, state, channel_
                         channel_info[1] = re.split("=", ch_info_split[i])[-1]
 
             if switch_ch_kws[1] in data2:
-                flag_info_split = re.split(r"[\],]", data2)
+                flag_info_split = re.split(r"[],]", data2)
                 for i in range(len(flag_info_split)):
                     if ch_info_kws[2] in flag_info_split[i]:  # 提取频道所属TP
                         channel_info[2] = re.split(r"=", flag_info_split[i])[-1].replace(" ", "")
@@ -1654,7 +2237,7 @@ def receive_serial_process(prs_data, infrared_send_cmd, rsv_kws, state, channel_
                         channel_info[5] = re.split(r"=", flag_info_split[i])[-1]
 
             if switch_ch_kws[3] in data2:
-                group_info_split = re.split(r"[\],]", data2)
+                group_info_split = re.split(r"[],]", data2)
                 for i in range(len(group_info_split)):
                     if group_info_kws[0] in group_info_split[i]:  # 提取频道所属组别
                         rsv_info["prog_group_name"] = re.split(r"=", group_info_split[i])[-1]
@@ -1700,6 +2283,18 @@ def receive_serial_process(prs_data, infrared_send_cmd, rsv_kws, state, channel_
                 rsv_kws["edit_event_focus_pos"] = "Channel"
                 rsv_kws["edit_event_ch"] = re.split(r"=", data2)[-1]
 
+            if sys_time_kws[0] in data2:             # 提取System_mode参数
+                rsv_kws["sys_time_setting_focus_pos"] = "Mode"
+                rsv_kws["sys_time_mode"] = re.split(r"=", data2)[-1]
+
+            if sys_time_kws[1] in data2:             # 提取Timezone参数
+                rsv_kws["sys_time_setting_focus_pos"] = "Timezone"
+                rsv_kws["sys_time_timezone"] = re.split(r"=", data2)[-1]
+
+            if sys_time_kws[2] in data2:             # 提取Summertime参数
+                rsv_kws["sys_time_setting_focus_pos"] = "Summertime"
+                rsv_kws["sys_time_summertime"] = re.split(r"=", data2)[-1]
+
             if event_invalid_msg[0] in data2:
                 # state["event_no_channel_msg_state"] = True
                 rsv_kws["event_invalid_msg"] = data2
@@ -1715,117 +2310,144 @@ def receive_serial_process(prs_data, infrared_send_cmd, rsv_kws, state, channel_
 
 if __name__ == "__main__":
 
-    # TEST_CASE_INFO = ["00", "GX", "TV", "Play", "Once", "Expired", "EPG", "epg_test_numb"]
-    # TEST_CASE_INFO = ["01", "GX", "TV", "Play", "Once", "OutOfSaveTimeRange", "Timer",
-    # "Boundary_before_upper_limit", "ZeroTimezone", "epg_test_numb"]
-
     choice_case_numb = int(sys.argv[1])
     # # choice_case_numb = 0
     TEST_CASE_INFO = invalid_res_case[choice_case_numb]
     print(TEST_CASE_INFO)
 
-    GL = MyGlobal()
-    logging_info_setting()
-    msg = ''
+    msg_info = ''
     if TEST_CASE_INFO[6] == "EPG":
-        msg = "现在开始执行的是:{}_{}_{}_{}_{}_{}_{}".format(
+        msg_info = "现在开始执行的是:{}_{}_{}_{}_{}_{}_{}".format(
             TEST_CASE_INFO[0], TEST_CASE_INFO[1], TEST_CASE_INFO[2],
             TEST_CASE_INFO[3], TEST_CASE_INFO[4], TEST_CASE_INFO[5], TEST_CASE_INFO[6])
     elif TEST_CASE_INFO[6] == "Timer":
-        msg = "现在开始执行的是:{}_{}_{}_{}_{}_{}_{}_{}_{}".format(
+        msg_info = "现在开始执行的是:{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format(
             TEST_CASE_INFO[0], TEST_CASE_INFO[1], TEST_CASE_INFO[2],
             TEST_CASE_INFO[3], TEST_CASE_INFO[4], TEST_CASE_INFO[5],
-            TEST_CASE_INFO[6], TEST_CASE_INFO[7], TEST_CASE_INFO[8])
-    logging.critical(format(msg, '*^150'))
-    KEY = {
-        "POWER": "A1 F1 22 DD 0A", "TV/R": "A1 F1 22 DD 42", "MUTE": "A1 F1 22 DD 10",
-        "1": "A1 F1 22 DD 01", "2": "A1 F1 22 DD 02", "3": "A1 F1 22 DD 03",
-        "4": "A1 F1 22 DD 04", "5": "A1 F1 22 DD 05", "6": "A1 F1 22 DD 06",
-        "7": "A1 F1 22 DD 07", "8": "A1 F1 22 DD 08", "9": "A1 F1 22 DD 09",
-        "FAV": "A1 F1 22 DD 1E", "0": "A1 F1 22 DD 00", "SAT": "A1 F1 22 DD 16",
-        "MENU": "A1 F1 22 DD 0C", "EPG": "A1 F1 22 DD 0E", "INFO": "A1 F1 22 DD 1F", "EXIT": "A1 F1 22 DD 0D",
-        "UP": "A1 F1 22 DD 11", "DOWN": "A1 F1 22 DD 14",
-        "LEFT": "A1 F1 22 DD 12", "RIGHT": "A1 F1 22 DD 13", "OK": "A1 F1 22 DD 15",
-        "P/N": "A1 F1 22 DD 0F", "SLEEP": "A1 F1 22 DD 17", "PAGE_UP": "A1 F1 22 DD 41", "PAGE_DOWN": "A1 F1 22 DD 18",
-        "RED": "A1 F1 22 DD 19", "GREEN": "A1 F1 22 DD 1A", "YELLOW": "A1 F1 22 DD 1B", "BLUE": "A1 F1 22 DD 1C",
-        "F1": "A1 F1 22 DD 46", "F2": "A1 F1 22 DD 45", "F3": "A1 F1 22 DD 44", "RECALL": "A1 F1 22 DD 43",
-        "REWIND": "A1 F1 22 DD 1D", "FF": "A1 F1 22 DD 47", "PLAY": "A1 F1 22 DD 0B", "RECORD": "A1 F1 22 DD 40",
-        "PREVIOUS": "A1 F1 22 DD 4A", "NEXT": "A1 F1 22 DD 49", "TIME_SHIFT": "A1 F1 22 DD 48", "STOP": "A1 F1 22 DD 4D"
-    }
-    REVERSE_KEY = dict((val, key) for key, val in KEY.items())
+            TEST_CASE_INFO[6], TEST_CASE_INFO[7], TEST_CASE_INFO[8], TEST_CASE_INFO[9])
+    try:
+        # TEST_CASE_INFO = ["00", "GX", "TV", "Play", "Once", "Expired", "EPG", "epg_test_numb"]
+        # TEST_CASE_INFO = ["01", "GX", "TV", "Play", "Once", "OutOfSaveTimeRange", "Timer",
+        # "Boundary_before_upper_limit", "ZeroTimezone", "epg_test_numb"]
 
-    file_path = build_log_and_report_file_path()
-    ser_name = list(check_ports())  # send_ser_name, receive_ser_name
-    send_serial = serial.Serial(ser_name[0], 9600)
-    receive_ser_name = ser_name[1]
+        GL = MyGlobal()
+        logging_info_setting()
 
-    infrared_send_cmd = Manager().list([])
-    receive_cmd_list = Manager().list([])
-    channel_info = Manager().list(['', '', '', '', '', '', '', ''])     # [频道号,频道名称,tp,lock,scramble,频道类型,组别,epg_info]
-    ch_epg_info = Manager().list(['', '', ''])          # 单个EPG信息的提取[event_start_time, event_end_time, event_name]
-    rsv_kws = Manager().dict({
-        "sys_time_mode": '', "current_sys_time": '', "res_event_numb": '', "prog_group_name": '',
-        "prog_group_total": '', "edit_event_focus_pos": '', "edit_event_mode": '', "edit_event_type": '',
-        "edit_event_date": '', "edit_event_time": '', "edit_event_duration": '', "edit_event_ch": '',
-        "res_triggered_sys_time": '', "event_invalid_msg": '',
-    })
+        logging.critical(format(msg_info, '*^150'))
+        KEY = {
+            "POWER": "A1 F1 22 DD 0A", "TV/R": "A1 F1 22 DD 42", "MUTE": "A1 F1 22 DD 10",
+            "1": "A1 F1 22 DD 01", "2": "A1 F1 22 DD 02", "3": "A1 F1 22 DD 03",
+            "4": "A1 F1 22 DD 04", "5": "A1 F1 22 DD 05", "6": "A1 F1 22 DD 06",
+            "7": "A1 F1 22 DD 07", "8": "A1 F1 22 DD 08", "9": "A1 F1 22 DD 09",
+            "FAV": "A1 F1 22 DD 1E", "0": "A1 F1 22 DD 00", "SAT": "A1 F1 22 DD 16",
+            "MENU": "A1 F1 22 DD 0C", "EPG": "A1 F1 22 DD 0E", "INFO": "A1 F1 22 DD 1F", "EXIT": "A1 F1 22 DD 0D",
+            "UP": "A1 F1 22 DD 11", "DOWN": "A1 F1 22 DD 14",
+            "LEFT": "A1 F1 22 DD 12", "RIGHT": "A1 F1 22 DD 13", "OK": "A1 F1 22 DD 15",
+            "P/N": "A1 F1 22 DD 0F", "SLEEP": "A1 F1 22 DD 17",
+            "PAGE_UP": "A1 F1 22 DD 41", "PAGE_DOWN": "A1 F1 22 DD 18",
+            "RED": "A1 F1 22 DD 19", "GREEN": "A1 F1 22 DD 1A", "YELLOW": "A1 F1 22 DD 1B", "BLUE": "A1 F1 22 DD 1C",
+            "F1": "A1 F1 22 DD 46", "F2": "A1 F1 22 DD 45", "F3": "A1 F1 22 DD 44", "RECALL": "A1 F1 22 DD 43",
+            "REWIND": "A1 F1 22 DD 1D", "FF": "A1 F1 22 DD 47", "PLAY": "A1 F1 22 DD 0B", "RECORD": "A1 F1 22 DD 40",
+            "PREVIOUS": "A1 F1 22 DD 4A", "NEXT": "A1 F1 22 DD 49",
+            "TIME_SHIFT": "A1 F1 22 DD 48", "STOP": "A1 F1 22 DD 4D"
+        }
+        REVERSE_KEY = dict((val, key) for key, val in KEY.items())
 
-    rsv_info = Manager().dict({
-        "prog_group_name": '', "prog_group_total": '', "epg_info_exist": '', "sys_time_mode": '',
-    })
+        file_path = build_log_and_report_file_path()
+        ser_name = list(check_ports())  # send_ser_name, receive_ser_name
+        send_serial = serial.Serial(ser_name[0], 9600)
+        receive_ser_name = ser_name[1]
 
-    state = Manager().dict({
-        "receive_loop_state": False, "sys_time_mode_state": False, "clear_channel_info_state": False,
-        "send_commd_state": True, "clear_ch_epg_info_state": False, "send_left_cmd_state": False,
-        "send_right_cmd_state": False, "res_event_numb_state": False,
-    })
-    prs_data = Manager().dict({
-        "log_file_path": file_path[0], "receive_serial_name": receive_ser_name,
-    })
+        infrared_send_cmd = Manager().list([])
+        receive_cmd_list = Manager().list([])
+        # [频道号,频道名称,tp,lock,scramble,频道类型,组别,epg_info]
+        channel_info = Manager().list(['', '', '', '', '', '', '', ''])
+        ch_epg_info = Manager().list(['', '', ''])  # 单个EPG信息的提取[event_start_time, event_end_time, event_name]
+        rsv_kws = Manager().dict({
+            "sys_time_mode": '', "current_sys_time": '', "res_event_numb": '', "prog_group_name": '',
+            "prog_group_total": '', "edit_event_focus_pos": '', "edit_event_mode": '', "edit_event_type": '',
+            "edit_event_date": '', "edit_event_time": '', "edit_event_duration": '', "edit_event_ch": '',
+            "res_triggered_sys_time": '', "event_invalid_msg": '', "sys_time_setting_focus_pos": '',
+            "sys_time_timezone": '', "sys_time_summertime": ''
+        })
 
-    rsv_p = Process(target=receive_serial_process, args=(
-        prs_data, infrared_send_cmd, rsv_kws, state, channel_info, rsv_info, ch_epg_info, receive_cmd_list))
-    rsv_p.start()
+        rsv_info = Manager().dict({
+            "prog_group_name": '', "prog_group_total": '', "epg_info_exist": '', "sys_time_mode": '',
+        })
 
-    if platform.system() == "Windows":
-        time.sleep(5)
-        logging.info("Windows系统接收端响应慢，等待5秒")
-    elif platform.system() == "Linux":
-        time.sleep(1)
-        logging.info("Linux系统接收端响应快，但是增加一个延时保护，等待1秒")
+        state = Manager().dict({
+            "receive_loop_state": False, "sys_time_mode_state": False, "clear_channel_info_state": False,
+            "send_commd_state": True, "clear_ch_epg_info_state": False, "send_left_cmd_state": False,
+            "send_right_cmd_state": False, "res_event_numb_state": False,
+        })
+        prs_data = Manager().dict({
+            "log_file_path": file_path[0], "receive_serial_name": receive_ser_name,
+        })
 
-    # 主程序开始部分
-    clear_timer_setting_all_events()
-    check_sys_time_auto_mode()
-    get_group_channel_total_info()
-    check_epg_info_already_show()
-    check_sys_time_manual_mode()
-    get_choice_group_ch_type()
-    if TEST_CASE_INFO[6] == "EPG":
-        while GL.case_testing_times > 0:
-            choice_test_channel()
-            check_epg_info_already_show()
-            get_sys_time_info()
-            check_preparatory_work()
-            send_test_case_commd()
-            check_event_numb()
-            padding_report_data()
-            write_data_to_report()
-            before_cycle_test_clear_data_and_state()
+        rsv_p = Process(target=receive_serial_process, args=(
+            prs_data, infrared_send_cmd, rsv_kws, state, channel_info, rsv_info, ch_epg_info, receive_cmd_list))
+        rsv_p.start()
 
-    elif TEST_CASE_INFO[6] == "Timer":
-        while GL.case_testing_times > 0:
+        if platform.system() == "Windows":
+            time.sleep(5)
+            logging.info("Windows系统接收端响应慢，等待5秒")
+        elif platform.system() == "Linux":
+            time.sleep(1)
+            logging.info("Linux系统接收端响应快，但是增加一个延时保护，等待1秒")
+
+        # 主程序开始部分
+        if TEST_CASE_INFO[6] == "EPG":
+            clear_timer_setting_all_events()
+            check_sys_time_auto_mode()
             set_timezone_and_summertime()
-            choice_test_channel()
-            check_preparatory_work()
-            send_test_case_commd()
-            check_event_numb()
-            padding_report_data()
-            write_data_to_report()
-            before_cycle_test_clear_data_and_state()
+            get_group_channel_total_info()
+            check_epg_info_already_show()
+            check_sys_time_manual_mode()
+            get_choice_group_ch_type()
 
-    if state["receive_loop_state"]:
-        rsv_p.terminate()
-        logging.info("程序结束")
-        logging.info('stop receive process')
-        rsv_p.join()
+            while GL.case_testing_times > 0:
+                choice_test_channel()
+                check_epg_info_already_show()
+                get_sys_time_info()
+                check_preparatory_work()
+                send_test_case_commd()
+                check_event_numb()
+                padding_report_data()
+                write_data_to_report()
+                before_cycle_test_clear_data_and_state()
+
+        elif TEST_CASE_INFO[6] == "Timer":
+            clear_timer_setting_all_events()
+            check_sys_time_auto_mode()
+            set_timezone_and_summertime()
+            get_group_channel_total_info()
+            check_epg_info_already_show()
+            check_sys_time_manual_mode()
+            get_choice_group_ch_type()
+            while GL.case_testing_times > 0:
+                choice_test_channel()
+                check_preparatory_work()
+                send_test_case_commd()
+                check_event_numb()
+                padding_report_data()
+                write_data_to_report()
+                before_cycle_test_clear_data_and_state()
+
+        if state["receive_loop_state"]:
+            rsv_p.terminate()
+            logging.info("程序结束")
+            logging.info('stop receive process')
+            rsv_p.join()
+    except Exception as e:
+        print(e)
+        ret = mail(f"{msg_info}\n\n{traceback.format_exc()}")
+        if ret:
+            print("邮件发送成功")
+        else:
+            print("邮件发送失败")
+
+        print("***traceback.format_exc():*** ")
+        time.sleep(1)
+        print(traceback.format_exc())
+        time.sleep(2)
+        # raise
