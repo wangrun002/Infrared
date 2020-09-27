@@ -115,26 +115,25 @@ def write_log_data_to_txt(path, write_data):
 def send_cmd(command):
     global receive_cmd_list, infrared_send_cmd
     # 红外发送端发送指令
+    send_serial.write(hex_strs_to_bytes(command))
+    send_serial.flush()
+    logging.info("红外发送：{}".format(REVERSE_KEY[command]))
+    if REVERSE_KEY[command] != "POWER":
+        infrared_send_cmd.append(REVERSE_KEY[command])
+    time.sleep(1.0)
     if len(infrared_send_cmd) == len(receive_cmd_list):
-        send_serial.write(hex_strs_to_bytes(command))
-        send_serial.flush()
-        logging.info("红外发送：{}".format(REVERSE_KEY[command]))
-        if REVERSE_KEY[command] != "POWER":
-            infrared_send_cmd.append(REVERSE_KEY[command])
-        time.sleep(1.0)
+        pass
     elif len(infrared_send_cmd) != len(receive_cmd_list):
-        logging.info("检测到发送和接收命令数不一致，等待5秒，查看是否接收端还没有接收到打印")
-        time.sleep(5)
-        if len(infrared_send_cmd) == len(receive_cmd_list):
-            send_cmd(command)
-        elif len(infrared_send_cmd) != len(receive_cmd_list):
-            logging.info(f"此刻补发STB没有接收到的红外命令{infrared_send_cmd[-1]}")
-            send_serial.write(hex_strs_to_bytes(KEY[infrared_send_cmd[-1]]))
-            send_serial.flush()
-            time.sleep(1.0)
-
-            logging.info(f"此时再发送本次要发送的命令{REVERSE_KEY[command]}")
-            send_cmd(command)
+        logging.info("检测到发送和接收命令数不一致，等待2秒，查看是否接收端还没有接收到打印")
+        time.sleep(2)
+        while True:
+            if len(infrared_send_cmd) == len(receive_cmd_list):
+                break
+            elif len(infrared_send_cmd) != len(receive_cmd_list):
+                logging.info(f"此刻补发STB没有接收到的红外命令{infrared_send_cmd[-1]}")
+                send_serial.write(hex_strs_to_bytes(KEY[infrared_send_cmd[-1]]))
+                send_serial.flush()
+                time.sleep(1.0)
 
 
 def send_more_cmds(command_list):
@@ -1980,7 +1979,7 @@ def receive_serial_process(
                     res_event_list.append(event_info)
 
             if switch_ch_kws[0] in data2:
-                ch_info_split = re.split(r"[\],]", data2)
+                ch_info_split = re.split(r"[],]", data2)
                 for i in range(len(ch_info_split)):
                     if ch_info_kws[0] in ch_info_split[i]:  # 提取频道号
                         channel_info[0] = re.split("=", ch_info_split[i])[-1]
@@ -1988,7 +1987,7 @@ def receive_serial_process(
                         channel_info[1] = re.split("=", ch_info_split[i])[-1]
 
             if switch_ch_kws[1] in data2:
-                flag_info_split = re.split(r"[\],]", data2)
+                flag_info_split = re.split(r"[],]", data2)
                 for i in range(len(flag_info_split)):
                     if ch_info_kws[2] in flag_info_split[i]:  # 提取频道所属TP
                         channel_info[2] = re.split(r"=", flag_info_split[i])[-1].replace(" ", "")
@@ -2000,7 +1999,7 @@ def receive_serial_process(
                         channel_info[5] = re.split(r"=", flag_info_split[i])[-1]
 
             if switch_ch_kws[3] in data2:
-                group_info_split = re.split(r"[\],]", data2)
+                group_info_split = re.split(r"[],]", data2)
                 for i in range(len(group_info_split)):
                     if group_info_kws[0] in group_info_split[i]:  # 提取频道所属组别
                         rsv_kws["prog_group_name"] = re.split(r"=", group_info_split[i])[-1]
