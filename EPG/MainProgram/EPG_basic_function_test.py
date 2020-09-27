@@ -78,27 +78,25 @@ def write_log_data_to_txt(path, write_data):
 def send_commd(commd):
     global receive_cmd_list, infrared_send_cmd
     # 红外发送端发送指令
+    send_serial.write(hex_strs_to_bytes(commd))
+    send_serial.flush()
+    logging.info("红外发送：{}".format(REVERSE_KEY[commd]))
+    if REVERSE_KEY[commd] != "POWER":
+        infrared_send_cmd.append(REVERSE_KEY[commd])
+    time.sleep(1.0)
     if len(infrared_send_cmd) == len(receive_cmd_list):
-        send_serial.write(hex_strs_to_bytes(commd))
-        send_serial.flush()
-        logging.info("红外发送：{}".format(REVERSE_KEY[commd]))
-        if REVERSE_KEY[commd] != "POWER":
-            infrared_send_cmd.append(REVERSE_KEY[commd])
-        time.sleep(1.0)
+        pass
     elif len(infrared_send_cmd) != len(receive_cmd_list):
-        logging.info("检测到发送和接收命令数不一致，等待5秒，查看是否接收端还没有接收到打印")
-        time.sleep(5)
-        if len(infrared_send_cmd) == len(receive_cmd_list):
-            send_commd(commd)
-        # elif len(infrared_send_cmd) - len(receive_cmd_list) == 1:
-        elif len(infrared_send_cmd) != len(receive_cmd_list):
-            logging.info(f"此刻补发STB没有接收到的红外命令{infrared_send_cmd[-1]}")
-            send_serial.write(hex_strs_to_bytes(KEY[infrared_send_cmd[-1]]))
-            send_serial.flush()
-            time.sleep(1.0)
-
-            logging.info(f"此时再发送本次要发送的命令{REVERSE_KEY[commd]}")
-            send_commd(commd)
+        logging.info("检测到发送和接收命令数不一致，等待2秒，查看是否接收端还没有接收到打印")
+        time.sleep(2)
+        while True:
+            if len(infrared_send_cmd) == len(receive_cmd_list):
+                break
+            elif len(infrared_send_cmd) != len(receive_cmd_list):
+                logging.info(f"此刻补发STB没有接收到的红外命令{infrared_send_cmd[-1]}")
+                send_serial.write(hex_strs_to_bytes(KEY[infrared_send_cmd[-1]]))
+                send_serial.flush()
+                time.sleep(1.0)
 
 
 def send_random_commd(commd):
