@@ -26,7 +26,7 @@ class MyGlobal(object):
 
     def __init__(self):
         if TEST_CASE_INFO[-1] == "epg_test_numb":
-            self.case_testing_times = 2
+            self.case_testing_times = 1
 
         self.TV_channel_groups = {}                     # 存放电视节目的组别和节目数信息
         self.Radio_channel_groups = {}                  # 存放广播节目的组别和节目数信息
@@ -240,6 +240,7 @@ def get_sys_time_info():
 
 def set_timezone_and_summertime():
     logging.info("set_timezone_and_summertime")
+    state_save_prompt_box_jump = False
     other_timezone = [
         '0.5', '1', '1.5', '2', '2.5', '3', '3.5', '4', '4.5', '5', '5.5', '6', '6.5', '7', '7.5', '8', '8.5', '9',
         '9.5', '10', '10.5', '11', '11.5', '12',
@@ -265,6 +266,7 @@ def set_timezone_and_summertime():
     else:
         while rsv_kws["sys_time_mode"] != "Auto":
             logging.info(f'Mode参数与预期不符:{rsv_kws["sys_time_mode"]}--Auto')
+            state_save_prompt_box_jump = True
             send_commd(KEY["RIGHT"])
         else:
             logging.info(f'Mode参数与预期相符:{rsv_kws["sys_time_mode"]}--Auto')
@@ -280,6 +282,7 @@ def set_timezone_and_summertime():
                 while rsv_kws["sys_time_timezone"] != GL.choice_timezone:
                     logging.info(f'Timezone参数与预期不符:{rsv_kws["sys_time_timezone"]}--{GL.choice_timezone}')
                     logging.info(f'当前时区为：{rsv_kws["sys_time_timezone"]}，预期时区为：{GL.choice_timezone}')
+                    state_save_prompt_box_jump = True
                     cur_tz_pos = timezone.index(rsv_kws["sys_time_timezone"])
                     expected_tz_pos = timezone.index(GL.choice_timezone)
                     logging.info(f"当前时区的位置为：{cur_tz_pos}，预期时区的位置为：{expected_tz_pos}")
@@ -318,6 +321,7 @@ def set_timezone_and_summertime():
                 while rsv_kws["sys_time_timezone"] != GL.choice_timezone:
                     logging.info(f'Timezone参数与预期不符:{rsv_kws["sys_time_timezone"]}--{GL.choice_timezone}')
                     logging.info(f'当前时区为：{rsv_kws["sys_time_timezone"]}，预期时区为：{GL.choice_timezone}')
+                    state_save_prompt_box_jump =True
                     cur_tz_pos = timezone.index(rsv_kws["sys_time_timezone"])
                     expected_tz_pos = timezone.index(GL.choice_timezone)
                     logging.info(f"当前时区的位置为：{cur_tz_pos}，预期时区的位置为：{expected_tz_pos}")
@@ -356,6 +360,7 @@ def set_timezone_and_summertime():
             while rsv_kws["sys_time_timezone"] != GL.choice_timezone:
                 logging.info(f'Timezone参数与预期不符:{rsv_kws["sys_time_timezone"]}--{GL.choice_timezone}')
                 logging.info(f'当前时区为：{rsv_kws["sys_time_timezone"]}，预期时区为：{GL.choice_timezone}')
+                state_save_prompt_box_jump = True
                 cur_tz_pos = timezone.index(rsv_kws["sys_time_timezone"])
                 expected_tz_pos = timezone.index(GL.choice_timezone)
                 logging.info(f"当前时区的位置为：{cur_tz_pos}，预期时区的位置为：{expected_tz_pos}")
@@ -397,12 +402,14 @@ def set_timezone_and_summertime():
             if TEST_CASE_INFO[9] == "NoSummertime":
                 while rsv_kws["sys_time_summertime"] != "Off":
                     logging.info(f'Summertime参数与预期不符:{rsv_kws["sys_time_summertime"]}--Off')
+                    state_save_prompt_box_jump = True
                     send_commd(KEY["RIGHT"])
                 else:
                     logging.info(f'Summertime参数与预期相符:{rsv_kws["sys_time_summertime"]}--Off')
             elif TEST_CASE_INFO[9] == "Summertime":
                 while rsv_kws["sys_time_summertime"] != "On":
                     logging.info(f'Summertime参数与预期不符:{rsv_kws["sys_time_summertime"]}--On')
+                    state_save_prompt_box_jump = True
                     send_commd(KEY["RIGHT"])
                 else:
                     logging.info(f'Summertime参数与预期相符:{rsv_kws["sys_time_summertime"]}--On')
@@ -410,13 +417,19 @@ def set_timezone_and_summertime():
         elif TEST_CASE_INFO[6] == "EPG":
             while rsv_kws["sys_time_summertime"] != "Off":
                 logging.info(f'Summertime参数与预期不符:{rsv_kws["sys_time_summertime"]}--Off')
+                state_save_prompt_box_jump = True
                 send_commd(KEY["RIGHT"])
             else:
                 logging.info(f'Summertime参数与预期相符:{rsv_kws["sys_time_summertime"]}--Off')
 
     # 退出保存
-    send_commd(KEY["EXIT"])
-    send_commd(KEY["OK"])
+    if state_save_prompt_box_jump:  # 假如Mode、Timezone、Summertime有任意一项参数与预期不同，就会跳保存提示框
+        logging.info("Mode、Timezone、Summertime有参数与预期不同，会跳保存提示框")
+        send_commd(KEY["EXIT"])
+        send_commd(KEY["OK"])
+    else:       # 假如Mode、Timezone、Summertime所有参数都与预期相同，不会跳保存提示框
+        logging.info("Mode、Timezone、Summertime所有参数与预期相同，不会跳保存提示框")
+        send_commd(KEY["EXIT"])
     # 退回大画面
     exit_to_screen()
 
@@ -683,6 +696,17 @@ def calculate_str_time_to_fmt_time(str_time, interval_time):
         fmt_hour = int(deal_str_time[8:10])
         fmt_minute = int(deal_str_time[10:12])
         fmt_date = datetime(fmt_year, fmt_month, fmt_day, fmt_hour, fmt_minute)
+        new_fmt_date = fmt_date + timedelta(minutes=interval_time)
+        new_fmt_date_split = re.split(r"[-\s:]", str(new_fmt_date))
+        str_new_fmt_date = ''.join(new_fmt_date_split)[:12]     # 去掉末尾的秒钟信息
+    elif len(deal_str_time) == 14:     # once事件时间计算
+        fmt_year = int(deal_str_time[:4])
+        fmt_month = int(deal_str_time[4:6])
+        fmt_day = int(deal_str_time[6:8])
+        fmt_hour = int(deal_str_time[8:10])
+        fmt_minute = int(deal_str_time[10:12])
+        fmt_second = int(deal_str_time[12:14])
+        fmt_date = datetime(fmt_year, fmt_month, fmt_day, fmt_hour, fmt_minute, fmt_second)
         new_fmt_date = fmt_date + timedelta(minutes=interval_time)
         new_fmt_date_split = re.split(r"[-\s:]", str(new_fmt_date))
         str_new_fmt_date = ''.join(new_fmt_date_split)[:12]     # 去掉末尾的秒钟信息
@@ -1935,13 +1959,14 @@ def write_data_to_report():
                         str_event_start_time = fmt_time_to_str_time(event_start_time)
                         datetime_event_start_time = str_time_to_datetime_time(str_event_start_time)
                         datetime_sys_time = str_time_to_datetime_time(GL.report_data[d])
+                        logging.info(f"系统时间{datetime_sys_time}--事件时间{datetime_event_start_time}")
                         if datetime_sys_time > datetime_event_start_time:
                             ws.cell(max_row + 1, d + 1).font = blue_font
                         else:
                             ws.cell(max_row + 1, d + 1).font = red_font
                     elif TEST_CASE_INFO[5] == "NowPlaying":
                         str_event_start_time = fmt_time_to_str_time(GL.report_data[4][0])
-                        if GL.report_data[d] == str_event_start_time:
+                        if GL.report_data[d][:16] == str_event_start_time:
                             ws.cell(max_row + 1, d + 1).font = blue_font
                         else:
                             ws.cell(max_row + 1, d + 1).font = red_font
