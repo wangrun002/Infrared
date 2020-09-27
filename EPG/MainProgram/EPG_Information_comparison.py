@@ -9,7 +9,7 @@ from openpyxl.styles import Alignment, Font
 from openpyxl.styles.colors import RED, BLUE
 from openpyxl.utils import get_column_letter, column_index_from_string
 from datetime import datetime
-from random import sample, uniform, randint
+# from random import sample, uniform, randint
 import platform
 import os
 import time
@@ -80,15 +80,11 @@ def send_commd(commd):
         while True:
             if len(infrared_send_cmd) == len(receive_cmd_list):
                 break
-            # elif len(infrared_send_cmd) - len(receive_cmd_list) == 1:
             elif len(infrared_send_cmd) != len(receive_cmd_list):
                 logging.info(f"此刻补发STB没有接收到的红外命令{infrared_send_cmd[-1]}")
                 send_serial.write(hex_strs_to_bytes(KEY[infrared_send_cmd[-1]]))
                 send_serial.flush()
                 time.sleep(1.0)
-
-                # logging.info(f"此时再发送本次要发送的命令{REVERSE_KEY[commd]}")
-                # send_commd(commd)
 
 
 def send_random_commd(commd):
@@ -205,6 +201,90 @@ def check_sys_time_manual_mode():
         else:
             logging.debug("警告：系统时间模式获取错误！！！")
         state["sys_time_mode_state"] = False
+    # 退回大画面
+    exit_to_screen()
+
+
+def set_timezone_and_summertime():
+    logging.info("set_timezone_and_summertime")
+    timezone = [
+        '-12', '-11.5', '-11', '-10.5', '-10', '-9.5', '-9', '-8.5', '-8', '-7.5', '-7', '-6.5', '-6', '-5.5', '-5',
+        '-4.5', '-4', '-3.5', '-3', '-2.5', '-2', '-1.5', '-1', '-0.5', '0',
+        '0.5', '1', '1.5', '2', '2.5', '3', '3.5', '4', '4.5', '5', '5.5', '6', '6.5', '7', '7.5', '8', '8.5', '9',
+        '9.5', '10', '10.5', '11', '11.5', '12'
+    ]
+    enter_time_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["OK"]]
+    send_more_commds(enter_time_setting_interface)
+    # 检查是否进入到Time setting界面
+    while rsv_info["sys_time_setting_focus_pos"] == "":
+        time.sleep(2)  # 用于还没有进入和接收到焦点关键字时加的延时
+    # 设置Mode参数
+    logging.info("Time Mode")
+    while rsv_info["sys_time_setting_focus_pos"] != "Mode":
+        send_commd(KEY["DOWN"])
+    else:
+        while rsv_info["sys_time_mode"] != "Auto":
+            logging.info(f'Mode参数与预期不符:{rsv_info["sys_time_mode"]}--Auto')
+            send_commd(KEY["RIGHT"])
+        else:
+            logging.info(f'Mode参数与预期相符:{rsv_info["sys_time_mode"]}--Auto')
+            send_commd(KEY["DOWN"])
+    # 设置Timezone参数
+    logging.info("Timezone")
+    while rsv_info["sys_time_setting_focus_pos"] != "Timezone":
+        send_commd(KEY["DOWN"])
+    else:
+        choice_timezone = "0"
+        while rsv_info["sys_time_timezone"] != choice_timezone:
+            logging.info(f'Timezone参数与预期不符:{rsv_info["sys_time_timezone"]}--{choice_timezone}')
+            logging.info(f'当前时区为：{rsv_info["sys_time_timezone"]}，预期时区为：{choice_timezone}')
+            cur_tz_pos = timezone.index(rsv_info["sys_time_timezone"])
+            expected_tz_pos = timezone.index(choice_timezone)
+            logging.info(f"当前时区的位置为：{cur_tz_pos}，预期时区的位置为：{expected_tz_pos}")
+            if cur_tz_pos > expected_tz_pos:
+                left_move_steps = cur_tz_pos - expected_tz_pos
+                right_move_steps = expected_tz_pos + (len(timezone) - cur_tz_pos)
+                logging.info(f"向左移动的步数：{left_move_steps}，向右移动的步数：{right_move_steps}")
+                if left_move_steps > right_move_steps:
+                    logging.info("应该向右移动")
+                    send_commd(KEY["RIGHT"])
+                elif left_move_steps < right_move_steps:
+                    logging.info("应该向左移动")
+                    send_commd(KEY["LEFT"])
+                elif left_move_steps == right_move_steps:
+                    logging.info("向左或向右移动距离相等")
+                    send_commd(KEY["RIGHT"])
+            elif cur_tz_pos < expected_tz_pos:
+                left_move_steps = cur_tz_pos + (len(timezone) - expected_tz_pos)
+                right_move_steps = expected_tz_pos - cur_tz_pos
+                logging.info(f"向左移动的步数：{left_move_steps}，向右移动的步数：{right_move_steps}")
+                if left_move_steps > right_move_steps:
+                    logging.info("应该向右移动")
+                    send_commd(KEY["RIGHT"])
+                elif left_move_steps < right_move_steps:
+                    logging.info("应该向左移动")
+                    send_commd(KEY["LEFT"])
+                elif left_move_steps == right_move_steps:
+                    logging.info("向左或向右移动距离相等")
+                    send_commd(KEY["RIGHT"])
+        else:
+            logging.info(f'Timezone参数与预期相符:{rsv_info["sys_time_timezone"]}--{choice_timezone}')
+            send_commd(KEY["DOWN"])
+
+    # 设置Summertime参数
+    logging.info("Timezone")
+    while rsv_info["sys_time_setting_focus_pos"] != "Summertime":
+        send_commd(KEY["DOWN"])
+    else:
+        while rsv_info["sys_time_summertime"] != "Off":
+            logging.info(f'Summertime参数与预期不符:{rsv_info["sys_time_summertime"]}--Off')
+            send_commd(KEY["RIGHT"])
+        else:
+            logging.info(f'Summertime参数与预期相符:{rsv_info["sys_time_summertime"]}--Off')
+
+    # 退出保存
+    send_commd(KEY["EXIT"])
+    send_commd(KEY["OK"])
     # 退回大画面
     exit_to_screen()
 
@@ -832,6 +912,12 @@ def receive_serial_process(prs_data, infrared_send_cmd, state, channel_info, rsv
         "event_name"
     ]
 
+    sys_time_kws = [
+        "[PTD]Time_mode=",
+        "[PTD]Timezone=",
+        "[PTD]Summertime="
+    ]
+
     other_kws = [
         "[PTD]Infrared_key_values:",    # 获取红外接收关键字
         "[PTD]Time_mode=",              # 获取系统时间模式
@@ -881,7 +967,7 @@ def receive_serial_process(prs_data, infrared_send_cmd, state, channel_info, rsv
                 rsv_info["sys_time_mode"] = re.split(r"=", data2)[-1]
 
             if switch_ch_kws[0] in data2:
-                ch_info_split = re.split(r"[\],]", data2)
+                ch_info_split = re.split(r"[],]", data2)
                 for i in range(len(ch_info_split)):
                     if ch_info_kws[0] in ch_info_split[i]:  # 提取频道号
                         channel_info[0] = re.split("=", ch_info_split[i])[-1]
@@ -889,7 +975,7 @@ def receive_serial_process(prs_data, infrared_send_cmd, state, channel_info, rsv
                         channel_info[1] = re.split("=", ch_info_split[i])[-1]
 
             if switch_ch_kws[1] in data2:
-                flag_info_split = re.split(r"[\],]", data2)
+                flag_info_split = re.split(r"[],]", data2)
                 for i in range(len(flag_info_split)):
                     if ch_info_kws[2] in flag_info_split[i]:  # 提取频道所属TP
                         channel_info[2] = re.split(r"=", flag_info_split[i])[-1].replace(" ", "")
@@ -901,7 +987,7 @@ def receive_serial_process(prs_data, infrared_send_cmd, state, channel_info, rsv
                         channel_info[5] = re.split(r"=", flag_info_split[i])[-1]
 
             if switch_ch_kws[3] in data2:
-                group_info_split = re.split(r"[\],]", data2)
+                group_info_split = re.split(r"[],]", data2)
                 for i in range(len(group_info_split)):
                     if group_info_kws[0] in group_info_split[i]:  # 提取频道所属组别
                         rsv_info["prog_group_name"] = re.split(r"=", group_info_split[i])[-1]
@@ -939,6 +1025,18 @@ def receive_serial_process(prs_data, infrared_send_cmd, state, channel_info, rsv
                 ch_epg_info[1] = time_info_split[1]
                 ch_epg_info[2] = epg_event_split[-1]
 
+            if sys_time_kws[0] in data2:             # 提取System_mode参数
+                rsv_info["sys_time_setting_focus_pos"] = "Mode"
+                rsv_info["sys_time_mode"] = re.split(r"=", data2)[-1]
+
+            if sys_time_kws[1] in data2:             # 提取Timezone参数
+                rsv_info["sys_time_setting_focus_pos"] = "Timezone"
+                rsv_info["sys_time_timezone"] = re.split(r"=", data2)[-1]
+
+            if sys_time_kws[2] in data2:             # 提取Summertime参数
+                rsv_info["sys_time_setting_focus_pos"] = "Summertime"
+                rsv_info["sys_time_summertime"] = re.split(r"=", data2)[-1]
+
 
 if __name__ == "__main__":
 
@@ -975,6 +1073,7 @@ if __name__ == "__main__":
     ch_epg_info = Manager().list(['', '', ''])                          # 单个EPG信息的提取[event_date, event_time, event_name]
     rsv_info = Manager().dict({
         "prog_group_name": '', "prog_group_total": '', "epg_info_exist": '', "sys_time_mode": '',
+        "sys_time_setting_focus_pos": '', "sys_time_timezone": '', "sys_time_summertime": ''
     })
 
     state = Manager().dict({
@@ -999,6 +1098,7 @@ if __name__ == "__main__":
 
     # 主程序开始部分
     check_sys_time_auto_mode()
+    set_timezone_and_summertime()
     if TEST_CASE_INFO[4] == "EPGEventComparison":
         get_group_channel_total_info()
         get_choice_group_ch_type()
