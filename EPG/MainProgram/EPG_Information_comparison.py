@@ -207,6 +207,7 @@ def check_sys_time_manual_mode():
 
 def set_timezone_and_summertime():
     logging.info("set_timezone_and_summertime")
+    state_save_prompt_box_jump = False
     timezone = [
         '-12', '-11.5', '-11', '-10.5', '-10', '-9.5', '-9', '-8.5', '-8', '-7.5', '-7', '-6.5', '-6', '-5.5', '-5',
         '-4.5', '-4', '-3.5', '-3', '-2.5', '-2', '-1.5', '-1', '-0.5', '0',
@@ -225,6 +226,7 @@ def set_timezone_and_summertime():
     else:
         while rsv_info["sys_time_mode"] != "Auto":
             logging.info(f'Mode参数与预期不符:{rsv_info["sys_time_mode"]}--Auto')
+            state_save_prompt_box_jump = True
             send_commd(KEY["RIGHT"])
         else:
             logging.info(f'Mode参数与预期相符:{rsv_info["sys_time_mode"]}--Auto')
@@ -238,6 +240,7 @@ def set_timezone_and_summertime():
         while rsv_info["sys_time_timezone"] != choice_timezone:
             logging.info(f'Timezone参数与预期不符:{rsv_info["sys_time_timezone"]}--{choice_timezone}')
             logging.info(f'当前时区为：{rsv_info["sys_time_timezone"]}，预期时区为：{choice_timezone}')
+            state_save_prompt_box_jump = True
             cur_tz_pos = timezone.index(rsv_info["sys_time_timezone"])
             expected_tz_pos = timezone.index(choice_timezone)
             logging.info(f"当前时区的位置为：{cur_tz_pos}，预期时区的位置为：{expected_tz_pos}")
@@ -278,13 +281,19 @@ def set_timezone_and_summertime():
     else:
         while rsv_info["sys_time_summertime"] != "Off":
             logging.info(f'Summertime参数与预期不符:{rsv_info["sys_time_summertime"]}--Off')
+            state_save_prompt_box_jump = True
             send_commd(KEY["RIGHT"])
         else:
             logging.info(f'Summertime参数与预期相符:{rsv_info["sys_time_summertime"]}--Off')
 
     # 退出保存
-    send_commd(KEY["EXIT"])
-    send_commd(KEY["OK"])
+    if state_save_prompt_box_jump:  # 假如Mode、Timezone、Summertime有任意一项参数与预期不同，就会跳保存提示框
+        logging.info("Mode、Timezone、Summertime有参数与预期不同，会跳保存提示框")
+        send_commd(KEY["EXIT"])
+        send_commd(KEY["OK"])
+    else:  # 假如Mode、Timezone、Summertime所有参数都与预期相同，不会跳保存提示框
+        logging.info("Mode、Timezone、Summertime所有参数与预期相同，不会跳保存提示框")
+        send_commd(KEY["EXIT"])
     # 退回大画面
     exit_to_screen()
 
