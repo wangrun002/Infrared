@@ -77,27 +77,26 @@ def write_log_data_to_txt(path, write_data):
 def send_commd(commd):
     global receive_cmd_list, infrared_send_cmd
     # 红外发送端发送指令
+    send_serial.write(hex_strs_to_bytes(commd))
+    send_serial.flush()
+    logging.info("红外发送：{}".format(REVERSE_KEY[commd]))
+    if REVERSE_KEY[commd] != "POWER":
+        infrared_send_cmd.append(REVERSE_KEY[commd])
+    time.sleep(1.0)
     if len(infrared_send_cmd) == len(receive_cmd_list):
-        send_serial.write(hex_strs_to_bytes(commd))
-        send_serial.flush()
-        logging.info("红外发送：{}".format(REVERSE_KEY[commd]))
-        if REVERSE_KEY[commd] != "POWER":
-            infrared_send_cmd.append(REVERSE_KEY[commd])
-        time.sleep(1.0)
+        pass
     elif len(infrared_send_cmd) != len(receive_cmd_list):
-        logging.info("检测到发送和接收命令数不一致，等待5秒，查看是否接收端还没有接收到打印")
-        time.sleep(5)
-        if len(infrared_send_cmd) == len(receive_cmd_list):
-            send_commd(commd)
-        # elif len(infrared_send_cmd) - len(receive_cmd_list) == 1:
-        elif len(infrared_send_cmd) != len(receive_cmd_list):
-            logging.info(f"此刻补发STB没有接收到的红外命令{infrared_send_cmd[-1]}")
-            send_serial.write(hex_strs_to_bytes(KEY[infrared_send_cmd[-1]]))
-            send_serial.flush()
-            time.sleep(1.0)
-
-            logging.info(f"此时再发送本次要发送的命令{REVERSE_KEY[commd]}")
-            send_commd(commd)
+        logging.info("检测到发送和接收命令数不一致，等待2秒，查看是否接收端还没有接收到打印")
+        time.sleep(2)
+        while True:
+            if len(infrared_send_cmd) == len(receive_cmd_list):
+                break
+            # elif len(infrared_send_cmd) - len(receive_cmd_list) == 1:
+            elif len(infrared_send_cmd) != len(receive_cmd_list):
+                logging.info(f"此刻补发STB没有接收到的红外命令{infrared_send_cmd[-1]}")
+                send_serial.write(hex_strs_to_bytes(KEY[infrared_send_cmd[-1]]))
+                send_serial.flush()
+                time.sleep(1.0)
 
 
 def send_more_commds(commd_list):
@@ -1415,9 +1414,9 @@ def write_data_to_excel():
                 standby_dur_minute = int(standby_dur_time_split[1])
                 standby_dur_second = int(standby_dur_time_split[2])
                 standby_dur_time_second = standby_dur_hour * 3600 + standby_dur_minute * 60 + standby_dur_second * 1
-                stb_boot_time = 14
+                stb_boot_time = 15
                 real_standby_dur_time = standby_dur_time_second - stb_boot_time
-                if (60 - 5) <= real_standby_dur_time <= (60 + 5):
+                if (60 - 10) <= real_standby_dur_time <= (60 + 10):
                     ws.cell(max_row + 1, d + len_total).font = blue_font
                 else:
                     ws.cell(max_row + 1, d + len_total).font = red_font
@@ -2040,7 +2039,7 @@ def receive_serial_process(
                 rsv_kws["res_triggered_sys_time"] = ''.join(cur_sys_time_split)
 
             if switch_ch_kws[0] in data2:
-                ch_info_split = re.split(r"[\],]", data2)
+                ch_info_split = re.split(r"[],]", data2)
                 for i in range(len(ch_info_split)):
                     if ch_info_kws[0] in ch_info_split[i]:  # 提取频道号
                         channel_info[0] = re.split("=", ch_info_split[i])[-1]
@@ -2048,7 +2047,7 @@ def receive_serial_process(
                         channel_info[1] = re.split("=", ch_info_split[i])[-1]
 
             if switch_ch_kws[1] in data2:
-                flag_info_split = re.split(r"[\],]", data2)
+                flag_info_split = re.split(r"[],]", data2)
                 for i in range(len(flag_info_split)):
                     if ch_info_kws[2] in flag_info_split[i]:  # 提取频道所属TP
                         channel_info[2] = re.split(r"=", flag_info_split[i])[-1].replace(" ", "")
@@ -2060,7 +2059,7 @@ def receive_serial_process(
                         channel_info[5] = re.split(r"=", flag_info_split[i])[-1]
 
             if switch_ch_kws[3] in data2:
-                group_info_split = re.split(r"[\],]", data2)
+                group_info_split = re.split(r"[],]", data2)
                 for i in range(len(group_info_split)):
                     if group_info_kws[0] in group_info_split[i]:  # 提取频道所属组别
                         rsv_kws["prog_group_name"] = re.split(r"=", group_info_split[i])[-1]
