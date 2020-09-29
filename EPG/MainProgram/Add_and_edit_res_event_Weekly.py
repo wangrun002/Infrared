@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-from serial_setting2 import *
+from serial_setting1 import *
 from multiprocessing import Process, Manager
 from openpyxl import Workbook
 from openpyxl import load_workbook
@@ -11,12 +11,16 @@ from openpyxl.utils import get_column_letter, column_index_from_string
 from openpyxl.comments import Comment
 from datetime import datetime, timedelta, date
 from random import randint, choice
+from email.mime.text import MIMEText
+from email.header import Header
+import smtplib
 import platform
 import os
 import time
 import logging
 import re
 import sys
+import traceback
 
 
 Modify_list = [
@@ -76,6 +80,7 @@ def write_log_data_to_txt(path, write_data):
 
 def send_commd(commd):
     global receive_cmd_list, infrared_send_cmd
+    continuous_transmission_cmd_num = 0
     # 红外发送端发送指令
     send_serial.write(hex_strs_to_bytes(commd))
     send_serial.flush()
@@ -97,6 +102,11 @@ def send_commd(commd):
                 send_serial.write(hex_strs_to_bytes(KEY[infrared_send_cmd[-1]]))
                 send_serial.flush()
                 time.sleep(1.0)
+                continuous_transmission_cmd_num += 1
+                if continuous_transmission_cmd_num == 10:
+                    stb_crash_msg = "STB一直发送指令，疑似死机"
+                    # mail(f'{stb_crash_msg}\n\n{msg}')
+                    raise FailSendCmdException(stb_crash_msg)
 
 
 def send_more_commds(commd_list):
@@ -1816,6 +1826,29 @@ def modify_edit_res_event():
     update_edit_res_event_to_event_mgr_list()
 
 
+def mail(message):
+    my_sender = 'wangrun@nationalchip.com'  # 发件人邮箱账号
+    my_pass = 'Wr@372542098'  # 发件人邮箱密码
+    my_user = 'wangrun@nationalchip.com'  # 收件人邮箱账号，我这边发送给自己
+
+    return_state = True
+    try:
+        msg = MIMEText(message, 'plain', 'utf-8')
+        # msg['From'] = formataddr(["FromRunoob", my_sender])  # 括号里的对应发件人邮箱昵称、发件人邮箱账号
+        msg['From'] = Header("Auto_test", 'utf-8')
+        msg['To'] = Header("ME", 'utf-8')
+        # msg['To'] = formataddr(["FK", my_user])  # 括号里的对应收件人邮箱昵称、收件人邮箱账号
+        msg['Subject'] = "自动化测试终止提醒"  # 邮件的主题，也可以说是标题
+
+        server = smtplib.SMTP_SSL("smtp.exmail.qq.com", 465)  # 发件人邮箱中的SMTP服务器，端口是25
+        server.login(my_sender, my_pass)  # 括号中对应的是发件人邮箱账号、邮箱密码
+        server.sendmail(my_sender, [my_user, ], msg.as_string())  # 括号中对应的是发件人邮箱账号、收件人邮箱账号、发送邮件
+        server.quit()  # 关闭连接
+    except smtplib.SMTPException:  # 如果 try 中的语句没有执行，则会执行下面的 ret=False
+        return_state = False
+    return return_state
+
+
 def receive_serial_process(
         prs_data, infrared_send_cmd, rsv_kws, res_event_list, state, current_triggered_event_info, channel_info,
         receive_cmd_list):
@@ -2176,67 +2209,54 @@ if __name__ == "__main__":
     WEEKLY_EVENT_MODE = ["Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
     # TEST_CASE_INFO = ["23", "All", "TV", "Daily", "Play", "EPG", "Manual_jump"]
     EXIT_TO_SCREEN = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
+    try:
+        file_path = build_log_and_report_file_path()
+        ser_name = list(check_ports())  # send_ser_name, receive_ser_name
+        send_serial = serial.Serial(ser_name[0], 9600)
+        receive_ser_name = ser_name[1]
 
-    file_path = build_log_and_report_file_path()
-    ser_name = list(check_ports())  # send_ser_name, receive_ser_name
-    send_serial = serial.Serial(ser_name[0], 9600)
-    receive_ser_name = ser_name[1]
+        infrared_send_cmd = Manager().list([])
+        receive_cmd_list = Manager().list([])
+        res_event_list = Manager().list([])
+        current_triggered_event_info = Manager().list([])
+        channel_info = Manager().list(['', '', '', '', '', '', ''])     # [频道号,频道名称,tp,lock,scramble,频道类型,组别]
+        rsv_kws = Manager().dict({
+            "sys_time_mode": '', "current_sys_time": '', "res_event_numb": '', "prog_group_name": '',
+            "prog_group_total": '', "edit_event_focus_pos": '', "edit_event_mode": '', "edit_event_type": '',
+            "edit_event_date": '', "edit_event_time": '', "edit_event_duration": '', "edit_event_ch": '',
+            "res_triggered_sys_time": '', "pvr_not_work_info": '',
+        })
 
-    infrared_send_cmd = Manager().list([])
-    receive_cmd_list = Manager().list([])
-    res_event_list = Manager().list([])
-    current_triggered_event_info = Manager().list([])
-    channel_info = Manager().list(['', '', '', '', '', '', ''])     # [频道号,频道名称,tp,lock,scramble,频道类型,组别]
-    rsv_kws = Manager().dict({
-        "sys_time_mode": '', "current_sys_time": '', "res_event_numb": '', "prog_group_name": '',
-        "prog_group_total": '', "edit_event_focus_pos": '', "edit_event_mode": '', "edit_event_type": '',
-        "edit_event_date": '', "edit_event_time": '', "edit_event_duration": '', "edit_event_ch": '',
-        "res_triggered_sys_time": '', "pvr_not_work_info": '',
-    })
+        state = Manager().dict({
+            "res_event_numb_state": False, "res_event_triggered_state": False, "res_event_confirm_jump_state": False,
+            "res_event_cancel_jump_state": False, "rec_start_state": False, "rec_end_state": False,
+            "no_storage_device_state": False, "no_enough_space_state": False, "power_off_state": False,
+            "sys_time_mode_state": False, "current_sys_time_state": False, "update_event_list_state": False,
+            "clear_variate_state": False, "receive_loop_state": False, "control_power_on_info_rsv_state": False,
+            "stb_already_power_on_state": False, "res_event_info_state": False, "pvr_not_supported_state": False,
+            "clear_res_event_list_state": False
+        })
 
-    state = Manager().dict({
-        "res_event_numb_state": False, "res_event_triggered_state": False, "res_event_confirm_jump_state": False,
-        "res_event_cancel_jump_state": False, "rec_start_state": False, "rec_end_state": False,
-        "no_storage_device_state": False, "no_enough_space_state": False, "power_off_state": False,
-        "sys_time_mode_state": False, "current_sys_time_state": False, "update_event_list_state": False,
-        "clear_variate_state": False, "receive_loop_state": False, "control_power_on_info_rsv_state": False,
-        "stb_already_power_on_state": False, "res_event_info_state": False, "pvr_not_supported_state": False,
-        "clear_res_event_list_state": False
-    })
+        prs_data = Manager().dict({
+            "log_file_path": file_path[0], "receive_serial_name": receive_ser_name, "case_res_event_mode": TEST_CASE_INFO[8]
+        })
 
-    prs_data = Manager().dict({
-        "log_file_path": file_path[0], "receive_serial_name": receive_ser_name, "case_res_event_mode": TEST_CASE_INFO[8]
-    })
+        rsv_p = Process(target=receive_serial_process, args=(
+            prs_data, infrared_send_cmd, rsv_kws, res_event_list, state, current_triggered_event_info, channel_info,
+            receive_cmd_list))
+        rsv_p.start()
 
-    rsv_p = Process(target=receive_serial_process, args=(
-        prs_data, infrared_send_cmd, rsv_kws, res_event_list, state, current_triggered_event_info, channel_info,
-        receive_cmd_list))
-    rsv_p.start()
+        if platform.system() == "Windows":
+            time.sleep(5)
+            logging.info("Windows系统接收端响应慢，等待5秒")
+        elif platform.system() == "Linux":
+            time.sleep(1)
+            logging.info("Linux系统接收端响应快，但是增加一个延时保护，等待1秒")
 
-    if platform.system() == "Windows":
-        time.sleep(5)
-        logging.info("Windows系统接收端响应慢，等待5秒")
-    elif platform.system() == "Linux":
-        time.sleep(1)
-        logging.info("Linux系统接收端响应快，但是增加一个延时保护，等待1秒")
-
-    # 主程序开始部分
-    clear_timer_setting_all_events()
-    while GL.res_triggered_numb > 0:
-        if TEST_CASE_INFO[8] == "Once":
-            check_sys_time_mode()
-            choice_ch_for_res_event_type()
-            new_add_res_event()
-            modify_edit_res_event()
-            set_system_time()
-            goto_specified_interface_wait_for_event_triggered()
-            res_event_triggered_and_choice_jump_type()
-            manage_report_data_and_write_data()
-            write_data_to_excel()
-            res_triggered_later_check_timer_setting_event_list()
-            before_cycle_test_clear_data_and_state()
-        elif TEST_CASE_INFO[8] == "Daily":
-            while GL.event_already_triggered_numb < 1 and GL.res_triggered_numb > 0:
+        # 主程序开始部分
+        clear_timer_setting_all_events()
+        while GL.res_triggered_numb > 0:
+            if TEST_CASE_INFO[8] == "Once":
                 check_sys_time_mode()
                 choice_ch_for_res_event_type()
                 new_add_res_event()
@@ -2248,40 +2268,68 @@ if __name__ == "__main__":
                 write_data_to_excel()
                 res_triggered_later_check_timer_setting_event_list()
                 before_cycle_test_clear_data_and_state()
-                break
-            while GL.event_already_triggered_numb >= 1 and GL.res_triggered_numb >= 1:
-                set_system_time()
-                goto_specified_interface_wait_for_event_triggered()
-                res_event_triggered_and_choice_jump_type()
-                manage_report_data_and_write_data()
-                write_data_to_excel()
-                res_triggered_later_check_timer_setting_event_list()
-                before_cycle_test_clear_data_and_state()
-                break
-        elif TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:
-            while GL.event_already_triggered_numb < 1 and GL.res_triggered_numb > 0:
-                check_sys_time_mode()
-                choice_ch_for_res_event_type()
-                new_add_res_event()
-                modify_edit_res_event()
-                set_system_time()
-                goto_specified_interface_wait_for_event_triggered()
-                res_event_triggered_and_choice_jump_type()
-                manage_report_data_and_write_data()
-                write_data_to_excel()
-                res_triggered_later_check_timer_setting_event_list()
-                before_cycle_test_clear_data_and_state()
-                break
-            while GL.event_already_triggered_numb >= 1 and GL.res_triggered_numb >= 1:
-                set_system_time()
-                goto_specified_interface_wait_for_event_triggered()
-                res_event_triggered_and_choice_jump_type()
-                manage_report_data_and_write_data()
-                write_data_to_excel()
-                res_triggered_later_check_timer_setting_event_list()
-                before_cycle_test_clear_data_and_state()
-                break
-    if state["receive_loop_state"]:
-        rsv_p.terminate()
-        logging.info('stop receive process')
-        rsv_p.join()
+            elif TEST_CASE_INFO[8] == "Daily":
+                while GL.event_already_triggered_numb < 1 and GL.res_triggered_numb > 0:
+                    check_sys_time_mode()
+                    choice_ch_for_res_event_type()
+                    new_add_res_event()
+                    modify_edit_res_event()
+                    set_system_time()
+                    goto_specified_interface_wait_for_event_triggered()
+                    res_event_triggered_and_choice_jump_type()
+                    manage_report_data_and_write_data()
+                    write_data_to_excel()
+                    res_triggered_later_check_timer_setting_event_list()
+                    before_cycle_test_clear_data_and_state()
+                    break
+                while GL.event_already_triggered_numb >= 1 and GL.res_triggered_numb >= 1:
+                    set_system_time()
+                    goto_specified_interface_wait_for_event_triggered()
+                    res_event_triggered_and_choice_jump_type()
+                    manage_report_data_and_write_data()
+                    write_data_to_excel()
+                    res_triggered_later_check_timer_setting_event_list()
+                    before_cycle_test_clear_data_and_state()
+                    break
+            elif TEST_CASE_INFO[8] in WEEKLY_EVENT_MODE:
+                while GL.event_already_triggered_numb < 1 and GL.res_triggered_numb > 0:
+                    check_sys_time_mode()
+                    choice_ch_for_res_event_type()
+                    new_add_res_event()
+                    modify_edit_res_event()
+                    set_system_time()
+                    goto_specified_interface_wait_for_event_triggered()
+                    res_event_triggered_and_choice_jump_type()
+                    manage_report_data_and_write_data()
+                    write_data_to_excel()
+                    res_triggered_later_check_timer_setting_event_list()
+                    before_cycle_test_clear_data_and_state()
+                    break
+                while GL.event_already_triggered_numb >= 1 and GL.res_triggered_numb >= 1:
+                    set_system_time()
+                    goto_specified_interface_wait_for_event_triggered()
+                    res_event_triggered_and_choice_jump_type()
+                    manage_report_data_and_write_data()
+                    write_data_to_excel()
+                    res_triggered_later_check_timer_setting_event_list()
+                    before_cycle_test_clear_data_and_state()
+                    break
+        if state["receive_loop_state"]:
+            rsv_p.terminate()
+            logging.info('stop receive process')
+            rsv_p.join()
+
+    except Exception as e:
+        print(e)
+        # cur_py_file_name = sys.argv[0]        # 第0个就是这个python文件本身的路径（全路径）
+        cur_py_file_name = os.path.basename(__file__)       # 当前文件名名称
+        ret = mail(f"{cur_py_file_name}\n\n"
+                   f"{msg}\n\n"
+                   f"{traceback.format_exc()}")
+        if ret:
+            print("邮件发送成功")
+        else:
+            print("邮件发送失败")
+
+        print("***traceback.format_exc():*** ")
+        print(traceback.format_exc())
