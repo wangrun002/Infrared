@@ -135,8 +135,8 @@ def send_cmd(command):
                 logging.info(f"此刻补发STB没有接收到的红外命令{infrared_send_cmd[-1]}")
                 send_serial.write(hex_strs_to_bytes(KEY[infrared_send_cmd[-1]]))
                 send_serial.flush()
-                continuous_transmission_cmd_num += 1
                 time.sleep(1.0)
+                continuous_transmission_cmd_num += 1
                 if continuous_transmission_cmd_num == 10:
                     stb_crash_msg = "STB一直发送指令，疑似死机"
                     # mail(f'{stb_crash_msg}\n\n{msg}')
@@ -1922,10 +1922,11 @@ if __name__ == "__main__":
             rsv_p.terminate()
             logging.info('stop receive process')
             rsv_p.join()
+
     except Exception as e:
         print(e)
-        # cur_py_file_name = sys.argv[0]
-        cur_py_file_name = os.path.basename(__file__)
+        # cur_py_file_name = sys.argv[0]        # 第0个就是这个python文件本身的路径（全路径）
+        cur_py_file_name = os.path.basename(__file__)       # 当前文件名名称
         ret = mail(f"{cur_py_file_name}\n\n"
                    f"{msg}\n\n"
                    f"{traceback.format_exc()}")
@@ -1935,6 +1936,4 @@ if __name__ == "__main__":
             print("邮件发送失败")
 
         print("***traceback.format_exc():*** ")
-        time.sleep(1)
         print(traceback.format_exc())
-        time.sleep(2)
