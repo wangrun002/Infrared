@@ -20,6 +20,7 @@ import time
 import logging
 import re
 import sys
+import traceback
 
 TEST_CASE_INFO = ''
 
@@ -136,9 +137,10 @@ def send_cmd(command):
                 send_serial.flush()
                 continuous_transmission_cmd_num += 1
                 time.sleep(1.0)
-                if continuous_transmission_cmd_num == 30:
+                if continuous_transmission_cmd_num == 10:
                     stb_crash_msg = "STB一直发送指令，疑似死机"
-                    mail(stb_crash_msg)
+                    # mail(f'{stb_crash_msg}\n\n{msg}')
+                    raise FailSendCmdException(stb_crash_msg)
 
 
 def send_more_cmds(command_list):
@@ -1860,63 +1862,79 @@ if __name__ == "__main__":
     WEEKLY_EVENT_MODE = ["Mon.", "Tues.", "Wed.", "Thurs.", "Fri.", "Sat.", "Sun."]
     # TEST_CASE_INFO = ["23", "All", "TV", "Daily", "Play", "EPG", "Manual_jump"]
     EXIT_TO_SCREEN = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
+    try:
+        file_path = create_log_and_report_file_path()
+        ser_name = list(check_ports())  # send_ser_name, receive_ser_name
+        send_serial = serial.Serial(ser_name[0], 9600)
+        receive_ser_name = ser_name[1]
 
-    file_path = create_log_and_report_file_path()
-    ser_name = list(check_ports())  # send_ser_name, receive_ser_name
-    send_serial = serial.Serial(ser_name[0], 9600)
-    receive_ser_name = ser_name[1]
+        infrared_send_cmd = Manager().list([])
+        receive_cmd_list = Manager().list([])
+        res_event_list = Manager().list([])
+        current_triggered_event_info = Manager().list([])
+        channel_info = Manager().list(['', '', '', '', '', '', ''])     # [频道号,频道名称,tp,lock,scramble,频道类型,组别]
+        rsv_kws = Manager().dict({
+            "sys_time_mode": '', "current_sys_time": '', "res_event_numb": '', "prog_group_name": '',
+            "prog_group_total": '', "edit_event_focus_pos": '', "edit_event_mode": '', "edit_event_type": '',
+            "edit_event_date": '', "edit_event_time": '', "edit_event_duration": '', "edit_event_ch": '',
+            "event_invalid_msg": '',
+        })
 
-    infrared_send_cmd = Manager().list([])
-    receive_cmd_list = Manager().list([])
-    res_event_list = Manager().list([])
-    current_triggered_event_info = Manager().list([])
-    channel_info = Manager().list(['', '', '', '', '', '', ''])     # [频道号,频道名称,tp,lock,scramble,频道类型,组别]
-    rsv_kws = Manager().dict({
-        "sys_time_mode": '', "current_sys_time": '', "res_event_numb": '', "prog_group_name": '',
-        "prog_group_total": '', "edit_event_focus_pos": '', "edit_event_mode": '', "edit_event_type": '',
-        "edit_event_date": '', "edit_event_time": '', "edit_event_duration": '', "edit_event_ch": '',
-        "event_invalid_msg": '',
-    })
+        state = Manager().dict({
+            "res_event_numb_state": False, "sys_time_mode_state": False,
+            "current_sys_time_state": False, "update_event_list_state": False,
+            "clear_variate_state": False, "receive_loop_state": False,
+            "clear_res_event_list_state": False, "event_no_channel_msg_state": False,
+            "event_invalid_date_msg_state": False, "event_invalid_timer_msg_state": False
+        })
 
-    state = Manager().dict({
-        "res_event_numb_state": False, "sys_time_mode_state": False,
-        "current_sys_time_state": False, "update_event_list_state": False,
-        "clear_variate_state": False, "receive_loop_state": False,
-        "clear_res_event_list_state": False, "event_no_channel_msg_state": False,
-        "event_invalid_date_msg_state": False, "event_invalid_timer_msg_state": False
-    })
+        prs_data = Manager().dict({
+            "log_file_path": file_path[0], "receive_serial_name": receive_ser_name, "case_res_event_mode": TEST_CASE_INFO[8]
+        })
 
-    prs_data = Manager().dict({
-        "log_file_path": file_path[0], "receive_serial_name": receive_ser_name, "case_res_event_mode": TEST_CASE_INFO[8]
-    })
+        rsv_p = Process(target=receive_serial_process, args=(
+            prs_data, infrared_send_cmd, rsv_kws, res_event_list, state, current_triggered_event_info, channel_info,
+            receive_cmd_list))
+        rsv_p.start()
 
-    rsv_p = Process(target=receive_serial_process, args=(
-        prs_data, infrared_send_cmd, rsv_kws, res_event_list, state, current_triggered_event_info, channel_info,
-        receive_cmd_list))
-    rsv_p.start()
+        if platform.system() == "Windows":
+            time.sleep(5)
+            logging.info("Windows系统接收端响应慢，等待5秒")
+        elif platform.system() == "Linux":
+            time.sleep(1)
+            logging.info("Linux系统接收端响应快，但是增加一个延时保护，等待1秒")
 
-    if platform.system() == "Windows":
-        time.sleep(5)
-        logging.info("Windows系统接收端响应慢，等待5秒")
-    elif platform.system() == "Linux":
+        # 主程序开始部分
+
+        while GL.res_triggered_numb > 0:
+            clear_timer_setting_all_events()
+            check_sys_time_mode()
+            choice_ch_for_res_event_type("event_1")
+            new_add_res_event_1()
+            choice_ch_for_res_event_type("event_2")
+            new_add_res_event_2()
+            check_event_numb()
+            manage_report_data_and_write_data()
+            write_data_to_excel()
+            before_cycle_test_clear_data_and_state()
+
+        if state["receive_loop_state"]:
+            rsv_p.terminate()
+            logging.info('stop receive process')
+            rsv_p.join()
+    except Exception as e:
+        print(e)
+        # cur_py_file_name = sys.argv[0]
+        cur_py_file_name = os.path.basename(__file__)
+        ret = mail(f"{cur_py_file_name}\n\n"
+                   f"{msg}\n\n"
+                   f"{traceback.format_exc()}")
+        if ret:
+            print("邮件发送成功")
+        else:
+            print("邮件发送失败")
+
+        print("***traceback.format_exc():*** ")
         time.sleep(1)
-        logging.info("Linux系统接收端响应快，但是增加一个延时保护，等待1秒")
-
-    # 主程序开始部分
-
-    while GL.res_triggered_numb > 0:
-        clear_timer_setting_all_events()
-        check_sys_time_mode()
-        choice_ch_for_res_event_type("event_1")
-        new_add_res_event_1()
-        choice_ch_for_res_event_type("event_2")
-        new_add_res_event_2()
-        check_event_numb()
-        manage_report_data_and_write_data()
-        write_data_to_excel()
-        before_cycle_test_clear_data_and_state()
-
-    if state["receive_loop_state"]:
-        rsv_p.terminate()
-        logging.info('stop receive process')
-        rsv_p.join()
+        print(traceback.format_exc())
+        time.sleep(2)
