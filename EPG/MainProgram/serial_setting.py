@@ -6,10 +6,22 @@ import serial.tools.list_ports
 import platform
 import logging
 
-ser_cable_num = 7
+
+class CustomException(Exception):
+    pass
+
+
+class FailSendCmdException(CustomException):
+
+    def __init__(self, info):
+        self.info = info
+
+    def __str__(self):
+        return self.info
 
 
 def check_ports():
+    ser_cable_num = 7
     send_com, receive_com = '', ''
     send_port_desc, receive_port_desc = '', ''
     serial_board = "FT232R USB UART"
@@ -840,4 +852,111 @@ same_start_time_case = [
     ['209', 'All', 'TV', 'Weekly', 'Power On', 'TVScreenDiffCH', 'Manual_jump', 'Same[time]+Diff[type+mode+date]', 'Once', 'PVR', 'screen_test_numb'],
     ['210', 'All', 'TV', 'Once', 'Power On', 'TVScreenDiffCH', 'Manual_jump', 'Same[time]+Diff[type+mode+date]', 'Weekly', 'Power Off', 'screen_test_numb'],
     ['211', 'All', 'TV', 'Weekly', 'Power On', 'TVScreenDiffCH', 'Manual_jump', 'Same[time]+Diff[type+mode+date]', 'Once', 'Power Off', 'screen_test_numb']
+]
+
+invalid_res_case = [
+    ['00', 'GX', 'TV', 'Play', 'Once', 'Expired', 'EPG', 'epg_test_numb'],
+    ['01', 'GX', 'TV', 'PVR', 'Once', 'Expired', 'EPG', 'epg_test_numb'],
+    ['02', 'GX', 'Radio', 'Play', 'Once', 'Expired', 'EPG', 'epg_test_numb'],
+    ['03', 'GX', 'Radio', 'PVR', 'Once', 'Expired', 'EPG', 'epg_test_numb'],
+    ['04', 'GX', 'TV', 'Play', 'Once', 'NowPlaying', 'EPG', 'epg_test_numb'],
+    ['05', 'GX', 'TV', 'PVR', 'Once', 'NowPlaying', 'EPG', 'epg_test_numb'],
+    ['06', 'GX', 'Radio', 'Play', 'Once', 'NowPlaying', 'EPG', 'epg_test_numb'],
+    ['07', 'GX', 'Radio', 'PVR', 'Once', 'NowPlaying', 'EPG', 'epg_test_numb'],
+    ['08', 'GX', 'TV', 'Play', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Boundary_before_lower_limit', 'ZeroTimezone',
+     'NoSummertime', 'epg_test_numb'],
+    ['09', 'GX', 'TV', 'Play', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Boundary_before_upper_limit', 'ZeroTimezone',
+     'NoSummertime', 'epg_test_numb'],
+    ['10', 'GX', 'TV', 'Play', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Boundary_after_lower_limit', 'ZeroTimezone',
+     'NoSummertime', 'epg_test_numb'],
+    ['11', 'GX', 'TV', 'Play', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Boundary_after_upper_limit', 'ZeroTimezone',
+     'NoSummertime', 'epg_test_numb'],
+    ['12', 'GX', 'TV', 'Play', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Random_before_save_time_range', 'ZeroTimezone',
+     'NoSummertime', 'epg_test_numb'],
+    ['13', 'GX', 'TV', 'Play', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Random_after_save_time_range', 'ZeroTimezone',
+     'NoSummertime', 'epg_test_numb'],
+    ['14', 'GX', 'TV', 'PVR', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Boundary_before_lower_limit', 'ZeroTimezone',
+     'Summertime', 'epg_test_numb'],
+    ['15', 'GX', 'TV', 'PVR', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Boundary_before_upper_limit', 'ZeroTimezone',
+     'Summertime', 'epg_test_numb'],
+    ['16', 'GX', 'TV', 'PVR', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Boundary_after_lower_limit', 'ZeroTimezone',
+     'Summertime', 'epg_test_numb'],
+    ['17', 'GX', 'TV', 'PVR', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Boundary_after_upper_limit', 'ZeroTimezone',
+     'Summertime', 'epg_test_numb'],
+    ['18', 'GX', 'TV', 'PVR', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Random_before_save_time_range', 'ZeroTimezone',
+     'Summertime', 'epg_test_numb'],
+    ['19', 'GX', 'TV', 'PVR', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Random_after_save_time_range', 'ZeroTimezone',
+     'Summertime', 'epg_test_numb'],
+    ['20', 'GX', 'TV', 'Power Off', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Boundary_before_lower_limit',
+     'OtherTimezone', 'NoSummertime', 'epg_test_numb'],
+    ['21', 'GX', 'TV', 'Power Off', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Boundary_before_upper_limit',
+     'OtherTimezone', 'NoSummertime', 'epg_test_numb'],
+    ['22', 'GX', 'TV', 'Power Off', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Boundary_after_lower_limit',
+     'OtherTimezone', 'NoSummertime', 'epg_test_numb'],
+    ['23', 'GX', 'TV', 'Power Off', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Boundary_after_upper_limit',
+     'OtherTimezone', 'NoSummertime', 'epg_test_numb'],
+    ['24', 'GX', 'TV', 'Power Off', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Random_before_save_time_range',
+     'OtherTimezone', 'NoSummertime', 'epg_test_numb'],
+    ['25', 'GX', 'TV', 'Power Off', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Random_after_save_time_range',
+     'OtherTimezone', 'NoSummertime', 'epg_test_numb'],
+    ['26', 'GX', 'TV', 'Power On', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Boundary_before_lower_limit',
+     'OtherTimezone', 'Summertime', 'epg_test_numb'],
+    ['27', 'GX', 'TV', 'Power On', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Boundary_before_upper_limit',
+     'OtherTimezone', 'Summertime', 'epg_test_numb'],
+    ['28', 'GX', 'TV', 'Power On', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Boundary_after_lower_limit', 'OtherTimezone',
+     'Summertime', 'epg_test_numb'],
+    ['29', 'GX', 'TV', 'Power On', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Boundary_after_upper_limit', 'OtherTimezone',
+     'Summertime', 'epg_test_numb'],
+    ['30', 'GX', 'TV', 'Power On', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Random_before_save_time_range',
+     'OtherTimezone', 'Summertime', 'epg_test_numb'],
+    ['31', 'GX', 'TV', 'Power On', 'Once', 'OutOfSaveTimeRange', 'Timer', 'Random_after_save_time_range',
+     'OtherTimezone', 'Summertime', 'epg_test_numb'],
+    ['32', 'GX', 'TV', 'Play', 'Once', 'Expired', 'Timer', 'Boundary_lower_limit', 'ZeroTimezone', 'NoSummertime',
+     'epg_test_numb'],
+    ['33', 'GX', 'TV', 'Play', 'Once', 'Expired', 'Timer', 'Boundary_upper_limit', 'ZeroTimezone', 'NoSummertime',
+     'epg_test_numb'],
+    ['34', 'GX', 'TV', 'Play', 'Once', 'Expired', 'Timer', 'Random_expired_time_range', 'ZeroTimezone', 'NoSummertime',
+     'epg_test_numb'],
+    ['35', 'GX', 'TV', 'PVR', 'Once', 'Expired', 'Timer', 'Boundary_lower_limit', 'ZeroTimezone', 'Summertime',
+     'epg_test_numb'],
+    ['36', 'GX', 'TV', 'PVR', 'Once', 'Expired', 'Timer', 'Boundary_upper_limit', 'ZeroTimezone', 'Summertime',
+     'epg_test_numb'],
+    ['37', 'GX', 'TV', 'PVR', 'Once', 'Expired', 'Timer', 'Random_expired_time_range', 'ZeroTimezone', 'Summertime',
+     'epg_test_numb'],
+    ['38', 'GX', 'TV', 'Power Off', 'Once', 'Expired', 'Timer', 'Boundary_lower_limit', 'OtherTimezone', 'NoSummertime',
+     'epg_test_numb'],
+    ['39', 'GX', 'TV', 'Power Off', 'Once', 'Expired', 'Timer', 'Boundary_upper_limit', 'OtherTimezone', 'NoSummertime',
+     'epg_test_numb'],
+    ['40', 'GX', 'TV', 'Power Off', 'Once', 'Expired', 'Timer', 'Random_expired_time_range', 'OtherTimezone',
+     'NoSummertime', 'epg_test_numb'],
+    ['41', 'GX', 'TV', 'Power On', 'Once', 'Expired', 'Timer', 'Boundary_lower_limit', 'OtherTimezone', 'Summertime',
+     'epg_test_numb'],
+    ['42', 'GX', 'TV', 'Power On', 'Once', 'Expired', 'Timer', 'Boundary_upper_limit', 'OtherTimezone', 'Summertime',
+     'epg_test_numb'],
+    ['43', 'GX', 'TV', 'Power On', 'Once', 'Expired', 'Timer', 'Random_expired_time_range', 'OtherTimezone',
+     'Summertime', 'epg_test_numb'],
+    ['44', 'GX', 'TV', 'Play', 'Once', 'NowPlaying', 'Timer', 'None', 'ZeroTimezone', 'NoSummertime', 'epg_test_numb'],
+    ['45', 'GX', 'TV', 'PVR', 'Once', 'NowPlaying', 'Timer', 'None', 'ZeroTimezone', 'NoSummertime', 'epg_test_numb'],
+    ['46', 'GX', 'TV', 'Power Off', 'Once', 'NowPlaying', 'Timer', 'None', 'ZeroTimezone', 'NoSummertime',
+     'epg_test_numb'],
+    ['47', 'GX', 'TV', 'Power On', 'Once', 'NowPlaying', 'Timer', 'None', 'ZeroTimezone', 'NoSummertime',
+     'epg_test_numb'],
+    ['48', 'GX', 'TV', 'PVR', 'Once', 'InvalidDuration', 'Timer', 'None', 'ZeroTimezone', 'NoSummertime',
+     'epg_test_numb'],
+    ['49', 'GX', 'TV', 'PVR', 'Daily', 'InvalidDuration', 'Timer', 'None', 'ZeroTimezone', 'NoSummertime',
+     'epg_test_numb'],
+    ['50', 'GX', 'TV', 'PVR', 'Mon.', 'InvalidDuration', 'Timer', 'None', 'ZeroTimezone', 'NoSummertime',
+     'epg_test_numb'],
+    ['51', 'GX', 'TV', 'PVR', 'Tues.', 'InvalidDuration', 'Timer', 'None', 'ZeroTimezone', 'NoSummertime',
+     'epg_test_numb'],
+    ['52', 'GX', 'TV', 'PVR', 'Wed.', 'InvalidDuration', 'Timer', 'None', 'ZeroTimezone', 'NoSummertime',
+     'epg_test_numb'],
+    ['53', 'GX', 'TV', 'PVR', 'Thurs.', 'InvalidDuration', 'Timer', 'None', 'ZeroTimezone', 'NoSummertime',
+     'epg_test_numb'],
+    ['54', 'GX', 'TV', 'PVR', 'Fri.', 'InvalidDuration', 'Timer', 'None', 'ZeroTimezone', 'NoSummertime',
+     'epg_test_numb'],
+    ['55', 'GX', 'TV', 'PVR', 'Sat.', 'InvalidDuration', 'Timer', 'None', 'ZeroTimezone', 'NoSummertime',
+     'epg_test_numb'],
+    ['56', 'GX', 'TV', 'PVR', 'Sun.', 'InvalidDuration', 'Timer', 'None', 'ZeroTimezone', 'NoSummertime',
+     'epg_test_numb']
 ]
