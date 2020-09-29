@@ -64,6 +64,7 @@ def write_log_data_to_txt(path, write_data):
 
 def send_commd(commd):
     global receive_cmd_list, infrared_send_cmd
+    continuous_transmission_cmd_num = 0
     # 红外发送端发送指令
     send_serial.write(hex_strs_to_bytes(commd))
     send_serial.flush()
@@ -84,6 +85,11 @@ def send_commd(commd):
                 send_serial.write(hex_strs_to_bytes(KEY[infrared_send_cmd[-1]]))
                 send_serial.flush()
                 time.sleep(1.0)
+                continuous_transmission_cmd_num += 1
+                if continuous_transmission_cmd_num == 10:
+                    stb_crash_msg = "STB一直发送指令，疑似死机"
+                    # mail(f'{stb_crash_msg}\n\n{msg}')
+                    raise FailSendCmdException(stb_crash_msg)
 
 
 def send_more_commds(commd_list):
@@ -2071,7 +2077,7 @@ def check_event_numb():
 
 def mail(message):
     my_sender = 'wangrun@nationalchip.com'  # 发件人邮箱账号
-    my_pass = 'Wr_75464052'  # 发件人邮箱密码
+    my_pass = 'Wr@372542098'  # 发件人邮箱密码
     my_user = 'wangrun@nationalchip.com'  # 收件人邮箱账号，我这边发送给自己
 
     return_state = True
@@ -2461,16 +2467,18 @@ if __name__ == "__main__":
             logging.info("程序结束")
             logging.info('stop receive process')
             rsv_p.join()
+
     except Exception as e:
         print(e)
-        ret = mail(f"{msg_info}\n\n{traceback.format_exc()}")
+        # cur_py_file_name = sys.argv[0]        # 第0个就是这个python文件本身的路径（全路径）
+        cur_py_file_name = os.path.basename(__file__)  # 当前文件名名称
+        ret = mail(f"{cur_py_file_name}\n\n"
+                   f"{msg_info}\n\n"
+                   f"{traceback.format_exc()}")
         if ret:
             print("邮件发送成功")
         else:
             print("邮件发送失败")
 
         print("***traceback.format_exc():*** ")
-        time.sleep(1)
         print(traceback.format_exc())
-        time.sleep(2)
-        # raise
