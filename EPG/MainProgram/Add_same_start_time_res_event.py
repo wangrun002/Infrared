@@ -11,6 +11,9 @@ from openpyxl.styles.colors import RED, BLUE
 from openpyxl.utils import get_column_letter, column_index_from_string
 from datetime import datetime, timedelta, date
 from random import randint, choice
+from email.mime.text import MIMEText
+from email.header import Header
+import smtplib
 import platform
 import os
 import time
@@ -111,6 +114,7 @@ def write_log_data_to_txt(path, write_data):
 
 def send_cmd(command):
     global receive_cmd_list, infrared_send_cmd
+    continuous_transmission_cmd_num = 0     # 连续发送命令数
     # 红外发送端发送指令
     send_serial.write(hex_strs_to_bytes(command))
     send_serial.flush()
@@ -130,7 +134,11 @@ def send_cmd(command):
                 logging.info(f"此刻补发STB没有接收到的红外命令{infrared_send_cmd[-1]}")
                 send_serial.write(hex_strs_to_bytes(KEY[infrared_send_cmd[-1]]))
                 send_serial.flush()
+                continuous_transmission_cmd_num += 1
                 time.sleep(1.0)
+                if continuous_transmission_cmd_num == 30:
+                    stb_crash_msg = "STB一直发送指令，疑似死机"
+                    mail(stb_crash_msg)
 
 
 def send_more_cmds(command_list):
@@ -1575,6 +1583,29 @@ def check_event_numb():
     send_more_cmds(exit_to_screen)
 
 
+def mail(message):
+    my_sender = 'wangrun@nationalchip.com'  # 发件人邮箱账号
+    my_pass = 'Wr@372542098'  # 发件人邮箱密码
+    my_user = 'wangrun@nationalchip.com'  # 收件人邮箱账号，我这边发送给自己
+
+    return_state = True
+    try:
+        msg = MIMEText(message, 'plain', 'utf-8')
+        # msg['From'] = formataddr(["FromRunoob", my_sender])  # 括号里的对应发件人邮箱昵称、发件人邮箱账号
+        msg['From'] = Header("Auto_test", 'utf-8')
+        msg['To'] = Header("ME", 'utf-8')
+        # msg['To'] = formataddr(["FK", my_user])  # 括号里的对应收件人邮箱昵称、收件人邮箱账号
+        msg['Subject'] = "自动化测试终止提醒"  # 邮件的主题，也可以说是标题
+
+        server = smtplib.SMTP_SSL("smtp.exmail.qq.com", 465)  # 发件人邮箱中的SMTP服务器，端口是25
+        server.login(my_sender, my_pass)  # 括号中对应的是发件人邮箱账号、邮箱密码
+        server.sendmail(my_sender, [my_user, ], msg.as_string())  # 括号中对应的是发件人邮箱账号、收件人邮箱账号、发送邮件
+        server.quit()  # 关闭连接
+    except smtplib.SMTPException:  # 如果 try 中的语句没有执行，则会执行下面的 ret=False
+        return_state = False
+    return return_state
+
+
 def receive_serial_process(
         prs_data, infrared_send_cmd, rsv_kws, res_event_list, state, current_triggered_event_info, channel_info,
         receive_cmd_list):
@@ -1665,9 +1696,10 @@ def receive_serial_process(
             # data1 = data.decode("GB18030", "ignore")
             data1 = data.decode("ISO-8859-1", "ignore")
             data2 = re.compile('[\\x00-\\x08\\x0b-\\x0c\\x0e-\\x1f]').sub('', data1).strip()
-            data3 = "[{}]     {}\n".format(str(tt), data2)
-            print(data2)
-            write_log_data_to_txt(prs_data["log_file_path"], data3)
+            data3 = "[{}]     {}".format(str(tt), data2)
+            data4 = "[{}]     {}\n".format(str(tt), data2)
+            print(data3)
+            write_log_data_to_txt(prs_data["log_file_path"], data4)
 
             if state["clear_variate_state"]:
                 state["sys_time_mode_state"] = False
