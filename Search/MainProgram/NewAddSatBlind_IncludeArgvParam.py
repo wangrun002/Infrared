@@ -36,6 +36,9 @@ from openpyxl import Workbook
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter, column_index_from_string
+from email.mime.text import MIMEText
+from email.header import Header
+import smtplib
 import serial
 import serial.tools.list_ports
 import re
@@ -46,6 +49,20 @@ import random
 import logging
 import threading
 import platform
+import traceback
+
+
+class CustomException(Exception):
+    pass
+
+
+class FailSendCmdException(CustomException):
+
+    def __init__(self, info):
+        self.info = info
+
+    def __str__(self):
+        return self.info
 
 
 class MyGlobal(object):
@@ -214,12 +231,21 @@ class MyGlobal(object):
 
 
 def check_ports():
-    global send_com, receive_com
+    # global send_com, receive_com
     send_com, receive_com = '', ''
     send_port_desc, receive_port_desc = '', ''
+    serial_board = "FT232R USB UART"
+    connection_serial_board_state = False
     ports_info = []
+    ports = list(serial.tools.list_ports.comports())
+    for i in range(len(ports)):
+        logging.info("可用端口:名称:{} + 描述:{} + 硬件id:{}".format(ports[i].device, ports[i].description, ports[i].hwid))
+        # print("可用端口:名称:{} + 描述:{} + 硬件id:{}".format(ports[i].device, ports[i].description, ports[i].hwid))
+        ports_info.append("{}~{}~{}".format(ports[i].device, ports[i].description, ports[i].hwid))
+
+    ser_cable_num = 7
+
     if platform.system() == "Windows":
-        ser_cable_num = 7
         serial_ser = {
             "1": "FTDVKA2HA",
             "2": "FTGDWJ64A",
@@ -232,7 +258,6 @@ def check_ports():
         send_port_desc = "USB-SERIAL CH340"
         receive_port_desc = serial_ser[str(ser_cable_num)]
     elif platform.system() == "Linux":
-        ser_cable_num = 7
         serial_ser = {
             "1": "FTDVKA2H",
             "2": "FTGDWJ64",
@@ -243,12 +268,13 @@ def check_ports():
             "7": "FTHG05TT",
         }
         send_port_desc = "USB2.0-Serial"
-        receive_port_desc = serial_ser[str(ser_cable_num)]
-    ports = list(serial.tools.list_ports.comports())
-    for i in range(len(ports)):
-        logging.info("可用端口:名称:{} + 描述:{} + 硬件id:{}".format(ports[i].device, ports[i].description, ports[i].hwid))
-        # print("可用端口:名称:{} + 描述:{} + 硬件id:{}".format(ports[i].device, ports[i].description, ports[i].hwid))
-        ports_info.append("{}~{}~{}".format(ports[i].device, ports[i].description, ports[i].hwid))
+        for i in range(len(ports_info)):
+            if serial_board in ports_info[i]:
+                connection_serial_board_state = True
+        if connection_serial_board_state:
+            receive_port_desc = "FT232R USB UART"
+        else:
+            receive_port_desc = serial_ser[str(ser_cable_num)]
     if len(ports) <= 0:
         logging.info("无可用端口")
     elif len(ports) == 1:
@@ -280,22 +306,31 @@ def hex_strs_to_bytes(strings):
 
 def send_commd(commd):
     # 红外发送端发送指令
+    continuous_transmission_cmd_num = 0
+    send_ser.write(hex_strs_to_bytes(commd))
+    send_ser.flush()
+    logging.info("红外发送：{}".format(REVERSE_KEY[commd]))
+    if REVERSE_KEY[commd] != "POWER":
+        GL.infrared_send_commd.append(REVERSE_KEY[commd])
+    time.sleep(1.0)
     if len(GL.infrared_send_commd) == len(GL.receive_cmd_list):
-        send_ser.write(hex_strs_to_bytes(commd))
-        send_ser.flush()
-        logging.info("红外发送：{}".format(REVERSE_KEY[commd]))
-        if REVERSE_KEY[commd] != "POWER":
-            GL.infrared_send_commd.append(REVERSE_KEY[commd])
-        time.sleep(1.0)
+        pass
     elif len(GL.infrared_send_commd) != len(GL.receive_cmd_list):
-        if len(GL.infrared_send_commd) - len(GL.receive_cmd_list) == 1:
-            logging.info(f"此刻补发STB没有接收到的红外命令{GL.infrared_send_commd[-1]}")
-            send_ser.write(hex_strs_to_bytes(KEY[GL.infrared_send_commd[-1]]))
-            send_ser.flush()
-            time.sleep(1.0)
-
-            logging.info(f"此时再发送本次要发送的命令{REVERSE_KEY[commd]}")
-            send_commd(commd)
+        logging.info("检测到发送和接收命令数不一致，等待2秒，查看是否接收端还没有接收到打印")
+        time.sleep(2)
+        while True:
+            if len(GL.infrared_send_commd) == len(GL.receive_cmd_list):
+                break
+            elif len(GL.infrared_send_commd) != len(GL.receive_cmd_list):
+                logging.info(f"此刻补发STB没有接收到的红外命令{GL.infrared_send_commd[-1]}")
+                send_ser.write(hex_strs_to_bytes(KEY[GL.infrared_send_commd[-1]]))
+                send_ser.flush()
+                time.sleep(1.0)
+                continuous_transmission_cmd_num += 1
+                if continuous_transmission_cmd_num == 10:
+                    stb_crash_msg = "STB一直发送指令，疑似死机"
+                    # mail(f'{stb_crash_msg}\n\n{msg}')
+                    raise FailSendCmdException(stb_crash_msg)
 
 
 def add_write_data_to_txt(file_path,write_data):    # 追加写文本
@@ -900,6 +935,29 @@ def data_send_thread():
                         block_send_thread()
 
 
+def mail(message):
+    my_sender = 'wangrun@nationalchip.com'  # 发件人邮箱账号
+    my_pass = 'Wr@372542098'  # 发件人邮箱密码
+    my_user = 'wangrun@nationalchip.com'  # 收件人邮箱账号，我这边发送给自己
+
+    return_state = True
+    try:
+        msg = MIMEText(message, 'plain', 'utf-8')
+        # msg['From'] = formataddr(["FromRunoob", my_sender])  # 括号里的对应发件人邮箱昵称、发件人邮箱账号
+        msg['From'] = Header("Auto_test", 'utf-8')
+        msg['To'] = Header("ME", 'utf-8')
+        # msg['To'] = formataddr(["FK", my_user])  # 括号里的对应收件人邮箱昵称、收件人邮箱账号
+        msg['Subject'] = "自动化测试终止提醒"  # 邮件的主题，也可以说是标题
+
+        server = smtplib.SMTP_SSL("smtp.exmail.qq.com", 465)  # 发件人邮箱中的SMTP服务器，端口是25
+        server.login(my_sender, my_pass)  # 括号中对应的是发件人邮箱账号、邮箱密码
+        server.sendmail(my_sender, [my_user, ], msg.as_string())  # 括号中对应的是发件人邮箱账号、收件人邮箱账号、发送邮件
+        server.quit()  # 关闭连接
+    except smtplib.SMTPException:  # 如果 try 中的语句没有执行，则会执行下面的 ret=False
+        return_state = False
+    return return_state
+
+
 def data_receiver_thread():
     global start_time, end_time
     tp = ''
@@ -910,7 +968,7 @@ def data_receiver_thread():
             data1 = data.decode("GB18030", "ignore")
             data2 = re.compile('[\\x00-\\x08\\x0b-\\x0c\\x0e-\\x1f]').sub('', data1).strip()
             data3 = "[{}]     {}\n".format(str(tt), data2)
-            # print(data2)
+            print(data2)
             add_write_data_to_txt(case_log_txt_path, data3)
 
             if GL.start_record_maximum_state:
@@ -1164,28 +1222,44 @@ if __name__ == "__main__":
         "Delete": "Delete",
     }
 
-    choice_search_sat = int(sys.argv[1])                        # 参考sat_list中的选项进行卫星选择
-
-    # 选择执行轮次
-    if len(GL.all_sat_commd[choice_search_sat]) < 9:
-        search_time = GL.all_sat_commd[choice_search_sat][-1]
-    elif len(GL.all_sat_commd[choice_search_sat]) == 9:
-        search_time = GL.all_sat_commd[choice_search_sat][7]
-
-    # judge_write_file_exist()
-    build_print_log_and_report_file_path()
-
-    send_ser_name,receive_ser_name = check_ports()
-    send_ser = serial.Serial(send_ser_name, 9600)
-    receive_ser = serial.Serial(receive_ser_name, 115200, timeout=1)
-    # serial_set(send_ser, send_ser_name, 9600)
-    # serial_set(receive_ser, receive_ser_name, 115200)
-
     msg = "现在开始执行的是:{}_{}".format(sat_name, search_mode)
     logging.critical(format(msg, '*^150'))
 
-    thread_send = threading.Thread(target=data_send_thread)
-    thread_receive = threading.Thread(target=data_receiver_thread)
+    try:
+        choice_search_sat = int(sys.argv[1])                        # 参考sat_list中的选项进行卫星选择
 
-    thread_send.start()
-    thread_receive.start()
+        # 选择执行轮次
+        if len(GL.all_sat_commd[choice_search_sat]) < 9:
+            search_time = GL.all_sat_commd[choice_search_sat][-1]
+        elif len(GL.all_sat_commd[choice_search_sat]) == 9:
+            search_time = GL.all_sat_commd[choice_search_sat][7]
+
+        # judge_write_file_exist()
+        build_print_log_and_report_file_path()
+
+        send_ser_name,receive_ser_name = check_ports()
+        send_ser = serial.Serial(send_ser_name, 9600)
+        receive_ser = serial.Serial(receive_ser_name, 115200, timeout=1)
+        # serial_set(send_ser, send_ser_name, 9600)
+        # serial_set(receive_ser, receive_ser_name, 115200)
+
+        thread_send = threading.Thread(target=data_send_thread)
+        thread_receive = threading.Thread(target=data_receiver_thread)
+
+        thread_send.start()
+        thread_receive.start()
+
+    except Exception as e:
+        print(e)
+        # cur_py_file_name = sys.argv[0]        # 第0个就是这个python文件本身的路径（全路径）
+        cur_py_file_name = os.path.basename(__file__)       # 当前文件名名称
+        ret = mail(f"{cur_py_file_name}\n\n"
+                   f"{msg}\n\n"
+                   f"{traceback.format_exc()}")
+        if ret:
+            print("邮件发送成功")
+        else:
+            print("邮件发送失败")
+
+        print("***traceback.format_exc():*** ")
+        print(traceback.format_exc())
