@@ -9,13 +9,16 @@ from openpyxl.styles import Alignment, Font
 from openpyxl.styles.colors import RED, BLUE
 from openpyxl.utils import get_column_letter, column_index_from_string
 from datetime import datetime
-# from random import sample, uniform, randint
+from email.mime.text import MIMEText
+from email.header import Header
+import smtplib
 import platform
 import os
 import time
 import logging
 import re
 import sys
+import traceback
 
 choice_case_numb = int(sys.argv[1])
 # choice_case_numb = 1
@@ -65,6 +68,7 @@ def write_log_data_to_txt(path, write_data):
 
 def send_commd(commd):
     global receive_cmd_list, infrared_send_cmd
+    continuous_transmission_cmd_num = 0
     # 红外发送端发送指令
     send_serial.write(hex_strs_to_bytes(commd))
     send_serial.flush()
@@ -85,6 +89,11 @@ def send_commd(commd):
                 send_serial.write(hex_strs_to_bytes(KEY[infrared_send_cmd[-1]]))
                 send_serial.flush()
                 time.sleep(1.0)
+                continuous_transmission_cmd_num += 1
+                if continuous_transmission_cmd_num == 10:
+                    stb_crash_msg = "STB一直发送指令，疑似死机"
+                    # mail(f'{stb_crash_msg}\n\n{msg}')
+                    raise FailSendCmdException(stb_crash_msg)
 
 
 def send_random_commd(commd):
@@ -870,6 +879,29 @@ def write_data_to_report():
     wb.save(file_path[1])
 
 
+def mail(message):
+    my_sender = 'wangrun@nationalchip.com'  # 发件人邮箱账号
+    my_pass = 'Wr@372542098'  # 发件人邮箱密码
+    my_user = 'wangrun@nationalchip.com'  # 收件人邮箱账号，我这边发送给自己
+
+    return_state = True
+    try:
+        msg = MIMEText(message, 'plain', 'utf-8')
+        # msg['From'] = formataddr(["FromRunoob", my_sender])  # 括号里的对应发件人邮箱昵称、发件人邮箱账号
+        msg['From'] = Header("Auto_test", 'utf-8')
+        msg['To'] = Header("ME", 'utf-8')
+        # msg['To'] = formataddr(["FK", my_user])  # 括号里的对应收件人邮箱昵称、收件人邮箱账号
+        msg['Subject'] = "自动化测试终止提醒"  # 邮件的主题，也可以说是标题
+
+        server = smtplib.SMTP_SSL("smtp.exmail.qq.com", 465)  # 发件人邮箱中的SMTP服务器，端口是25
+        server.login(my_sender, my_pass)  # 括号中对应的是发件人邮箱账号、邮箱密码
+        server.sendmail(my_sender, [my_user, ], msg.as_string())  # 括号中对应的是发件人邮箱账号、收件人邮箱账号、发送邮件
+        server.quit()  # 关闭连接
+    except smtplib.SMTPException:  # 如果 try 中的语句没有执行，则会执行下面的 ret=False
+        return_state = False
+    return return_state
+
+
 def receive_serial_process(prs_data, infrared_send_cmd, state, channel_info, rsv_info, ch_epg_info, receive_cmd_list):
     logging_info_setting()
     rsv_key = {
@@ -1070,53 +1102,68 @@ if __name__ == "__main__":
         "PREVIOUS": "A1 F1 22 DD 4A", "NEXT": "A1 F1 22 DD 49", "TIME_SHIFT": "A1 F1 22 DD 48", "STOP": "A1 F1 22 DD 4D"
     }
     REVERSE_KEY = dict((val, key) for key, val in KEY.items())
+    try:
+        file_path = build_log_and_report_file_path()
+        ser_name = list(check_ports())  # send_ser_name, receive_ser_name
+        send_serial = serial.Serial(ser_name[0], 9600)
+        receive_ser_name = ser_name[1]
 
-    file_path = build_log_and_report_file_path()
-    ser_name = list(check_ports())  # send_ser_name, receive_ser_name
-    send_serial = serial.Serial(ser_name[0], 9600)
-    receive_ser_name = ser_name[1]
+        infrared_send_cmd = Manager().list([])
+        receive_cmd_list = Manager().list([])
+        channel_info = Manager().list(['', '', '', '', '', '', '', ''])     # [频道号,频道名称,tp,lock,scramble,频道类型,组别,epg_info]
+        ch_epg_info = Manager().list(['', '', ''])                          # 单个EPG信息的提取[event_date, event_time, event_name]
+        rsv_info = Manager().dict({
+            "prog_group_name": '', "prog_group_total": '', "epg_info_exist": '', "sys_time_mode": '',
+            "sys_time_setting_focus_pos": '', "sys_time_timezone": '', "sys_time_summertime": ''
+        })
 
-    infrared_send_cmd = Manager().list([])
-    receive_cmd_list = Manager().list([])
-    channel_info = Manager().list(['', '', '', '', '', '', '', ''])     # [频道号,频道名称,tp,lock,scramble,频道类型,组别,epg_info]
-    ch_epg_info = Manager().list(['', '', ''])                          # 单个EPG信息的提取[event_date, event_time, event_name]
-    rsv_info = Manager().dict({
-        "prog_group_name": '', "prog_group_total": '', "epg_info_exist": '', "sys_time_mode": '',
-        "sys_time_setting_focus_pos": '', "sys_time_timezone": '', "sys_time_summertime": ''
-    })
+        state = Manager().dict({
+            "receive_loop_state": False, "sys_time_mode_state": False, "clear_channel_info_state": False,
+            "send_commd_state": True, "clear_ch_epg_info_state": False, "send_left_cmd_state": False,
+            "send_right_cmd_state": False
+        })
+        prs_data = Manager().dict({
+            "log_file_path": file_path[0], "receive_serial_name": receive_ser_name,
+        })
 
-    state = Manager().dict({
-        "receive_loop_state": False, "sys_time_mode_state": False, "clear_channel_info_state": False,
-        "send_commd_state": True, "clear_ch_epg_info_state": False, "send_left_cmd_state": False,
-        "send_right_cmd_state": False
-    })
-    prs_data = Manager().dict({
-        "log_file_path": file_path[0], "receive_serial_name": receive_ser_name,
-    })
+        rsv_p = Process(target=receive_serial_process, args=(
+            prs_data, infrared_send_cmd, state, channel_info, rsv_info, ch_epg_info, receive_cmd_list))
+        rsv_p.start()
 
-    rsv_p = Process(target=receive_serial_process, args=(
-        prs_data, infrared_send_cmd, state, channel_info, rsv_info, ch_epg_info, receive_cmd_list))
-    rsv_p.start()
+        if platform.system() == "Windows":
+            time.sleep(5)
+            logging.info("Windows系统接收端响应慢，等待5秒")
+        elif platform.system() == "Linux":
+            time.sleep(1)
+            logging.info("Linux系统接收端响应快，但是增加一个延时保护，等待1秒")
 
-    if platform.system() == "Windows":
-        time.sleep(5)
-        logging.info("Windows系统接收端响应慢，等待5秒")
-    elif platform.system() == "Linux":
-        time.sleep(1)
-        logging.info("Linux系统接收端响应快，但是增加一个延时保护，等待1秒")
+        # 主程序开始部分
+        check_sys_time_auto_mode()
+        set_timezone_and_summertime()
+        if TEST_CASE_INFO[4] == "EPGEventComparison":
+            get_group_channel_total_info()
+            get_choice_group_ch_type()
+            choice_test_channel()
+            exit_to_screen()
+            state["receive_loop_state"] = True
 
-    # 主程序开始部分
-    check_sys_time_auto_mode()
-    set_timezone_and_summertime()
-    if TEST_CASE_INFO[4] == "EPGEventComparison":
-        get_group_channel_total_info()
-        get_choice_group_ch_type()
-        choice_test_channel()
-        exit_to_screen()
-        state["receive_loop_state"] = True
+        if state["receive_loop_state"]:
+            rsv_p.terminate()
+            logging.info("程序结束")
+            logging.info('stop receive process')
+            rsv_p.join()
 
-    if state["receive_loop_state"]:
-        rsv_p.terminate()
-        logging.info("程序结束")
-        logging.info('stop receive process')
-        rsv_p.join()
+    except Exception as e:
+        print(e)
+        # cur_py_file_name = sys.argv[0]        # 第0个就是这个python文件本身的路径（全路径）
+        cur_py_file_name = os.path.basename(__file__)       # 当前文件名名称
+        ret = mail(f"{cur_py_file_name}\n\n"
+                   f"{msg}\n\n"
+                   f"{traceback.format_exc()}")
+        if ret:
+            print("邮件发送成功")
+        else:
+            print("邮件发送失败")
+
+        print("***traceback.format_exc():*** ")
+        print(traceback.format_exc())
