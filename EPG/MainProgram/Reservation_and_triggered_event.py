@@ -1358,7 +1358,7 @@ def before_cycle_test_clear_data_and_state():
 
 def mail(message):
     my_sender = 'wangrun@nationalchip.com'  # 发件人邮箱账号
-    my_pass = 'Wr@372542098'  # 发件人邮箱密码
+    my_pass = 'b8iNRgDiPUfkUVLW'  # 发件人邮箱密码
     my_user = 'wangrun@nationalchip.com'  # 收件人邮箱账号，我这边发送给自己
 
     return_state = True
