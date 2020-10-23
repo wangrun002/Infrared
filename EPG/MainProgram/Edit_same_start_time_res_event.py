@@ -1587,7 +1587,9 @@ def calculate_expected_event_2_start_time():
                 res_event_weekday = weekday_num_dict[TEST_CASE_INFO[3]]     # event_1事件对应的星期数
                 if cur_weekday != res_event_weekday:    # 事件1的起始时间星期与当前系统时间日期星期不同时
                     if int(start_time) < cur_sys_hour_minute_time:  # 事件1的起始时间早于当前系统时间
-                        str_expected_event_2_start_time = dt_time[:8] + start_time
+                        cur_sys_time_split = re.split(r'[-\s:]', str(dt_time))
+                        cur_sys_date = ''.join(cur_sys_time_split)[:8]
+                        str_expected_event_2_start_time = cur_sys_date + start_time
                     elif int(start_time) >= cur_sys_hour_minute_time:  # 事件1的起始时间等于或晚于当前系统时间，需要增加一个循环
                         cur_next_weekday = dt_time + timedelta(days=7)
                         cur_next_weekday_split = re.split(r"[-\s:]", str(cur_next_weekday))
