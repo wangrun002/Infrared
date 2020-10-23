@@ -327,7 +327,7 @@ def set_timezone_and_summertime():
                 while rsv_kws["sys_time_timezone"] != GL.choice_timezone:
                     logging.info(f'Timezone参数与预期不符:{rsv_kws["sys_time_timezone"]}--{GL.choice_timezone}')
                     logging.info(f'当前时区为：{rsv_kws["sys_time_timezone"]}，预期时区为：{GL.choice_timezone}')
-                    state_save_prompt_box_jump =True
+                    state_save_prompt_box_jump = True
                     cur_tz_pos = timezone.index(rsv_kws["sys_time_timezone"])
                     expected_tz_pos = timezone.index(GL.choice_timezone)
                     logging.info(f"当前时区的位置为：{cur_tz_pos}，预期时区的位置为：{expected_tz_pos}")
@@ -652,14 +652,14 @@ def from_date_to_secs(str_time):
     elif len(str_time) == 16:
         str_time += ':00'
     logging.info(str_time)
-    start_time_split = re.split(r"[\s:/]", str_time)
-    logging.info(start_time_split)
-    year = int(start_time_split[0])
-    month = int(start_time_split[1])
-    day = int(start_time_split[2])
-    hour = int(start_time_split[3])
-    minute = int(start_time_split[4])
-    second = int(start_time_split[5])
+    str_time_split = re.split(r"[\s:/]", str_time)
+    logging.info(str_time_split)
+    year = int(str_time_split[0])
+    month = int(str_time_split[1])
+    day = int(str_time_split[2])
+    hour = int(str_time_split[3])
+    minute = int(str_time_split[4])
+    second = int(str_time_split[5])
     if year == 1:
         cur_year_day_num = int(date(year, month, day).strftime("%j"))
         total_secs = (cur_year_day_num - 1) * 24 * 3600 + hour * 3600 + minute * 60 + second
@@ -904,7 +904,8 @@ def fmt_time_to_str_time(fmt_time):
     if len(fmt_time) == 12:
         str_time = f"{fmt_time[:4]}/{fmt_time[4:6]}/{fmt_time[6:8]} {fmt_time[8:10]}:{fmt_time[10:12]}"
     elif len(fmt_time) == 14:
-        str_time = f"{fmt_time[:4]}/{fmt_time[4:6]}/{fmt_time[6:8]} {fmt_time[8:10]}:{fmt_time[10:12]}:{fmt_time[12:14]}"
+        str_time = f"{fmt_time[:4]}/{fmt_time[4:6]}/{fmt_time[6:8]} " \
+                   f"{fmt_time[8:10]}:{fmt_time[10:12]}:{fmt_time[12:14]}"
     return str_time
 
 
