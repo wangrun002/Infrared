@@ -642,38 +642,198 @@ def str_time_to_datetime_time(str_time):
     return datetime_time
 
 
-def deal_with_time(time_obj):
-    logging.info("deal_with_time")
-    '''
-        将时间对象变成时间戳;
-        time.mktime(t)来处理，t为结构化的时间或者完整的9位元组元素
-    '''
-    start_time_split = re.split(r"[\s:/]", time_obj)
+def from_date_to_secs(start_time):
+    # start_time = '9999/12/31 23:59:59'
+    before_cur_year_num = []
+    each_year_days = []
+    add_each_year_days = []
+    if len(start_time) == 19:
+        pass
+    elif len(start_time) == 16:
+        start_time += ':00'
+    logging.info(start_time)
+    start_time_split = re.split(r"[\s:/]", start_time)
     logging.info(start_time_split)
     year = int(start_time_split[0])
     month = int(start_time_split[1])
     day = int(start_time_split[2])
     hour = int(start_time_split[3])
     minute = int(start_time_split[4])
-    second = 0
-    wday = int(date(year, month, day).weekday())
-    yday = int(date(year, month, day).strftime("%j"))
-    sdst = -1
-    fmt_time_info = (year, month, day, hour, minute, second, wday, yday, sdst)
-    secs = time.mktime(fmt_time_info)   # 生成时间戳
-    # date_tuple = time.localtime(secs)    # 将时间戳生成时间元组
-    # fmt_date = time.strftime("%Y-%m-%d %H:%M:%S", date_tuple)  # 将时间元组转成格式化字符串（1976-05-21）
-    return secs
+    second = int(start_time_split[5])
+    if year == 1:
+        cur_year_day_num = int(date(year, month, day).strftime("%j"))
+        total_secs = (cur_year_day_num - 1) * 24 * 3600 + hour * 3600 + minute * 60 + second
+    else:
+        for i in range(1, year):
+            before_cur_year_num.append(i)
+
+        for j in range(len(before_cur_year_num)):
+            year_day = int(date(before_cur_year_num[j], 12, 31).strftime("%j"))
+            each_year_days.append(year_day)
+
+        for k in range(len(each_year_days)):
+            if k != 0:
+                add_each_year_days.append(each_year_days[k] + add_each_year_days[k - 1])
+            else:
+                add_each_year_days.append(each_year_days[k])
+
+        # logging.info(before_cur_year_num)
+        # logging.info(each_year_days)
+        # logging.info(add_each_year_days)
+        # logging.info(f'{len(before_cur_year_num)}--{len(add_each_year_days)}')
+        logging.info(f'当前年份之前的总天数：{sum(each_year_days)}')
+        before_cur_year_total_secs = sum(each_year_days) * 24 * 3600
+        logging.info(f'当前年份之前的总天数换算成秒：{before_cur_year_total_secs}')
+        cur_year_day_num = int(date(year, month, day).strftime("%j"))
+        logging.info(cur_year_day_num)
+        cur_year_secs = (cur_year_day_num - 1) * 24 * 3600 + hour * 3600 + minute * 60 + second
+        logging.info(f'当前年份天数换算成秒：{cur_year_secs}')
+        total_secs = before_cur_year_total_secs + cur_year_secs
+
+    logging.info(f'总秒数：{total_secs}')
+    return total_secs
+
+
+def from_secs_to_date(random_sec_num):
+    fmt_date = ''
+    scence_1 = False
+    scence_2 = False
+    max_year = 9999
+    month_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    common_year_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    add_common_year_month = []
+    for i in range(len(common_year_month)):
+        add_common_year_month.append(sum(common_year_month[:i + 1]))
+    # logging.info(add_common_year_month)
+    leap_year_month = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    add_leap_year_month = []
+    for i in range(len(leap_year_month)):
+        add_leap_year_month.append(sum(leap_year_month[:i + 1]))
+    # logging.info(add_leap_year_month)
+    year_list = []
+    each_year_days_list = []
+    add_each_year_days_list = []
+    add_each_year_secs_list = []
+    for i in range(1, max_year + 1):
+        year_list.append(i)
+
+    for j in range(len(year_list)):
+        year_day = int(date(year_list[j], 12, 31).strftime("%j"))
+        each_year_days_list.append(year_day)
+
+    for k in range(len(each_year_days_list)):
+        if k != 0:
+            add_each_year_days_list.append(each_year_days_list[k] + add_each_year_days_list[k - 1])
+        else:
+            add_each_year_days_list.append(each_year_days_list[k])
+
+    for n in range(len(add_each_year_days_list)):
+        add_each_year_secs = add_each_year_days_list[n] * 24 * 3600
+        add_each_year_secs_list.append(add_each_year_secs)
+
+    # logging.info(year_list)
+    # logging.info(each_year_days_list)
+    # logging.info(add_each_year_days_list)
+    # logging.info(add_each_year_secs_list)
+    # random_sec = randint(0, 315537897599)   # 0001/01/01 00:00:00 ~ 9999/12/31 23:59:59换算成秒
+    random_sec = random_sec_num
+    logging.info(f'random_sec的值为：{random_sec}')
+    m = 0
+    while True:
+        if random_sec < add_each_year_secs_list[m]:
+            logging.info(f'm的值为{m},1')
+            scence_1 = True
+            break
+        elif random_sec == add_each_year_secs_list[m]:
+            logging.info(f'm的值为{m},2')
+            scence_2 = True
+            break
+        else:
+            m += 1
+
+    logging.info(f'm的值为{m},3')
+
+    logging.info(scence_1)
+    if scence_1:
+        logging.info('1')
+        cur_month = ''
+        cur_day = ''
+        cur_year = year_list[m]
+        cur_year_days = int(date(cur_year, 12, 31).strftime("%j"))
+        if m == 0:
+            cur_year_secs = random_sec
+        else:
+            cur_year_secs = random_sec - add_each_year_secs_list[m - 1]
+        cur_days = cur_year_secs // 3600 // 24
+        if cur_year_days == 365:
+            logging.info(f"{cur_year}年有365天")
+            add_year_month = add_common_year_month
+            for num in range(len(add_year_month)):
+                if cur_days < add_year_month[num]:
+                    logging.info(f"{num}, <<")
+                    cur_month = month_list[num]
+                    cur_day = common_year_month[num] - ((add_year_month[num] - cur_days) - 1)
+                    break
+                elif cur_days == add_year_month[num]:
+                    logging.info(f"{num}, ==")
+                    cur_month_1 = month_list[num]
+                    cur_day_1 = common_year_month[num]
+                    date1 = datetime(cur_year, cur_month_1, cur_day_1)
+                    date2 = date1 + timedelta(days=1)
+                    date2_split = re.split(r"[-\s:]", str(date2))
+                    cur_month = int(date2_split[1])
+                    cur_day = int(date2_split[2])
+                    break
+        elif cur_year_days == 366:
+            logging.info(f"{cur_year}年有366天")
+            add_year_month = add_leap_year_month
+            for num in range(len(add_year_month)):
+                if cur_days < add_year_month[num]:
+                    logging.info(f"{num}, <<")
+                    cur_month = month_list[num]
+                    cur_day = leap_year_month[num] - ((add_year_month[num] - cur_days) - 1)
+                    break
+                elif cur_days == add_year_month[num]:
+                    logging.info(f"{num}, ==")
+                    cur_month_1 = month_list[num]
+                    cur_day_1 = leap_year_month[num]
+                    date1 = datetime(cur_year, cur_month_1, cur_day_1)
+                    date2 = date1 + timedelta(days=1)
+                    date2_split = re.split(r"[-\s:]", str(date2))
+                    cur_month = int(date2_split[1])
+                    cur_day = int(date2_split[2])
+                    break
+        secs_left = cur_year_secs - cur_days * 24 * 3600
+        cur_hour = secs_left // 3600
+        cur_minute = (secs_left % 3600) // 60
+        cur_second = (secs_left % 3600) % 60
+        logging.info(datetime(cur_year, cur_month, cur_day, cur_hour, cur_minute, cur_second))
+        fmt_date = str(datetime(cur_year, cur_month, cur_day, cur_hour, cur_minute, cur_second))
+
+    logging.info(scence_2)
+    if scence_2:
+        logging.info('2')
+        cur_year = year_list[m]
+        cur_month = 12
+        cur_day = 31
+        cur_hour = 23
+        cur_minute = 59
+        cur_second = 59
+        datetime_time = datetime(cur_year, cur_month, cur_day, cur_hour, cur_minute, cur_second)
+        new_datetime_time = datetime_time + timedelta(seconds=1)
+        logging.info(new_datetime_time)
+        fmt_date = str(new_datetime_time)
+
+    return fmt_date
 
 
 def get_random_time_between_time_period(start_time, end_time):
     logging.info("get_random_time_between_time_period")
     # 在指定的起始和结束时间范围内随机取一个时间值
-    start_time_secs = deal_with_time(start_time)
-    end_time_secs = deal_with_time(end_time)
+    start_time_secs = from_date_to_secs(start_time)
+    end_time_secs = from_date_to_secs(end_time)
     get_random_time = randint(int(start_time_secs), int(end_time_secs))
-    random_time_tuple = time.localtime(get_random_time)     # 将时间戳生成时间元组
-    fmt_random_time = time.strftime("%Y-%m-%d %H:%M", random_time_tuple)    # 将时间元组转成格式化字符串
+    fmt_random_time = from_secs_to_date(get_random_time)     # 将时间秒转成格式化日期字符串
     logging.info(fmt_random_time)
     fmt_random_time_split = re.split(r"[-:\s]", fmt_random_time)
     logging.info(fmt_random_time_split)
@@ -743,6 +903,8 @@ def fmt_time_to_str_time(fmt_time):
     str_time = ''
     if len(fmt_time) == 12:
         str_time = f"{fmt_time[:4]}/{fmt_time[4:6]}/{fmt_time[6:8]} {fmt_time[8:10]}:{fmt_time[10:12]}"
+    elif len(fmt_time) == 14:
+        str_time = f"{fmt_time[:4]}/{fmt_time[4:6]}/{fmt_time[6:8]} {fmt_time[8:10]}:{fmt_time[10:12]}:{fmt_time[12:14]}"
     return str_time
 
 
