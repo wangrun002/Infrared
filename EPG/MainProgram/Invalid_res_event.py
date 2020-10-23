@@ -642,17 +642,17 @@ def str_time_to_datetime_time(str_time):
     return datetime_time
 
 
-def from_date_to_secs(start_time):
+def from_date_to_secs(str_time):
     # start_time = '9999/12/31 23:59:59'
     before_cur_year_num = []
     each_year_days = []
     add_each_year_days = []
-    if len(start_time) == 19:
+    if len(str_time) == 19:
         pass
-    elif len(start_time) == 16:
-        start_time += ':00'
-    logging.info(start_time)
-    start_time_split = re.split(r"[\s:/]", start_time)
+    elif len(str_time) == 16:
+        str_time += ':00'
+    logging.info(str_time)
+    start_time_split = re.split(r"[\s:/]", str_time)
     logging.info(start_time_split)
     year = int(start_time_split[0])
     month = int(start_time_split[1])
