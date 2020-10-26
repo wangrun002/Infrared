@@ -2167,7 +2167,7 @@ def before_cycle_test_clear_data_and_state():
     if TEST_CASE_INFO[6] == "EPG":
         GL.report_data = ['', '', '', '', [], '', '', '', '']
     elif TEST_CASE_INFO[6] == "Timer":
-        GL.report_data = ['', '', '', '', [], '', '', '', '', '']
+        GL.report_data = ['', '', '', '', [], '', '', '', '', '', '']
     GL.case_testing_times -= 1
     logging.info("循环测试，延时5秒")
     time.sleep(5)
