@@ -37,9 +37,13 @@ class MyGlobal(object):
         self.choice_res_ch = ''                         # 预约Play或PVR事件时所选预约节目
 
         if TEST_CASE_INFO[6] == "EPG":                  # EPG界面预约的report_data
+            # ["用例编号", "系统时间", "所选节目频道号", "所选节目频道名称", "起始时间", "结束时间", "事件名称", "预约类型",
+            #                          "事件列表预约事件个数", "无效事件提示", "用例测试时间"]
             self.report_data = ['', '', '', '', [], '', '', '', '']
         elif TEST_CASE_INFO[6] == "Timer":              # Timer界面预约的report_data
-            self.report_data = ['', '', '', '', [], '', '', '', '', '']
+            # ["用例编号", "系统时间", "所选节目频道号", "所选节目频道名称", "预期的无效事件信息", "场景描述",
+            #                          "时区", "夏令时", "事件列表预约事件个数", "无效事件提示", "用例测试时间"]
+            self.report_data = ['', '', '', '', [], '', '', '', '', '', '']
 
 
 def logging_info_setting():
@@ -643,186 +647,135 @@ def str_time_to_datetime_time(str_time):
 
 
 def from_date_to_secs(str_time):
-    # start_time = '9999/12/31 23:59:59'
-    before_cur_year_num = []
-    each_year_days = []
-    add_each_year_days = []
     if len(str_time) == 19:
-        pass
+        if re.match(r'^\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}$', str_time):
+            logging.debug(f"{str_time}的格式正确")
+        else:
+            logging.debug(f"{str_time}的格式不正确")
     elif len(str_time) == 16:
-        str_time += ':00'
-    logging.info(str_time)
-    str_time_split = re.split(r"[\s:/]", str_time)
-    logging.info(str_time_split)
+        if re.match(r'^\d{4}/\d{2}/\d{2} \d{2}:\d{2}$', str_time):
+            str_time += ':00'
+        else:
+            logging.debug(f"{str_time}的格式不正确")
+
+    logging.debug(str_time)
+
+    str_time_split = re.split(r'[/:\s]', str_time)
     year = int(str_time_split[0])
     month = int(str_time_split[1])
     day = int(str_time_split[2])
     hour = int(str_time_split[3])
     minute = int(str_time_split[4])
     second = int(str_time_split[5])
+
     if year == 1:
-        cur_year_day_num = int(date(year, month, day).strftime("%j"))
-        total_secs = (cur_year_day_num - 1) * 24 * 3600 + hour * 3600 + minute * 60 + second
+        cur_year_days = int(date(year, month, day).strftime('%j'))
+        total_secs = (cur_year_days - 1) * 24 * 3600 + hour * 3600 + minute * 60 + second
     else:
+        before_cur_year_total_secs = 0
         for i in range(1, year):
-            before_cur_year_num.append(i)
+            cur_year_days = int(date(i, 12, 31).strftime('%j'))
+            before_cur_year_total_secs += cur_year_days * 24 * 3600
+        cur_year_days = int(date(year, month, day).strftime('%j'))
+        cur_year_total_secs = (cur_year_days - 1) * 24 * 3600 + hour * 3600 + minute * 60 + second
+        total_secs = before_cur_year_total_secs + cur_year_total_secs
 
-        for j in range(len(before_cur_year_num)):
-            year_day = int(date(before_cur_year_num[j], 12, 31).strftime("%j"))
-            each_year_days.append(year_day)
-
-        for k in range(len(each_year_days)):
-            if k != 0:
-                add_each_year_days.append(each_year_days[k] + add_each_year_days[k - 1])
-            else:
-                add_each_year_days.append(each_year_days[k])
-
-        # logging.info(before_cur_year_num)
-        # logging.info(each_year_days)
-        # logging.info(add_each_year_days)
-        # logging.info(f'{len(before_cur_year_num)}--{len(add_each_year_days)}')
-        logging.info(f'当前年份之前的总天数：{sum(each_year_days)}')
-        before_cur_year_total_secs = sum(each_year_days) * 24 * 3600
-        logging.info(f'当前年份之前的总天数换算成秒：{before_cur_year_total_secs}')
-        cur_year_day_num = int(date(year, month, day).strftime("%j"))
-        logging.info(cur_year_day_num)
-        cur_year_secs = (cur_year_day_num - 1) * 24 * 3600 + hour * 3600 + minute * 60 + second
-        logging.info(f'当前年份天数换算成秒：{cur_year_secs}')
-        total_secs = before_cur_year_total_secs + cur_year_secs
-
-    logging.info(f'总秒数：{total_secs}')
+    logging.info(f'{str_time}换算成秒：{total_secs}')
     return total_secs
 
 
-def from_secs_to_date(random_sec_num):
+def from_secs_to_date(sec_time):
+    small_scene = False
+    equal_scene = False
+    add_each_year_days = 0
     fmt_date = ''
-    scence_1 = False
-    scence_2 = False
-    max_year = 9999
-    month_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    common_year_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-    add_common_year_month = []
-    for i in range(len(common_year_month)):
-        add_common_year_month.append(sum(common_year_month[:i + 1]))
-    # logging.info(add_common_year_month)
-    leap_year_month = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-    add_leap_year_month = []
-    for i in range(len(leap_year_month)):
-        add_leap_year_month.append(sum(leap_year_month[:i + 1]))
-    # logging.info(add_leap_year_month)
-    year_list = []
-    each_year_days_list = []
-    add_each_year_days_list = []
-    add_each_year_secs_list = []
-    for i in range(1, max_year + 1):
-        year_list.append(i)
-
-    for j in range(len(year_list)):
-        year_day = int(date(year_list[j], 12, 31).strftime("%j"))
-        each_year_days_list.append(year_day)
-
-    for k in range(len(each_year_days_list)):
-        if k != 0:
-            add_each_year_days_list.append(each_year_days_list[k] + add_each_year_days_list[k - 1])
-        else:
-            add_each_year_days_list.append(each_year_days_list[k])
-
-    for n in range(len(add_each_year_days_list)):
-        add_each_year_secs = add_each_year_days_list[n] * 24 * 3600
-        add_each_year_secs_list.append(add_each_year_secs)
-
-    # logging.info(year_list)
-    # logging.info(each_year_days_list)
-    # logging.info(add_each_year_days_list)
-    # logging.info(add_each_year_secs_list)
-    # random_sec = randint(0, 315537897599)   # 0001/01/01 00:00:00 ~ 9999/12/31 23:59:59换算成秒
-    random_sec = random_sec_num
-    logging.info(f'random_sec的值为：{random_sec}')
-    m = 0
-    while True:
-        if random_sec < add_each_year_secs_list[m]:
-            logging.info(f'm的值为{m},1')
-            scence_1 = True
+    common_year_month_day = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    leap_year_month_day = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    sec_to_int_days = sec_time // (3600 * 24)
+    # print(f'秒换算成整数天{sec_to_int_days}')
+    sec_left = sec_time % (3600 * 24)
+    hour = sec_left // 3600
+    minute = (sec_left % 3600) // 60
+    second = (sec_left % 3600) % 60
+    year = 0
+    for i in range(1, 10000):
+        cur_year_days = int(date(i, 12, 31).strftime('%j'))
+        add_each_year_days += cur_year_days
+        if sec_to_int_days < add_each_year_days:
+            year = i
+            small_scene = True
             break
-        elif random_sec == add_each_year_secs_list[m]:
-            logging.info(f'm的值为{m},2')
-            scence_2 = True
+        elif sec_to_int_days == add_each_year_days:
+            year = i + 1
+            equal_scene = True
             break
-        else:
-            m += 1
+    logging.debug(f'year == {year}')
+    logging.debug(f'{sec_to_int_days}----{add_each_year_days}')
+    days_left = 0
+    if small_scene:
+        logging.debug('small_scene')
+        expected_year_days = int(date(year, 12, 31).strftime('%j'))
+        if year != 1:
+            days_left = sec_to_int_days - (add_each_year_days - expected_year_days)
+        elif year == 1:
+            days_left = sec_to_int_days
+        logging.debug(days_left)
 
-    logging.info(f'm的值为{m},3')
-
-    logging.info(scence_1)
-    if scence_1:
-        logging.info('1')
-        cur_month = ''
-        cur_day = ''
-        cur_year = year_list[m]
-        cur_year_days = int(date(cur_year, 12, 31).strftime("%j"))
-        if m == 0:
-            cur_year_secs = random_sec
-        else:
-            cur_year_secs = random_sec - add_each_year_secs_list[m - 1]
-        cur_days = cur_year_secs // 3600 // 24
-        if cur_year_days == 365:
-            logging.info(f"{cur_year}年有365天")
-            add_year_month = add_common_year_month
-            for num in range(len(add_year_month)):
-                if cur_days < add_year_month[num]:
-                    logging.info(f"{num}, <<")
-                    cur_month = month_list[num]
-                    cur_day = common_year_month[num] - ((add_year_month[num] - cur_days) - 1)
+        if expected_year_days == 365:
+            logging.debug(expected_year_days)
+            for j in range(len(common_year_month_day)):
+                # print(days_left, common_year_month_day[j])
+                if days_left - common_year_month_day[j] < 0:
+                    logging.debug(f'365 <<')
+                    month = j + 1
+                    day = abs(days_left) + 1
+                    fmt_date = str(datetime(year, month, day, hour, minute, second))
                     break
-                elif cur_days == add_year_month[num]:
-                    logging.info(f"{num}, ==")
-                    cur_month_1 = month_list[num]
-                    cur_day_1 = common_year_month[num]
-                    date1 = datetime(cur_year, cur_month_1, cur_day_1)
+                elif days_left - common_year_month_day[j] == 0:
+                    logging.debug(f'365 ==')
+                    cur_month = j + 1
+                    cur_day = abs(days_left)
+                    date1 = datetime(year, cur_month, cur_day)
                     date2 = date1 + timedelta(days=1)
                     date2_split = re.split(r"[-\s:]", str(date2))
-                    cur_month = int(date2_split[1])
-                    cur_day = int(date2_split[2])
+                    month = int(date2_split[1])
+                    day = int(date2_split[2])
+                    fmt_date = str(datetime(year, month, day, hour, minute, second))
                     break
-        elif cur_year_days == 366:
-            logging.info(f"{cur_year}年有366天")
-            add_year_month = add_leap_year_month
-            for num in range(len(add_year_month)):
-                if cur_days < add_year_month[num]:
-                    logging.info(f"{num}, <<")
-                    cur_month = month_list[num]
-                    cur_day = leap_year_month[num] - ((add_year_month[num] - cur_days) - 1)
+                days_left -= common_year_month_day[j]
+        elif expected_year_days == 366:
+            logging.debug(expected_year_days)
+            for j in range(len(leap_year_month_day)):
+                # print(days_left, leap_year_month_day[j])
+                if days_left - leap_year_month_day[j] < 0:
+                    logging.debug(f'366 <<')
+                    month = j + 1
+                    day = abs(days_left) + 1
+                    fmt_date = str(datetime(year, month, day, hour, minute, second))
                     break
-                elif cur_days == add_year_month[num]:
-                    logging.info(f"{num}, ==")
-                    cur_month_1 = month_list[num]
-                    cur_day_1 = leap_year_month[num]
-                    date1 = datetime(cur_year, cur_month_1, cur_day_1)
+                elif days_left - leap_year_month_day[j] == 0:
+                    logging.debug(f'366 ==')
+                    cur_month = j + 1
+                    cur_day = abs(days_left)
+                    date1 = datetime(year, cur_month, cur_day)
                     date2 = date1 + timedelta(days=1)
                     date2_split = re.split(r"[-\s:]", str(date2))
-                    cur_month = int(date2_split[1])
-                    cur_day = int(date2_split[2])
+                    month = int(date2_split[1])
+                    day = int(date2_split[2])
+                    fmt_date = str(datetime(year, month, day, hour, minute, second))
                     break
-        secs_left = cur_year_secs - cur_days * 24 * 3600
-        cur_hour = secs_left // 3600
-        cur_minute = (secs_left % 3600) // 60
-        cur_second = (secs_left % 3600) % 60
-        logging.info(datetime(cur_year, cur_month, cur_day, cur_hour, cur_minute, cur_second))
-        fmt_date = str(datetime(cur_year, cur_month, cur_day, cur_hour, cur_minute, cur_second))
+                days_left -= leap_year_month_day[j]
+        logging.info(f'{sec_time}换算成日期：{fmt_date}')
 
-    logging.info(scence_2)
-    if scence_2:
-        logging.info('2')
-        cur_year = year_list[m]
-        cur_month = 12
-        cur_day = 31
-        cur_hour = 23
-        cur_minute = 59
-        cur_second = 59
-        datetime_time = datetime(cur_year, cur_month, cur_day, cur_hour, cur_minute, cur_second)
-        new_datetime_time = datetime_time + timedelta(seconds=1)
-        logging.info(new_datetime_time)
-        fmt_date = str(new_datetime_time)
+    elif equal_scene:
+        logging.debug('equal_scene')
+        expected_year_days = int(date(year, 12, 31).strftime('%j'))
+        days_left = sec_to_int_days - (add_each_year_days - expected_year_days)
+        logging.debug(days_left)
+        month = 1
+        day = 1
+        fmt_date = str(datetime(year, month, day, hour, minute, second))
+        logging.info(f'{sec_time}换算成日期：{fmt_date}')
 
     return fmt_date
 
@@ -1317,7 +1270,7 @@ def edit_add_new_res_event_info():
     state["update_event_list_state"] = True
     send_commd(KEY["EXIT"])
     send_commd(KEY["OK"])
-    GL.report_data[8] = rsv_kws["event_invalid_msg"]
+    GL.report_data[9] = rsv_kws["event_invalid_msg"]
     if rsv_kws["event_invalid_msg"] == "[PTD]Res_invalid_timer":
         send_commd(KEY["OK"])
     # 添加新预约事件到report
@@ -1436,7 +1389,11 @@ def padding_report_data():
         GL.report_data[0] = TEST_CASE_INFO[0]           # 用例编号
         GL.report_data[5] = TEST_CASE_INFO[7]           # 场景描述
         GL.report_data[6] = GL.choice_timezone          # 时区
-        GL.report_data[9] = str(datetime.now())[:19]    # 写该用例报告的时间
+        if TEST_CASE_INFO[9] == "NoSummertime":
+            GL.report_data[7] = "0"           # 夏令时
+        elif TEST_CASE_INFO[9] == "Summertime":
+            GL.report_data[7] = "+1"           # 夏令时
+        GL.report_data[10] = str(datetime.now())[:19]    # 写该用例报告的时间
 
 
 def write_data_to_report():
@@ -1452,8 +1409,7 @@ def write_data_to_report():
 
     if TEST_CASE_INFO[6] == "EPG":
         excel_title_1 = ["用例编号", "系统时间", "所选节目频道号", "所选节目频道名称", "所选事件信息", "预约类型", "预约事件结果"]
-        excel_title_2 = ["用例编号", "系统时间", "所选节目频道号", "所选节目频道名称",
-                         "起始时间", "结束时间", "事件名称", "预约类型",
+        excel_title_2 = ["用例编号", "系统时间", "所选节目频道号", "所选节目频道名称", "起始时间", "结束时间", "事件名称", "预约类型",
                          "事件列表预约事件个数", "无效事件提示", "用例测试时间"]
 
         if not os.path.exists(file_path[1]):
@@ -1613,9 +1569,9 @@ def write_data_to_report():
         wb.save(file_path[1])
     elif TEST_CASE_INFO[6] == "Timer":
         excel_title_1 = ["用例编号", "系统时间", "所选节目频道号", "所选节目频道名称", "预期的无效事件信息", "场景描述",
-                         "时区", "预约事件结果"]
+                         "时区", "夏令时", "预约事件结果"]
         excel_title_2 = ["用例编号", "系统时间", "所选节目频道号", "所选节目频道名称", "预期的无效事件信息", "场景描述",
-                         "时区", "事件列表预约事件个数", "无效事件提示", "用例测试时间"]
+                         "时区", "夏令时", "事件列表预约事件个数", "无效事件提示", "用例测试时间"]
 
         if not os.path.exists(file_path[1]):
             wb = Workbook()
@@ -1623,10 +1579,10 @@ def write_data_to_report():
             ws.title = file_path[2]
             # 写excel_title_1的内容
             for i in range(len(excel_title_1)):
-                if i == 7:
+                if i == 8:
                     ws.cell(1, i + 1).value = excel_title_1[i]
                     ws.cell(1, i + 1).alignment = alignment
-                    ws.merge_cells(start_row=1, start_column=8, end_row=1, end_column=10)
+                    ws.merge_cells(start_row=1, start_column=9, end_row=1, end_column=11)
                 else:
                     ws.cell(1, i + 1).value = excel_title_1[i]
                     ws.cell(1, i + 1).alignment = alignment
@@ -1646,8 +1602,8 @@ def write_data_to_report():
             # 设置Title的行高
             ws.row_dimensions[1].height = 35  # 设置每次执行的report预约事件信息的行高
             ws.row_dimensions[2].height = 35  # 设置每次执行的report预约事件信息的行高
-            # 合并用例编号单元格，以及report前7个数据的单元格
-            for column in range(7):
+            # 合并用例编号单元格，以及report第0～7个数据的单元格
+            for column in range(8):
                 ws.merge_cells(start_row=1, start_column=column + 1, end_row=2, end_column=column + 1)
 
         elif os.path.exists(file_path[1]):
@@ -1660,10 +1616,10 @@ def write_data_to_report():
                 ws = wb.create_sheet(file_path[2])
                 # 写excel_title_1的内容
                 for i in range(len(excel_title_1)):
-                    if i == 7:
+                    if i == 8:
                         ws.cell(1, i + 1).value = excel_title_1[i]
                         ws.cell(1, i + 1).alignment = alignment
-                        ws.merge_cells(start_row=1, start_column=8, end_row=1, end_column=10)
+                        ws.merge_cells(start_row=1, start_column=9, end_row=1, end_column=11)
                     else:
                         ws.cell(1, i + 1).value = excel_title_1[i]
                         ws.cell(1, i + 1).alignment = alignment
@@ -1683,8 +1639,8 @@ def write_data_to_report():
                 # 设置Title的行高
                 ws.row_dimensions[1].height = 35  # 设置每次执行的report预约事件信息的行高
                 ws.row_dimensions[2].height = 35  # 设置每次执行的report预约事件信息的行高
-                # 合并用例编号单元格，以及report前7个数据的单元格
-                for column in range(7):
+                # 合并用例编号单元格，以及report第0～7个数据的单元格
+                for column in range(8):
                     ws.merge_cells(start_row=1, start_column=column + 1, end_row=2, end_column=column + 1)
 
         # 获取当前用例修改类型的sheet表的Max_row
@@ -2170,13 +2126,25 @@ def write_data_to_report():
                         else:
                             ws.cell(max_row + 1, d + 1).font = red_font
 
-                elif d == 7:    # 预约事件列表框事件个数
+                elif d == 7:    # 夏令时
+                    if TEST_CASE_INFO[9] == "NoSummertime":
+                        if GL.report_data[d] == "0":
+                            ws.cell(max_row + 1, d + 1).font = blue_font
+                        else:
+                            ws.cell(max_row + 1, d + 1).font = red_font
+                    elif TEST_CASE_INFO[9] == "Summertime":
+                        if GL.report_data[d] == "+1":
+                            ws.cell(max_row + 1, d + 1).font = blue_font
+                        else:
+                            ws.cell(max_row + 1, d + 1).font = red_font
+
+                elif d == 8:    # 预约事件列表框事件个数
                     if GL.report_data[d] == "0":
                         ws.cell(max_row + 1, d + 1).font = blue_font
                     else:
                         ws.cell(max_row + 1, d + 1).font = red_font
 
-                elif d == 8:    # 无效事件提示信息
+                elif d == 9:    # 无效事件提示信息
                     if TEST_CASE_INFO[5] == "OutOfSaveTimeRange":
                         if GL.report_data[d] == "[PTD]Res_invalid_date":
                             ws.cell(max_row + 1, d + 1).font = blue_font
@@ -2230,7 +2198,7 @@ def check_event_numb():
         if TEST_CASE_INFO[6] == "EPG":
             GL.report_data[6] = rsv_kws["res_event_numb"]
         elif TEST_CASE_INFO[6] == "Timer":
-            GL.report_data[7] = rsv_kws["res_event_numb"]
+            GL.report_data[8] = rsv_kws["res_event_numb"]
         state["res_event_numb_state"] = False
         # 获取预约事件的状态标志关闭
         state["update_event_list_state"] = False
