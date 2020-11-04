@@ -109,15 +109,6 @@ def send_commd(commd):
                     raise FailSendCmdException(stb_crash_msg)
 
 
-def send_random_commd(commd):
-    # 红外发送端发送指令
-    send_serial.write(hex_strs_to_bytes(commd))
-    send_serial.flush()
-    logging.info("红外发送：{}".format(REVERSE_KEY[commd]))
-    infrared_send_cmd.append(REVERSE_KEY[commd])
-    time.sleep(0.5)
-
-
 def send_more_commds(commd_list):
     # 用于发送一连串的指令
     for commd in commd_list:
@@ -271,7 +262,7 @@ def get_choice_group_ch_type():
         # channel_info = ['', '', '', '', '', '', rsv_info["prog_group_name"], '']
         send_commd(KEY["DOWN"])
         if channel_info[7] == "1":
-            time.sleep(0.5)
+            time.sleep(1)
         elif channel_info[7] == "0" or channel_info[7] == '':
             time.sleep(2.5)
         # time.sleep(1)
@@ -512,7 +503,7 @@ def send_test_case_commd():
                 elif TEST_CASE_INFO[3] == "UP+Random":
                     up_key_random_numb = randint(1, 10)     # 每次执行都需要取随即值，不能提到外面
                     for n in range(up_key_random_numb):
-                        send_random_commd(GL.send_cmd)
+                        send_commd(GL.send_cmd)
                 sleep_time = uniform(0.5, 1.5)
                 logging.info(sleep_time)
                 time.sleep(sleep_time)
@@ -533,7 +524,7 @@ def send_test_case_commd():
                 elif TEST_CASE_INFO[3] == "DOWN+Random":
                     down_key_random_numb = randint(1, 10)       # 每次执行都需要取随即值，不能提到外面
                     for n in range(down_key_random_numb):
-                        send_random_commd(GL.send_cmd)
+                        send_commd(GL.send_cmd)
                 sleep_time = uniform(0.5, 1.5)
                 logging.info(sleep_time)
                 time.sleep(sleep_time)
@@ -551,10 +542,10 @@ def send_test_case_commd():
                 each_ch_info = []
                 up_key_random_numb = randint(1, 10)         # 每次执行都需要取随即值，不能提到外面
                 for n in range(up_key_random_numb):
-                    send_random_commd(GL.send_cmd[0])
+                    send_commd(GL.send_cmd[0])
                 down_key_random_numb = randint(1, 10)       # 每次执行都需要取随即值，不能提到外面
                 for n in range(down_key_random_numb):
-                    send_random_commd(GL.send_cmd[1])
+                    send_commd(GL.send_cmd[1])
                 sleep_time = uniform(0.5, 1.5)
                 logging.info(sleep_time)
                 time.sleep(sleep_time)
@@ -606,7 +597,7 @@ def send_test_case_commd():
             while state["send_commd_state"]:
                 random_send_numb = randint(1, 20)
                 for i in range(random_send_numb):
-                    send_random_commd(GL.send_cmd)
+                    send_commd(GL.send_cmd)
                     logging.info("随机切换焦点次数：{}-{}".format(i + 1, random_send_numb))
                 sleep_time = uniform(0.75, 1.0)
                 logging.info(sleep_time)
@@ -624,7 +615,7 @@ def send_test_case_commd():
             while state["send_commd_state"]:
                 random_send_numb = randint(1, 20)
                 for i in range(random_send_numb):
-                    send_random_commd(GL.send_cmd)
+                    send_commd(GL.send_cmd)
                     logging.info("随机切换焦点次数：{}-{}".format(i + 1, random_send_numb))
                 sleep_time = uniform(0.75, 1.0)
                 logging.info(sleep_time)
@@ -642,11 +633,11 @@ def send_test_case_commd():
             while state["send_commd_state"]:
                 right_random_send_numb = randint(1, 20)
                 for i in range(right_random_send_numb):
-                    send_random_commd(GL.send_cmd[1])
+                    send_commd(GL.send_cmd[1])
                     logging.info("随机切换焦点次数：{}-{}".format(i + 1, right_random_send_numb))
                 left_random_send_numb = randint(1, 20)
                 for i in range(left_random_send_numb):
-                    send_random_commd(GL.send_cmd[0])
+                    send_commd(GL.send_cmd[0])
                     logging.info("随机切换焦点次数：{}-{}".format(i + 1, left_random_send_numb))
                 sleep_time = uniform(0.75, 1.0)
                 logging.info(sleep_time)
@@ -695,7 +686,7 @@ def send_test_case_commd():
                 send_commd(GL.send_cmd[0])              # 发送Day+
                 left_random_send_numb = randint(1, 20)
                 for i in range(left_random_send_numb):
-                    send_random_commd(GL.send_cmd[1])          # 发送LEFT
+                    send_commd(GL.send_cmd[1])          # 发送LEFT
                     logging.info("随机切换焦点次数：{}-{}".format(i + 1, left_random_send_numb))
                 sleep_time = uniform(0.75, 1.0)
                 logging.info(sleep_time)
@@ -716,7 +707,7 @@ def send_test_case_commd():
                 send_commd(GL.send_cmd[0])              # 发送Day+
                 right_random_send_numb = randint(1, 20)
                 for i in range(right_random_send_numb):
-                    send_random_commd(GL.send_cmd[1])          # 发送RIGHT
+                    send_commd(GL.send_cmd[1])          # 发送RIGHT
                     logging.info("随机切换焦点次数：{}-{}".format(i + 1, right_random_send_numb))
                 sleep_time = uniform(0.75, 1.0)
                 logging.info(sleep_time)
@@ -737,7 +728,7 @@ def send_test_case_commd():
                 left_or_right_random_send_numb = randint(1, 20)
                 random_send_data = sample(lest_or_right_random_commd, 1)[0]
                 for i in range(left_or_right_random_send_numb):
-                    send_random_commd(random_send_data)      # 随机发送LEFT或者RIGHT
+                    send_commd(random_send_data)      # 随机发送LEFT或者RIGHT
                     logging.info("随机切换焦点次数：{}-{}".format(i + 1, left_or_right_random_send_numb))
                 sleep_time = uniform(0.75, 1.0)
                 logging.info(sleep_time)
@@ -758,7 +749,7 @@ def send_test_case_commd():
                 send_commd(GL.send_cmd[0])              # 发送Day-
                 left_random_send_numb = randint(1, 20)
                 for i in range(left_random_send_numb):
-                    send_random_commd(GL.send_cmd[1])          # 发送LEFT
+                    send_commd(GL.send_cmd[1])          # 发送LEFT
                     logging.info("随机切换焦点次数：{}-{}".format(i + 1, left_random_send_numb))
                 sleep_time = uniform(0.75, 1.0)
                 logging.info(sleep_time)
@@ -779,7 +770,7 @@ def send_test_case_commd():
                 send_commd(GL.send_cmd[0])              # 发送Day-
                 right_random_send_numb = randint(1, 20)
                 for i in range(right_random_send_numb):
-                    send_random_commd(GL.send_cmd[1])          # 发送RIGHT
+                    send_commd(GL.send_cmd[1])          # 发送RIGHT
                     logging.info("随机切换焦点次数：{}-{}".format(i + 1, right_random_send_numb))
                 sleep_time = uniform(0.75, 1.0)
                 logging.info(sleep_time)
@@ -800,7 +791,7 @@ def send_test_case_commd():
                 left_or_right_random_send_numb = randint(1, 20)
                 random_send_data = sample(lest_or_right_random_commd, 1)[0]
                 for i in range(left_or_right_random_send_numb):
-                    send_random_commd(random_send_data)        # 随机发送LEFT或者RIGHT
+                    send_commd(random_send_data)        # 随机发送LEFT或者RIGHT
                     logging.info("随机切换焦点次数：{}-{}".format(i + 1, left_or_right_random_send_numb))
                 sleep_time = uniform(0.75, 1.0)
                 logging.info(sleep_time)
@@ -818,7 +809,7 @@ def send_test_case_commd():
                 GL.send_cmd = sample(cmd_set_list, 1)[0]
                 left_or_right_random_send_numb = randint(1, 20)
                 for i in range(left_or_right_random_send_numb):
-                    send_random_commd(GL.send_cmd)        # 随机发送Day+或Day-或LEFT或RIGHT
+                    send_commd(GL.send_cmd)        # 随机发送Day+或Day-或LEFT或RIGHT
                     logging.info("随机切换焦点次数：{}-{}".format(i + 1, left_or_right_random_send_numb))
                 sleep_time = uniform(0.75, 1.0)
                 logging.info(sleep_time)
@@ -1473,7 +1464,7 @@ def receive_serial_process(prs_data, infrared_send_cmd, state, channel_info, rsv
                 rsv_info["sys_time_mode"] = re.split(r"=", data2)[-1]
 
             if switch_ch_kws[0] in data2:
-                ch_info_split = re.split(r"[\],]", data2)
+                ch_info_split = re.split(r"[],]", data2)
                 for i in range(len(ch_info_split)):
                     if ch_info_kws[0] in ch_info_split[i]:  # 提取频道号
                         channel_info[0] = re.split("=", ch_info_split[i])[-1]
@@ -1481,7 +1472,7 @@ def receive_serial_process(prs_data, infrared_send_cmd, state, channel_info, rsv
                         channel_info[1] = re.split("=", ch_info_split[i])[-1]
 
             if switch_ch_kws[1] in data2:
-                flag_info_split = re.split(r"[\],]", data2)
+                flag_info_split = re.split(r"[],]", data2)
                 for i in range(len(flag_info_split)):
                     if ch_info_kws[2] in flag_info_split[i]:  # 提取频道所属TP
                         channel_info[2] = re.split(r"=", flag_info_split[i])[-1].replace(" ", "")
@@ -1493,7 +1484,7 @@ def receive_serial_process(prs_data, infrared_send_cmd, state, channel_info, rsv
                         channel_info[5] = re.split(r"=", flag_info_split[i])[-1]
 
             if switch_ch_kws[3] in data2:
-                group_info_split = re.split(r"[\],]", data2)
+                group_info_split = re.split(r"[],]", data2)
                 for i in range(len(group_info_split)):
                     if group_info_kws[0] in group_info_split[i]:  # 提取频道所属组别
                         rsv_info["prog_group_name"] = re.split(r"=", group_info_split[i])[-1]
@@ -1509,21 +1500,29 @@ def receive_serial_process(prs_data, infrared_send_cmd, state, channel_info, rsv
                         channel_info[7] = rsv_info["epg_info_exist"]
 
             if check_epg_kws[1] in data2:
-                epg_event_split = re.split(r"event:|,", data2)
-                for i in range(len(epg_event_split)):
-                    if epg_info_kws[1] in epg_event_split[i]:
-                        time_info_split = re.split(r"=|--|\s", epg_event_split[i])
-                        if time_info_split[1] == time_info_split[3]:
-                            event_date = "{}".format(time_info_split[1])
-                            ch_epg_info[0] = event_date
-                        elif time_info_split[1] != time_info_split[3]:
-                            event_date = "{}-{}".format(time_info_split[1], time_info_split[3])
-                            ch_epg_info[0] = event_date
-                        event_time = "{}-{}".format(time_info_split[2][:5], time_info_split[4][:5])
-                        ch_epg_info[1] = event_time
-                    if epg_info_kws[2] in epg_event_split[i]:
-                        event_name = re.split(r"=", epg_event_split[i])[-1]
-                        ch_epg_info[2] = event_name
+                # epg_event_split = re.split(r"event:|,", data2)
+                # for i in range(len(epg_event_split)):
+                #     if epg_info_kws[1] in epg_event_split[i]:
+                #         time_info_split = re.split(r"=|--|\s", epg_event_split[i])
+                #         if time_info_split[1] == time_info_split[3]:
+                #             event_date = "{}".format(time_info_split[1])
+                #             ch_epg_info[0] = event_date
+                #         elif time_info_split[1] != time_info_split[3]:
+                #             event_date = "{}-{}".format(time_info_split[1], time_info_split[3])
+                #             ch_epg_info[0] = event_date
+                #         event_time = "{}-{}".format(time_info_split[2][:5], time_info_split[4][:5])
+                #         ch_epg_info[1] = event_time
+                #     if epg_info_kws[2] in epg_event_split[i]:
+                #         event_name = re.split(r"=", epg_event_split[i])[-1]
+                #         ch_epg_info[2] = event_name
+                epg_event_split = re.split(r"event_time=|,event_name=", data2)
+                time_info_split = re.split(r"--|\s", epg_event_split[1])
+                if time_info_split[0] == time_info_split[2]:
+                    ch_epg_info[0] = time_info_split[0]
+                elif time_info_split[0] != time_info_split[2]:
+                    ch_epg_info[0] = "{}-{}".format(time_info_split[0], time_info_split[2])
+                ch_epg_info[1] = "{}-{}".format(time_info_split[1][:5], time_info_split[3][:5])
+                ch_epg_info[2] = epg_event_split[-1]
 
 
 if __name__ == "__main__":
