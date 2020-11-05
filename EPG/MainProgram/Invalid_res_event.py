@@ -511,7 +511,7 @@ def get_choice_group_ch_type():
         # channel_info = ['', '', '', '', '', '', rsv_info["prog_group_name"], '']
         send_commd(KEY["DOWN"])
         if channel_info[7] == "1":
-            time.sleep(0.5)
+            time.sleep(1)
         elif channel_info[7] == "0" or channel_info[7] == '':
             time.sleep(2.5)
         # time.sleep(1)
