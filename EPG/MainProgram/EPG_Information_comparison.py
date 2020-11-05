@@ -374,7 +374,7 @@ def get_choice_group_ch_type():
         # channel_info = ['', '', '', '', '', '', rsv_info["prog_group_name"], '']
         send_commd(KEY["DOWN"])
         if channel_info[7] == "1":
-            time.sleep(0.5)
+            time.sleep(1)
         elif channel_info[7] == "0" or channel_info[7] == '':
             time.sleep(2.5)
         # time.sleep(1)
@@ -575,7 +575,7 @@ def send_test_case_commd():
                                 state["send_left_cmd_state"] = False
                                 state["send_right_cmd_state"] = True
                                 time.sleep(1)
-                            if len(GL.all_ch_epg_info[channel_info[1]]) >= 20:
+                            if len(GL.all_ch_epg_info[channel_info[1]]) == 20:
                                 GL.judge_switch_epg_info_end = GL.all_ch_epg_info[channel_info[1]][:10]
 
 
