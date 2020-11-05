@@ -703,10 +703,13 @@ def clear_variate():
     GL.record_maximum_data.clear()
     GL.all_tp_list.clear()
     GL.channel_info.clear()
-    GL.tv_radio_tp_count[0], GL.tv_radio_tp_count[1] = 0, 0
-    GL.tv_radio_tp_count[4] = '0'
+    GL.tv_radio_tp_count = ['0', '0', '0', '0', '0']
+    GL.search_datas[2] = '0'
+    GL.search_datas[3] = '0/0'
+    GL.search_datas[4] = '0'
     GL.search_datas[5] = '0/0'
-    GL.tv_radio_tp_count[2], GL.tv_radio_tp_count[3] = 0, 0
+    GL.search_datas[6] = '0'
+    GL.search_datas[8].clear()
 
 
 def exit_antenna_setting():
@@ -937,7 +940,7 @@ def data_send_thread():
 
 def mail(message):
     my_sender = 'wangrun@nationalchip.com'  # 发件人邮箱账号
-    my_pass = 'Wr@372542098'  # 发件人邮箱密码
+    my_pass = 'b8iNRgDiPUfkUVLW'  # 发件人邮箱密码
     my_user = 'wangrun@nationalchip.com'  # 收件人邮箱账号，我这边发送给自己
 
     return_state = True
@@ -1066,13 +1069,13 @@ def data_receiver_thread():
                     len(GL.all_tp_list), GL.search_dur_time))
 
             if GL.search_monitor_kws[5] in data2:  # 监控保存TP的个数
-                GL.tv_radio_tp_count[4] = re.split("=", data2)[1]
+                GL.tv_radio_tp_count[4] = re.split("=", data2)[1]   # 保存TP的个数
                 GL.search_datas[4] = GL.tv_radio_tp_count[4]
 
             if GL.search_monitor_kws[6] in data2:  # 监控保存TV和Radio的个数
                 split_result = re.split(r"[,\]]", data2)
-                GL.tv_radio_tp_count[2] = re.split("=", split_result[1])[1]
-                GL.tv_radio_tp_count[3] = re.split("=", split_result[2])[1]
+                GL.tv_radio_tp_count[2] = re.split("=", split_result[1])[1]     # 保存TV数
+                GL.tv_radio_tp_count[3] = re.split("=", split_result[2])[1]     # 保存Radio数
                 GL.search_datas[5] = "{}/{}".format(GL.tv_radio_tp_count[2], GL.tv_radio_tp_count[3])
 
                 GL.tv_radio_tp_accumulated[0].append(int(GL.tv_radio_tp_count[0]))
