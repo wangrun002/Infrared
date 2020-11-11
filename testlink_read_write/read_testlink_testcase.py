@@ -19,32 +19,43 @@ def logging_info_setting():
     logging.basicConfig(level=logging.DEBUG, format=log_format, datefmt=date_format)
 
 
-url = 'http://git.nationalchip.com/testlink/lib/api/xmlrpc.php'
-key = 'f5df4f1bd2bdd22403ec6b8b118d022c'
-
-tlc = testlink.TestlinkAPIClient(url, key)
-
-
-print(tlc.countProjects())
-projects = tlc.getProjects()
-for project in projects:
-    print(project['id'], '------>', project['name'])
+def get_all_project():
+    ret = []
+    for i in tlc.getProjects():
+        ret.append({'id': i['id'], 'name': i['name']})
+    return ret
 
 
-dvb_4_suites = tlc.getFirstLevelTestSuitesForTestProject(506862)
-print(dvb_4_suites)
-print(len(dvb_4_suites))
-for dvb_4_suite in dvb_4_suites:
-    print(dvb_4_suite["id"], dvb_4_suite["name"])
-
-print(f"{100*'%'}")
-n = 0
-suites_name_list = []
-suites_id_list = []
+def get_specify_project_id_by_name(name):
+    for i in tlc.getProjects():
+        if i['name'] == name:
+            return i['id']
 
 
-module_name = '播放控制'
-module_file_name = '播放控制.xlsx'
+def get_all_first_suites_id(project_id):
+    all_first_suite_id = {}
+    specify_project_first_suites = tlc.getFirstLevelTestSuitesForTestProject(project_id)
+    for first_suite in specify_project_first_suites:
+        print(first_suite['id'], first_suite['name'])
+        all_first_suite_id[first_suite['id']] = first_suite['name']
+    return all_first_suite_id
+
+
+def data_replace(data):
+    data = data.replace('<p>', '')
+    data = data.replace('</p>', '')
+    data = data.replace('&nbsp;', '')
+    data = data.replace('&ldquo;', '"')
+    data = data.replace('&rdquo;', '"')
+    data = data.replace('&quot;', '"')
+    data = data.replace('&le;', '<')
+    data = data.replace('<span style="color: rgb(255, 0, 0);">', '')
+    data = data.replace('</span>', '')
+    data = data.replace('<strong>', '')
+    data = data.replace('<span style="font-size: larger;">', '')
+    data = data.replace('</strong>', '')
+    data = data.replace('<br />', '')
+    return data
 
 
 def write_test_case_to_excel(case_info):
@@ -116,28 +127,43 @@ def get_suite_id_name(suites_id):
     space = '-'
     # print(n)
     suites = tlc.getTestSuitesForTestSuite(suites_id)
-    if len(suites) == 1:
-        print("(=========================================)")
-        print(f"{4* n * space} {suites['id']} {suites['name']}")
-    elif len(suites) > 1:
-        n += 1
-
-        for suite in suites:
-            print(f"{4* n * space} {suites[suite]['id']}, {suites[suite]['name']}")
-            # print(f"父id为{suites[suite]['parent_id']}")
-            suites_name_list.append([suites[suite]['name']])
-            suites_id_list.append(suites[suite]['id'])
-
-            get_suite_id_name(suites[suite]['id'])
-            if suite == list(suites.keys())[-1]:
-                print(f"{'='*50}")
-                if suites[suite]['parent_id'] in suites_id_list:
-                    cur_suite_parent_id_index_pos = suites_id_list.index(suites[suite]['parent_id'])
-                    suites_name_list = suites_name_list[:cur_suite_parent_id_index_pos]
-                    suites_id_list = suites_id_list[:cur_suite_parent_id_index_pos]
+    # print(suites)
+    if len(suites) > 0:
+        if 'id' in suites.keys():
+            n += 1
+            print("(=========================================)")
+            print(f"{4 * n * space} {suites['id']} {suites['name']}")
+            suites_name_list.append([suites['name']])
+            suites_id_list.append(suites['id'])
+            get_suite_id_name(suites['id'])
+            print(f"{'=' * 50}")
+            if suites['parent_id'] in suites_id_list:
+                cur_suite_parent_id_index_pos = suites_id_list.index(suites['parent_id'])
+                suites_name_list = suites_name_list[:cur_suite_parent_id_index_pos]
+                suites_id_list = suites_id_list[:cur_suite_parent_id_index_pos]
             else:
-                print(f"{'#'*50}")
-        n = 1
+                print(f"{'#' * 50}")
+            n = 1
+
+        elif 'id' not in suites.keys():
+            n += 1
+
+            for suite in suites:
+                print(f"{4 * n * space} {suites[suite]['id']}, {suites[suite]['name']}")
+                # print(f"父id为{suites[suite]['parent_id']}")
+                suites_name_list.append([suites[suite]['name']])
+                suites_id_list.append(suites[suite]['id'])
+
+                get_suite_id_name(suites[suite]['id'])
+                if suite == list(suites.keys())[-1]:
+                    print(f"{'='*50}")
+                    if suites[suite]['parent_id'] in suites_id_list:
+                        cur_suite_parent_id_index_pos = suites_id_list.index(suites[suite]['parent_id'])
+                        suites_name_list = suites_name_list[:cur_suite_parent_id_index_pos]
+                        suites_id_list = suites_id_list[:cur_suite_parent_id_index_pos]
+                else:
+                    print(f"{'#'*50}")
+            n = 1
 
     elif len(suites) == 0:
         logging.info(f'本套件{suites_id}下没有套件，为空')
@@ -156,19 +182,19 @@ def get_suite_id_name(suites_id):
             # 由于每个test_case是一个list，且只有一个元素，所以test_case[0].get('name')就能获取到当前case的名称，其他信息都是如此
             print(test_case[0].get('name'))
             # 每个case下的摘要、前提、步骤、期望的结果
-            case_info.append(test_case[0].get('name'))
-            case_info.append(test_case[0].get('summary'))
-            case_info.append(test_case[0].get('preconditions'))
-            print(f"测试用例摘要为：{test_case[0].get('summary')}")
-            print(f"测试用例前提为：{test_case[0].get('preconditions')}")
+            case_info.append(data_replace(test_case[0].get('name')))
+            case_info.append(data_replace(test_case[0].get('summary')))
+            case_info.append(data_replace(test_case[0].get('preconditions')))
+            # print(f"测试用例摘要为：{test_case[0].get('summary')}")
+            # print(f"测试用例前提为：{test_case[0].get('preconditions')}")
             step_action_result = {}
             for m in test_case[0].get("steps"):
-                print('序列:', m.get("step_number"), '1111111111')
-                print('执行步骤:', m.get("actions"), '22222222222')
-                print('预期结果:', m.get("expected_results"), '333333333')
+                # print('序列:', m.get("step_number"), '1111111111')
+                # print('执行步骤:', m.get("actions"), '22222222222')
+                # print('预期结果:', m.get("expected_results"), '333333333')
                 step_action_result[m.get("step_number")] = ['', '']
-                step_action_result[m.get("step_number")][0] += f"{m.get('actions')}"
-                step_action_result[m.get("step_number")][1] += f"{m.get('expected_results')}"
+                step_action_result[m.get("step_number")][0] += f"{data_replace(m.get('actions'))}"
+                step_action_result[m.get("step_number")][1] += f"{data_replace(m.get('expected_results'))}"
             # print(step_action_result)
             case_info.append(step_action_result)
             # print(case_info)
@@ -204,6 +230,46 @@ def get_suite_id_name(suites_id):
         suites_name_list = suites_name_list[:parent_id_index_pos]
         suites_id_list = suites_id_list[:parent_id_index_pos]
 
+if __name__ == '__main__':
+    logging_info_setting()
+    # get_suite_id_name(547713)
 
-logging_info_setting()
-get_suite_id_name(547713)
+    url = 'http://git.nationalchip.com/testlink/lib/api/xmlrpc.php'
+    key = 'f5df4f1bd2bdd22403ec6b8b118d022c'
+    tlc = testlink.TestlinkAPIClient(url, key)
+
+    projects_info = get_all_project()
+    for project in projects_info:
+        print(project)
+
+    # print(tlc.countProjects())
+    # projects = tlc.getProjects()
+    # for project in projects:
+    #     print(project['id'], '------>', project['name'])
+
+    specify_project_id = get_specify_project_id_by_name('DVBS-4.0')
+    specify_project_first_suite_id = get_all_first_suites_id(specify_project_id)
+
+    # dvb_4_suites = tlc.getFirstLevelTestSuitesForTestProject(506862)
+    # print(dvb_4_suites)
+    # print(len(dvb_4_suites))
+    # for dvb_4_suite in dvb_4_suites:
+    #     print(dvb_4_suite["id"], dvb_4_suite["name"])
+
+    print(f"{100 * '%'}")
+    # n = 0
+    # suites_name_list = []
+    # suites_id_list = []
+    # module_name = '播放控制'
+    # module_file_name = '播放控制.xlsx'
+    print(specify_project_first_suite_id)
+
+    for id in specify_project_first_suite_id:
+        n = 0
+        suites_name_list = []
+        suites_id_list = []
+        module_name = specify_project_first_suite_id[id]
+        module_file_name = f'{module_name}.xlsx'
+        get_suite_id_name(id)
+        # if id == '510983':
+        #     get_suite_id_name(id)
