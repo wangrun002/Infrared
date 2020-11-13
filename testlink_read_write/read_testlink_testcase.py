@@ -55,6 +55,7 @@ def data_replace(data):
     data = data.replace('<span style="font-size: larger;">', '')
     data = data.replace('</strong>', '')
     data = data.replace('<br />', '')
+    data = data.replace('<span style="font-family: Arial;">', '')
     return data
 
 
@@ -122,12 +123,88 @@ def write_test_case_to_excel(case_info):
     wb.save(module_file_name)
 
 
+def get_case_parent_suite_name(case_suite_id, suite_name=None):
+    if suite_name is None:
+        suite_name = []
+    try:
+        parent_suite_id = tlc.getTestSuiteByID(case_suite_id)['parent_id']
+        if parent_suite_id != get_specify_project_id_by_name(exported_project_name):
+            suite_name.insert(0, tlc.getTestSuiteByID(case_suite_id)['name'])
+            # print(parent_suite_id, 'parent_suite_id')
+            get_case_parent_suite_name(parent_suite_id, suite_name=suite_name)
+    except:
+        return False
+    else:
+        return suite_name
+
+
+def check_suite_and_case_in_suite(suite_id):
+    suites = tlc.getTestSuitesForTestSuite(suite_id)    # 单个套件返回｛｝，多个套件返回｛‘id’:{},'id':{}｝
+    cases = tlc.getTestCasesForTestSuite(testsuiteid=suite_id, deep=False, details="simple")    # 返回[{case1},{case2}]
+    if len(cases) > 0:
+        case_info = []
+        case_suite_path = get_case_parent_suite_name(suite_id, suite_name=None)
+        case_info.append(str(case_suite_path))
+        # 分别处理当前套件下的所有的case
+        for case in cases:
+            test_case = tlc.getTestCase(case['id'])
+            # print(f"{case['id']}:{len(test_case)}:{test_case}")
+            # 由于每个test_case是一个list，且只有一个元素，所以test_case[0].get('name')就能获取到当前case的名称，其他信息都是如此
+            print(test_case[0].get('name'))  # 也可以用print(test_case[0]['name'])
+            # 每个case下的摘要、前提、步骤、期望的结果
+            case_info.append(data_replace(test_case[0].get('name')))
+            case_info.append(data_replace(test_case[0].get('summary')))
+            case_info.append(data_replace(test_case[0].get('preconditions')))
+            step_action_result = {}
+            for m in test_case[0].get("steps"):
+                step_action_result[m.get("step_number")] = ['', '']
+                step_action_result[m.get("step_number")][0] += f"{data_replace(m.get('actions'))}"
+                step_action_result[m.get("step_number")][1] += f"{data_replace(m.get('expected_results'))}"
+            # print(step_action_result)
+            case_info.append(step_action_result)
+            # print(case_info)
+            write_test_case_to_excel(case_info)
+            case_info = case_info[:1]
+    if len(suites) > 0:
+        if 'id' in suites.keys():   # 套件下只有一个套件存在时
+            check_suite_and_case_in_suite(suites['id'])
+
+        elif 'id' not in suites.keys():     # 套件下存在多个套件时
+            for suite in suites:    # 默认情况下suite是suites的key值（‘id’）
+                check_suite_and_case_in_suite(suites[suite]['id'])
+
+    # elif len(suites) == 0:
+    #     if len(cases) > 0:
+    #         case_info = []
+    #         case_info.append(get_case_parent_suite_name(suite_id, suite_name=None))
+    #         # 分别处理当前套件下的所有的case
+    #         for case in cases:
+    #             test_case = tlc.getTestCase(case['id'])
+    #             # print(f"{case['id']}:{len(test_case)}:{test_case}")
+    #             # 由于每个test_case是一个list，且只有一个元素，所以test_case[0].get('name')就能获取到当前case的名称，其他信息都是如此
+    #             # print(test_case[0].get('name'))  # 也可以用print(test_case[0]['name'])
+    #             # 每个case下的摘要、前提、步骤、期望的结果
+    #             case_info.append(data_replace(test_case[0].get('name')))
+    #             case_info.append(data_replace(test_case[0].get('summary')))
+    #             case_info.append(data_replace(test_case[0].get('preconditions')))
+    #             step_action_result = {}
+    #             for m in test_case[0].get("steps"):
+    #                 step_action_result[m.get("step_number")] = ['', '']
+    #                 step_action_result[m.get("step_number")][0] += f"{data_replace(m.get('actions'))}"
+    #                 step_action_result[m.get("step_number")][1] += f"{data_replace(m.get('expected_results'))}"
+    #             # print(step_action_result)
+    #             case_info.append(step_action_result)
+    #             # print(case_info)
+    #             write_test_case_to_excel(case_info)
+    #             case_info = case_info[:1]
+
+
 def get_suite_id_name(suites_id):
     global n, suites_name_list, suites_id_list
     space = '-'
     # print(n)
     suites = tlc.getTestSuitesForTestSuite(suites_id)
-    # print(suites)
+    # print(suites, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
     if len(suites) > 0:
         if 'id' in suites.keys():
             n += 1
@@ -172,7 +249,7 @@ def get_suite_id_name(suites_id):
         print(suites_id_list)
         case_info.append(suites_name_list)
         # 当套件下没有套件时，说明此时套件下都是用例
-        cases = tlc.getTestCasesForTestSuite(testsuiteid=suites_id, deep=True, details="simple")
+        cases = tlc.getTestCasesForTestSuite(testsuiteid=suites_id, deep=False, details="simple")
         print(f'套件下所有case为{cases}')
 
         # 分别处理当前套件下的所有的case
@@ -181,6 +258,7 @@ def get_suite_id_name(suites_id):
             print(f"{cases[case]['id']}:{len(test_case)}:{test_case}")
             # 由于每个test_case是一个list，且只有一个元素，所以test_case[0].get('name')就能获取到当前case的名称，其他信息都是如此
             print(test_case[0].get('name'))
+            get_case_parent_suite_name(test_case[0]['testsuite_id'])
             # 每个case下的摘要、前提、步骤、期望的结果
             case_info.append(data_replace(test_case[0].get('name')))
             case_info.append(data_replace(test_case[0].get('summary')))
@@ -198,9 +276,8 @@ def get_suite_id_name(suites_id):
             # print(step_action_result)
             case_info.append(step_action_result)
             # print(case_info)
-            write_test_case_to_excel(case_info)
+            # write_test_case_to_excel(case_info)
             case_info = case_info[:1]
-
             # for i in test_case:
             #     logging.info(f"测试用例名称为：{i.get('name')}")
             #     if i == test_case[0]:
@@ -222,13 +299,15 @@ def get_suite_id_name(suites_id):
             # if m == i.get('steps')[-1]:
             # logging.info(case_info)
             # write_test_case_to_excel(case_info)
+        if len(cases) > 0:
+            # 当前套件的第一个case的父id在suites_id_list中的位置，用于处理最小套件的平行套件的套件路径
+            print(cases[0]['parent_id'])
+            if cases[0]['parent_id'] in suites_id_list:
+                parent_id_index_pos = suites_id_list.index(cases[0]['parent_id'])
+                print(f'{parent_id_index_pos}--{suites_id_list[:parent_id_index_pos]}---{suites_id_list[:(parent_id_index_pos + 1)]}')
+                suites_name_list = suites_name_list[:parent_id_index_pos]
+                suites_id_list = suites_id_list[:parent_id_index_pos]
 
-        # 当前套件的第一个case的父id在suites_id_list中的位置，用于处理最小套件的平行套件的套件路径
-        print(cases[0]['parent_id'])
-        parent_id_index_pos = suites_id_list.index(cases[0]['parent_id'])
-        print(f'{parent_id_index_pos}--{suites_id_list[:parent_id_index_pos]}---{suites_id_list[:(parent_id_index_pos + 1)]}')
-        suites_name_list = suites_name_list[:parent_id_index_pos]
-        suites_id_list = suites_id_list[:parent_id_index_pos]
 
 if __name__ == '__main__':
     logging_info_setting()
@@ -237,6 +316,8 @@ if __name__ == '__main__':
     url = 'http://git.nationalchip.com/testlink/lib/api/xmlrpc.php'
     key = 'f5df4f1bd2bdd22403ec6b8b118d022c'
     tlc = testlink.TestlinkAPIClient(url, key)
+
+    exported_project_name = 'test_for_using_testlink'
 
     projects_info = get_all_project()
     for project in projects_info:
@@ -247,7 +328,8 @@ if __name__ == '__main__':
     # for project in projects:
     #     print(project['id'], '------>', project['name'])
 
-    specify_project_id = get_specify_project_id_by_name('DVBS-4.0')
+    # specify_project_id = get_specify_project_id_by_name('DVBS-4.0')
+    specify_project_id = get_specify_project_id_by_name(exported_project_name)
     specify_project_first_suite_id = get_all_first_suites_id(specify_project_id)
 
     # dvb_4_suites = tlc.getFirstLevelTestSuitesForTestProject(506862)
@@ -270,6 +352,10 @@ if __name__ == '__main__':
         suites_id_list = []
         module_name = specify_project_first_suite_id[id]
         module_file_name = f'{module_name}.xlsx'
-        get_suite_id_name(id)
-        # if id == '510983':
-        #     get_suite_id_name(id)
+        # check_suite_and_case_in_suite(id)
+        if id == '512097':
+            check_suite_and_case_in_suite(id)
+        #     cases = tlc.getTestCasesForTestSuite(testsuiteid=id, deep=False, details="simple")
+        #     if len(cases) > 0:
+        #         for case in cases:
+        #             print(f"case名称为：{case['name']}")

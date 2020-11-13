@@ -54,6 +54,10 @@ class TestLinkHandle(object):
             # logging.info(i)
         return r
 
+    def get_case_info_from_suite(self, suite_id):
+        # 通过suite id获取该套件下的case的详细信息
+        return self.tlc.getTestCase(suite_id)
+
     def delete_project(self, prefix):
         # 删除项目
         try:
@@ -86,8 +90,8 @@ class TestLinkHandle(object):
                           author_login, summary, preconditions):
         # 创建用例和创建测试步骤
         try:
-            if len(steps) < 0:
-                self.tlc.initStep('', '', 2)
+            if len(steps) <= 0:
+                self.tlc.initStep('', '', 1)
             for step in steps:
                 self.tlc.appendStep(step['actions'], step['expected_results'], step['execution_type'])
             return self.tlc.createTestCase(
@@ -123,22 +127,58 @@ class TestLinkHandle(object):
             return specify_suite_info_dict
 
     def check_case_suite_exist(self, project_id, suite_id, suite_name_list):
+        # 判断excel中的套件名称list是否已经存在，返回最后一个套件的id，作为创建case的套件id
+        if len(suite_name_list) > 0:
+            for i in range(len(suite_name_list)):
+                specify_suite_info_dict = self.get_speify_suite_sub_suite_info(suite_id)    #　查询当前套件id下的所有子套件
+                print(specify_suite_info_dict)
 
-        for i in range(len(suite_name_list)):
-            specify_suite_info_dict = self.get_speify_suite_sub_suite_info(suite_id)
-            print(specify_suite_info_dict)
+                if suite_name_list[i] not in specify_suite_info_dict.keys():    # 套件名称不在当前suite_id的子套件中
+                    suite_name_list = suite_name_list[i:]   # 需要创建的套件就是当前套件和之后的所有套件名称列表
+                    parent_suite_id = suite_id  # 将当前查询的套件id，作为父套件id
 
-            if suite_name_list[i] not in specify_suite_info_dict.keys():
-                suite_name_list = suite_name_list[i:]
-                parent_suite_id = suite_id
+                    for name in suite_name_list:
+                        parent_suite_id = TLH.create_suite(project_id, name, parent_id=parent_suite_id)
+                    return parent_suite_id
+                elif suite_name_list[i] in specify_suite_info_dict.keys():
+                    suite_id = specify_suite_info_dict[suite_name_list[i]]
+                    if i == len(suite_name_list) - 1:   # 假如suite_name_list中的所有套件都存在，返回最后一个套件的id
+                        return suite_id
+        elif len(suite_name_list) == 0:
+            return suite_id
 
-                for name in suite_name_list:
-                    parent_suite_id = TLH.create_suite(project_id, name, parent_id=parent_suite_id)
-                return parent_suite_id
-            elif suite_name_list[i] in specify_suite_info_dict.keys():
-                suite_id = specify_suite_info_dict[suite_name_list[i]]
-                if i == len(suite_name_list) - 1:
-                    return suite_id
+    def check_and_create_suite_case(self, case_steps, case_name, case_parent_suite_id, project_id, author,
+                                    case_summary, case_preconditions):
+
+        # 先检查最后一个suite下没有套件（还是存在套件下有套件和case共存的现象，这个到时候遇到了再看）
+        suites = self.tlc.getTestSuitesForTestSuite(case_parent_suite_id)
+        if len(suites) > 0:
+            logging.debug('警告：该套件下仍存在套件')
+        elif len(suites) == 0:
+            logging.debug('该套件下没有套件了')
+            # 检查该套件下是否存在case（这里的case只是简单的描述信息，要查看case详细信息，需要执行tlc.getTestCase(case_id)）
+            last_suite_cases = self.tlc.getTestCasesForTestSuite(
+                testsuiteid=case_parent_suite_id, deep=False, details="simple")
+            # logging.debug(last_suite_cases)
+            # logging.debug(len(last_suite_cases))
+            if len(last_suite_cases) == 0:
+                logging.debug('没有case，能直接创建case')
+                return self.creat_cases_steps(case_steps, case_name, case_parent_suite_id, project_id, author,
+                                              case_summary, case_preconditions)
+            elif len(last_suite_cases) > 0:
+                logging.debug('有case存在，需要比对要创建的case是否已经存在')
+                last_suite_case_name_list = []
+                for case in last_suite_cases:
+                    # print(TLH.get_case_info_from_suite(case['id']))
+                    # print(case['name'])
+                    last_suite_case_name_list.append(case['name'])
+                if case_name in last_suite_case_name_list:
+                    logging.debug('要创建的case已经存在')
+                    return False
+                elif case_name not in last_suite_case_name_list:
+                    logging.debug('要创建的case不存在')
+                    return self.creat_cases_steps(case_steps, case_name, case_parent_suite_id, project_id, author,
+                                           case_summary, case_preconditions)
 
 
 class ExcelTestCaseHandle(object):
@@ -164,20 +204,23 @@ class ExcelTestCaseHandle(object):
         return all_cases, sheets_name_list[0]
 
     def handle_multi_suite_name(self, suites_name):
-        eval_suite_name_list = []
+        # 处理从excel获取到的单条case的所有的套件名称
+        # eval_suite_name_list = []
+        # suite_name_list = eval(suites_name)
+        # for name in suite_name_list:
+        #     if len(name) == 1:
+        #         eval_suite_name_list.append(name[0])
+        # return eval_suite_name_list
         suite_name_list = eval(suites_name)
-        for name in suite_name_list:
-            if len(name) == 1:
-                eval_suite_name_list.append(name[0])
-        return eval_suite_name_list
+        return suite_name_list
 
-    def handle_testcase_step(self, step_action, step_result):
-
+    def handle_add_tag_to_obj(self, old_object):
         def f(x):
             return f'<p>{x}</p>'
 
-        def add_tag_to_object(old_object):
-            new_object = []
+        new_object = []
+        # 假如原数据对象是list，用于步骤和期望结果的数据处理
+        if type(old_object) is list:
             for obj in old_object:
                 if '\n' in obj:
                     obj_split = list(filter(lambda x: x, re.split(r'\n', obj)))
@@ -187,27 +230,48 @@ class ExcelTestCaseHandle(object):
                     new_object.append('\n'.join(new_obj_split))
                 else:
                     new_object.append(f(obj))
-            return new_object
+        # 假如原数据对象是字符串，用于摘要和前提的数据处理
+        elif type(old_object) is str:
+            if '\n' in old_object:
+                obj_split = list(filter(lambda x: x, re.split(r'\n', old_object)))
+                # print(obj_split)
+                new_obj_split = list(map(f, obj_split))
+                # print(new_obj_split)
+                new_object = '\n'.join(new_obj_split)
+            else:
+                new_object = f(old_object)
+        return new_object
+
+
+    def handle_testcase_step(self, step_action, step_result):
 
         steps = []
-        # 处理步骤数＋步骤内容
-        action_split = re.split(r'步骤\d+、', step_action)
-        list_action_split = list(filter(lambda x: x, action_split))
-        new_list_action_split = add_tag_to_object(list_action_split)
-        # 处理步骤数＋期望的结果内容
-        result_split = re.split(r'步骤\d+、', step_result)
-        list_result_split = list(filter(lambda x: x, result_split))
-        new_list_result_split = add_tag_to_object(list_result_split)
+        new_list_action_split = []
+        new_list_result_split = []
+        if step_action is not None:
+            # 处理步骤数＋步骤内容
+            action_split = re.split(r'步骤\d+、', step_action)
+            list_action_split = list(filter(lambda x: x, action_split))
+            new_list_action_split = self.handle_add_tag_to_obj(list_action_split)
+
+        if step_result is not None:
+            # 处理步骤数＋期望的结果内容
+            result_split = re.split(r'步骤\d+、', step_result)
+            list_result_split = list(filter(lambda x: x, result_split))
+            new_list_result_split = self.handle_add_tag_to_obj(list_result_split)
 
         if len(new_list_action_split) == len(new_list_result_split):
-            for numb in range(len(new_list_action_split)):
-                step_info = dict()
-                step_info['step_number'] = numb + 1
-                step_info['actions'] = new_list_action_split[numb]
-                step_info['expected_results'] = new_list_result_split[numb]
-                step_info['execution_type'] = 1
-                steps.append(step_info)
-            return steps
+            if len(new_list_action_split) != 0:
+                for numb in range(len(new_list_action_split)):
+                    step_info = dict()
+                    step_info['step_number'] = numb + 1
+                    step_info['actions'] = new_list_action_split[numb]
+                    step_info['expected_results'] = new_list_result_split[numb]
+                    step_info['execution_type'] = 1
+                    steps.append(step_info)
+                return steps
+            elif len(new_list_action_split) == 0:
+                return steps
         else:
             return False
 
@@ -225,9 +289,10 @@ print(f'{specify_project_name}的id为{pj_id}')
 
 pj_first_suites = TLH.get_suites(pj_id)
 
-
 # 单条case的所有信息和当前模块名称
-all_cases_info, module_name = ETCH.get_single_testcase('播放控制1.xlsx')
+import_project_name = '这是一个测试集1.xlsx'
+
+all_cases_info, module_name = ETCH.get_single_testcase(import_project_name)
 # print(all_cases_info)
 # print(len(all_cases_info))
 for single_case_info in all_cases_info:
@@ -246,10 +311,10 @@ for single_case_info in all_cases_info:
     # print(single_case_name)
 
     # 单条case中用例的摘要
-    single_case_summary = single_case_info[2]
+    single_case_summary = ETCH.handle_add_tag_to_obj(single_case_info[2])
 
     # 单条case中用例的前提
-    single_case_preconditions = single_case_info[3]
+    single_case_preconditions = ETCH.handle_add_tag_to_obj(single_case_info[3])
 
 
     # def f(x):
@@ -277,15 +342,16 @@ for single_case_info in all_cases_info:
     # print(len(list(filter(lambda x: x, result_split))))
     # result_split_list = list(filter(lambda x: x, result_split))
 
-    # 单个case中的所有步骤和结果
+    # 处理单个case中的所有步骤和结果
     single_case_steps_info = ETCH.handle_testcase_step(single_case_info[-2], single_case_info[-1])
     # print(single_case_steps_info)
 
     # 用例作者
     author_name = 'wangrun'
-
+    # 检查模块套件是否存在，返回模块套件id
     module_suite_id = TLH.check_module_suite_exist(pj_id, module_name)
     print(module_suite_id)
+    # 检测excel文件中的套件组中的各个套件在模块套件中是否存在，返回最后一个套件的id
     case_parent_suite_id = TLH.check_case_suite_exist(pj_id, module_suite_id, handle_suite_name_list)
     # # 创建模块名称套件和模块下的多重套件
     # parent_suite_id = TLH.create_suite(pj_id, module_name)
@@ -297,6 +363,7 @@ for single_case_info in all_cases_info:
     #     #     parent_suite_id = TLH.create_suite(pj_id, name, parent_id=parent_suite_id)
     #
     # 创建单个测试用例
-    return_testcase_info = TLH.creat_cases_steps(single_case_steps_info, single_case_name, case_parent_suite_id, pj_id,
-                                                 author_name, single_case_summary, single_case_preconditions)
+    return_testcase_info = TLH.check_and_create_suite_case(
+        single_case_steps_info, single_case_name, case_parent_suite_id, pj_id,author_name,
+        single_case_summary, single_case_preconditions)
     print(return_testcase_info)
