@@ -3,11 +3,7 @@
 
 from openpyxl import Workbook
 from openpyxl import load_workbook
-from openpyxl.styles import Alignment, Font
-from openpyxl.styles.colors import RED, BLUE
-from openpyxl.utils import get_column_letter, column_index_from_string
 import testlink
-import os
 import logging
 import re
 
@@ -17,11 +13,6 @@ def logging_info_setting():
     log_format = "%(asctime)s %(name)s %(levelname)s %(message)s"  # 配置输出日志的格式
     date_format = "%Y-%m-%d %H:%M:%S %a"  # 配置输出时间的格式
     logging.basicConfig(level=logging.DEBUG, format=log_format, datefmt=date_format)
-
-
-# url = 'http://git.nationalchip.com/testlink/lib/api/xmlrpc.php'
-# key = 'f5df4f1bd2bdd22403ec6b8b118d022c'
-# tlc = testlink.TestlinkAPIClient(url, key)
 
 
 class TestLinkHandle(object):
@@ -169,8 +160,6 @@ class TestLinkHandle(object):
                 logging.debug('有case存在，需要比对要创建的case是否已经存在')
                 last_suite_case_name_list = []
                 for case in last_suite_cases:
-                    # print(TLH.get_case_info_from_suite(case['id']))
-                    # print(case['name'])
                     last_suite_case_name_list.append(case['name'])
                 if case_name in last_suite_case_name_list:
                     logging.debug('要创建的case已经存在')
@@ -186,6 +175,7 @@ class ExcelTestCaseHandle(object):
     def __init__(self):
         pass
 
+    # @staticmethod
     def get_single_testcase(self, testcase_file_path):
         # 从Ｅxcel中获取单条case的信息
         all_cases = []
@@ -276,94 +266,57 @@ class ExcelTestCaseHandle(object):
             return False
 
 
-logging_info_setting()
-TLH = TestLinkHandle()
-ETCH = ExcelTestCaseHandle()
-projects = TLH.get_all_projects()
-for project in projects:
-    print(project)
+if __name__ == '__main__':
+    logging_info_setting()
+    TLH = TestLinkHandle()
+    ETCH = ExcelTestCaseHandle()
+    projects = TLH.get_all_projects()
+    for project in projects:
+        print(project)
 
-specify_project_name = 'test_for_using_testlink'
-pj_id = TLH.get_project_id_by_name(specify_project_name)
-print(f'{specify_project_name}的id为{pj_id}')
+    specify_project_name = 'test_for_using_testlink'
+    pj_id = TLH.get_project_id_by_name(specify_project_name)
+    print(f'{specify_project_name}的id为{pj_id}')
 
-pj_first_suites = TLH.get_suites(pj_id)
+    pj_first_suites = TLH.get_suites(pj_id)
 
-# 单条case的所有信息和当前模块名称
-import_project_name = '这是一个测试集1.xlsx'
+    # 单条case的所有信息和当前模块名称
+    import_project_name = '这是一个测试集1.xlsx'
 
-all_cases_info, module_name = ETCH.get_single_testcase(import_project_name)
-# print(all_cases_info)
-# print(len(all_cases_info))
-for single_case_info in all_cases_info:
-    print(single_case_info)
-    # print(len(single_case_info))
-    # for i in single_case_info:
-    #     print(type(i))
-    #     print(i)
+    all_cases_info, module_name = ETCH.get_single_testcase(import_project_name)
+    for single_case_info in all_cases_info:
+        print(single_case_info)
 
-    # 单条case中所有的套件名称
-    handle_suite_name_list = ETCH.handle_multi_suite_name(single_case_info[0])
-    # print(handle_suite_name_list)
+        # 单条case中所有的套件名称
+        handle_suite_name_list = ETCH.handle_multi_suite_name(single_case_info[0])
+        # print(handle_suite_name_list)
 
-    # 单条case中的用例标题名称
-    single_case_name = single_case_info[1]
-    # print(single_case_name)
+        # 单条case中的用例标题名称
+        single_case_name = single_case_info[1]
+        # print(single_case_name)
 
-    # 单条case中用例的摘要
-    single_case_summary = ETCH.handle_add_tag_to_obj(single_case_info[2])
+        # 单条case中用例的摘要
+        single_case_summary = ETCH.handle_add_tag_to_obj(single_case_info[2])
 
-    # 单条case中用例的前提
-    single_case_preconditions = ETCH.handle_add_tag_to_obj(single_case_info[3])
+        # 单条case中用例的前提
+        single_case_preconditions = ETCH.handle_add_tag_to_obj(single_case_info[3])
 
+        # 处理单个case中的所有步骤和结果
+        single_case_steps_info = ETCH.handle_testcase_step(single_case_info[-2], single_case_info[-1])
+        # print(single_case_steps_info)
 
-    # def f(x):
-    #     return f'<p>{x}</p>'
-    # action_split = re.split(r'步骤\d+、', single_case_info[-2])
-    # print(action_split)
-    # print(list(filter(lambda x: x, action_split)))
-    # print(len(list(filter(lambda x: x, action_split))))
-    # action_split_list = list(filter(lambda x: x, action_split))
-    # new_action_split_list = []
-    # for action in action_split_list:
-    #     if '\n' in action:
-    #         action_split = list(filter(lambda x: x, re.split(r'\n', action)))
-    #         print(action_split)
-    #         new_action_split = list(map(f, action_split))
-    #         print(new_action_split)
-    #         new_action_split_list.append('\n'.join(new_action_split))
-    #     else:
-    #         new_action_split_list.append(f(action))
-    # print(new_action_split_list)
+        # 用例作者
+        author_name = 'wangrun'
 
-    # result_split = re.split(r'步骤\d+、', single_case_info[-1])
-    # print(result_split)
-    # print(list(filter(lambda x: x, result_split)))
-    # print(len(list(filter(lambda x: x, result_split))))
-    # result_split_list = list(filter(lambda x: x, result_split))
+        # 检查模块套件是否存在，返回模块套件id
+        module_suite_id = TLH.check_module_suite_exist(pj_id, module_name)
+        print(module_suite_id)
 
-    # 处理单个case中的所有步骤和结果
-    single_case_steps_info = ETCH.handle_testcase_step(single_case_info[-2], single_case_info[-1])
-    # print(single_case_steps_info)
+        # 检测excel文件中的套件组中的各个套件在模块套件中是否存在，返回最后一个套件的id
+        case_parent_suite_id = TLH.check_case_suite_exist(pj_id, module_suite_id, handle_suite_name_list)
 
-    # 用例作者
-    author_name = 'wangrun'
-    # 检查模块套件是否存在，返回模块套件id
-    module_suite_id = TLH.check_module_suite_exist(pj_id, module_name)
-    print(module_suite_id)
-    # 检测excel文件中的套件组中的各个套件在模块套件中是否存在，返回最后一个套件的id
-    case_parent_suite_id = TLH.check_case_suite_exist(pj_id, module_suite_id, handle_suite_name_list)
-    # # 创建模块名称套件和模块下的多重套件
-    # parent_suite_id = TLH.create_suite(pj_id, module_name)
-    # for name in handle_suite_name_list:
-    #     parent_suite_id = TLH.create_suite(pj_id, name, parent_id=parent_suite_id)
-    #     # if name == handle_suite_name_list[0]:
-    #     #     parent_suite_id = TLH.create_suite(pj_id, name)
-    #     # else:
-    #     #     parent_suite_id = TLH.create_suite(pj_id, name, parent_id=parent_suite_id)
-    #
-    # 创建单个测试用例
-    return_testcase_info = TLH.check_and_create_suite_case(
-        single_case_steps_info, single_case_name, case_parent_suite_id, pj_id,author_name,
-        single_case_summary, single_case_preconditions)
-    print(return_testcase_info)
+        # 创建单个测试用例
+        return_testcase_info = TLH.check_and_create_suite_case(
+            single_case_steps_info, single_case_name, case_parent_suite_id, pj_id, author_name,
+            single_case_summary, single_case_preconditions)
+        print(return_testcase_info)
