@@ -188,17 +188,20 @@ class Data(object):
             fo.write(w_data)
 
     def handle_filter_issue_by_module(self, issues_data, result_name):
-
         output_file_path = f'./{output_dir}/{result_name}.txt'
+        title = f'过滤到的{result_name}的issues总数为：（{len(issues_data)}）个:\n\n'
         if len(issues_data) > 0:
             data_dict = {}
-            for i in range(len(issues_data)):
-                if list(issues_data['modules'])[i] not in data_dict:
-                    data_dict[list(issues_data['modules'])[i]] = []
-                data_dict[list(issues_data['modules'])[i]].append(list(issues_data['#'])[i])
+            for index_n in issues_data.index:
+                if issues_data.loc[index_n, 'modules'] not in data_dict:
+                    data_dict[issues_data.loc[index_n, 'modules']] = []
+                data_dict[issues_data.loc[index_n, 'modules']].append(issues_data.loc[index_n, '#'])
+            # for i in range(len(issues_data)):
+            #     if list(issues_data['modules'])[i] not in data_dict:
+            #         data_dict[list(issues_data['modules'])[i]] = []
+            #     data_dict[list(issues_data['modules'])[i]].append(list(issues_data['#'])[i])
 
             # 写title
-            title = f'过滤到的{result_name}的issues总数为：（{len(issues_data)}）个:\n\n'
             self.write_filter_data(output_file_path, title)
             for key in list(data_dict.keys()):
                 # print(f'{key}:')
@@ -209,22 +212,24 @@ class Data(object):
                 # print('')
                 self.write_filter_data(output_file_path, '\n')
         else:
-            # 写title
-            title = f'过滤到的{result_name}的issues总数为：（{len(issues_data)}）个:\n\n'
+            # 没有数据，直接写title
             self.write_filter_data(output_file_path, title)
 
     def handle_filter_issue_by_seriousness(self, issues_data, result_name):
-
         output_file_path = f'./{output_dir}/{result_name}.txt'
+        title = f'过滤到的{result_name}的issues总数为：（{len(issues_data)}）个:\n\n'
         if len(issues_data) > 0:
             data_dict = {}
-            for i in range(len(issues_data)):
-                if list(issues_data['seriousness'])[i] not in data_dict:
-                    data_dict[list(issues_data['seriousness'])[i]] = []
-                data_dict[list(issues_data['seriousness'])[i]].append(list(issues_data['#'])[i])
+            for index_n in issues_data.index:
+                if issues_data.loc[index_n, 'seriousness'] not in data_dict:
+                    data_dict[issues_data.loc[index_n, 'seriousness']] = []
+                data_dict[issues_data.loc[index_n, 'seriousness']].append(issues_data.loc[index_n, '#'])
+            # for i in range(len(issues_data)):
+            #     if list(issues_data['seriousness'])[i] not in data_dict:
+            #         data_dict[list(issues_data['seriousness'])[i]] = []
+            #     data_dict[list(issues_data['seriousness'])[i]].append(list(issues_data['#'])[i])
 
             # 写title
-            title = f'过滤到的{result_name}的issues总数为：（{len(issues_data)}）个:\n\n'
             self.write_filter_data(output_file_path, title)
             for key in list(data_dict.keys()):
                 # print(f'{key}:')
@@ -235,26 +240,34 @@ class Data(object):
                 # print('')
                 self.write_filter_data(output_file_path, '\n')
         else:
-            # 写title
-            title = f'过滤到的{result_name}的issues总数为：（{len(issues_data)}）个:\n\n'
+            # 没有数据，直接写title
             self.write_filter_data(output_file_path, title)
 
     def handle_filter_issue_by_module_and_seriousness(self, issues_data, result_name):
         output_file_path = f'./{output_dir}/{result_name}.txt'
+        title = f'过滤到的{result_name}的issues总数为：（{len(issues_data)}）个:\n\n'
         serious_name_list = ['死机', '严重', '一般', '建议']
         module_issues_dict = {}     # 各个模块的问题个数
         crash_and_serious_issues_dict = {}  # 各个模块的死机＋严重问题个数
         if len(issues_data) > 0:
             data_dict = {}
-            for i in range(len(issues_data)):
-                if issues_data['modules'][i] not in data_dict:
-                    data_dict[issues_data['modules'][i]] = {}
-                if issues_data['seriousness'][i] not in data_dict[issues_data['modules'][i]]:
-                    data_dict[issues_data['modules'][i]][issues_data['seriousness'][i]] = []
-                data_dict[issues_data['modules'][i]][issues_data['seriousness'][i]].append(issues_data['#'][i])
+            for index_n in issues_data.index:
+                if issues_data.loc[index_n, 'modules'] not in data_dict:
+                    data_dict[issues_data.loc[index_n, 'modules']] = {}
+                if issues_data.loc[index_n, 'seriousness'] not in data_dict[issues_data.loc[index_n, 'modules']]:
+                    data_dict[issues_data.loc[index_n, 'modules']][issues_data.loc[index_n, 'seriousness']] = []
+                data_dict[issues_data.loc[index_n, 'modules']][issues_data.loc[index_n, 'seriousness']].append(
+                    issues_data.loc[index_n, '#']
+                )
+
+            # for i in range(len(issues_data)):
+            #     if issues_data['modules'][i] not in data_dict:
+            #         data_dict[issues_data['modules'][i]] = {}
+            #     if issues_data['seriousness'][i] not in data_dict[issues_data['modules'][i]]:
+            #         data_dict[issues_data['modules'][i]][issues_data['seriousness'][i]] = []
+            #     data_dict[issues_data['modules'][i]][issues_data['seriousness'][i]].append(issues_data['#'][i])
 
             # 写title
-            title = f'过滤到的{result_name}的issues总数为：（{len(issues_data)}）个:\n\n'
             self.write_filter_data(output_file_path, title)
             # 写数据
             for mod in list(data_dict.keys()):
@@ -271,11 +284,11 @@ class Data(object):
                             output_file_path, '%s:(%d)个\n' % (serious_name, 0))
                 # # print('')
                 self.write_filter_data(output_file_path, '\n')
+                crash_and_serious_numb_list = []
                 for serious_name in list(data_dict[mod].keys()):
-                    crash_and_serious_numb_list = []
                     if serious_name in serious_name_list[:2]:
                         crash_and_serious_numb_list.append(len(data_dict[mod][serious_name]))
-                    crash_and_serious_issues_dict[mod] = sum(crash_and_serious_numb_list)
+                crash_and_serious_issues_dict[mod] = sum(crash_and_serious_numb_list)
 
             # 生成问题从多到少分布报告
             sort_by_mod_numb_name = '问题从多到少分布'
@@ -298,7 +311,6 @@ class Data(object):
 
         else:
             # 写title
-            title = f'过滤到的{result_name}的issues总数为：（{len(issues_data)}）个:\n\n'
             self.write_filter_data(output_file_path, title)
 
 
@@ -364,7 +376,6 @@ if __name__ == '__main__':
     }
 
     Author_ptd = ['陈材', '吴胜燕', '王丽君', '王润', '颜潮锋', '罗萍', '宋戈', '倪斌']
-
     # 创建输出目录
     now = datetime.now()
     output_dir = f'__{specify_project_name}__{filter_issue_subject_kws}__' \
