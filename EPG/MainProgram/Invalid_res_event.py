@@ -56,6 +56,13 @@ def logging_info_setting():
     logging.basicConfig(level=logging.DEBUG, format=log_format, datefmt=date_format)
 
 
+def log(func):
+    def wrapper(*args, **kwargs):
+        logging.debug(f'call {func.__name__}():')
+        return func(*args, **kwargs)
+    return wrapper
+
+
 def hex_strs_to_bytes(strings):
     # 将红外命令字符串转换为字节串
     return bytes.fromhex(strings)
@@ -103,6 +110,7 @@ def send_more_commds(commd_list):
     time.sleep(1)   # 增加函数切换时的的等待，避免可能出现send_commd函数中的等待时间没有执行的情况
 
 
+@log
 def build_log_and_report_file_path():
     # 用于创建打印和报告文件路径
     # 构建存放数据的总目录，以及构建存放打印和报告的目录
@@ -148,6 +156,7 @@ def build_log_and_report_file_path():
     return log_file_path, report_file_path, sheet_name
 
 
+@log
 def change_numbs_to_commds_list(numbs_list):
     # 将数值列表转换为指令集列表
     channel_commds_list = []
@@ -161,13 +170,14 @@ def change_numbs_to_commds_list(numbs_list):
     return channel_commds_list
 
 
+@log
 def exit_to_screen():
     send_data = [KEY["EXIT"], KEY["EXIT"], KEY["EXIT"]]
     send_more_commds(send_data)
 
 
+@log
 def clear_timer_setting_all_events():
-    logging.info("clear_timer_setting_all_events")
     # 清除Timer_setting界面所有的事件
     enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
     delete_all_res_events = [KEY["BLUE"], KEY["OK"]]
@@ -192,8 +202,8 @@ def clear_timer_setting_all_events():
     exit_to_screen()
 
 
+@log
 def check_sys_time_auto_mode():
-    logging.debug("check_sys_time_auto_mode")
     # 检测系统时间模式
     enter_time_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["OK"]]
     change_sys_time_mode = [KEY["RIGHT"], KEY["EXIT"], KEY["OK"]]
@@ -216,8 +226,8 @@ def check_sys_time_auto_mode():
     exit_to_screen()
 
 
+@log
 def check_sys_time_manual_mode():
-    logging.debug("check_sys_time_auto_mode")
     # 检测系统时间模式
     enter_time_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["OK"]]
     change_sys_time_mode = [KEY["RIGHT"], KEY["EXIT"], KEY["OK"]]
@@ -240,16 +250,16 @@ def check_sys_time_manual_mode():
     exit_to_screen()
 
 
+@log
 def get_sys_time_info():
-    logging.info("get_sys_time_info")
     enter_time_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["OK"]]
     send_more_commds(enter_time_setting_interface)
     logging.info(rsv_kws["current_sys_time"])
     exit_to_screen()
 
 
+@log
 def set_timezone_and_summertime():
-    logging.info("set_timezone_and_summertime")
     state_save_prompt_box_jump = False
     other_timezone = [
         '0.5', '1', '1.5', '2', '2.5', '3', '3.5', '4', '4.5', '5', '5.5', '6', '6.5', '7', '7.5', '8', '8.5', '9',
@@ -444,8 +454,8 @@ def set_timezone_and_summertime():
     exit_to_screen()
 
 
+@log
 def get_group_channel_total_info():
-    logging.debug("get_group_channel_total_info")
     # 切台前获取case节目类别,分组,分组节目数量,以及获取节目属性前的去除加锁的判断
     # 根据所选case切换到对应类型节目的界面
     while channel_info[5] != TEST_CASE_INFO[2]:
@@ -494,8 +504,8 @@ def get_group_channel_total_info():
     logging.debug(GL.Radio_channel_groups)
 
 
+@log
 def get_choice_group_ch_type():
-    logging.debug("get_choice_group_ch_type")
     global channel_info
     # 采集All分组下的节目属性和是否有EPG信息
     choice_group_ch_total_numb = ''
@@ -543,9 +553,8 @@ def get_choice_group_ch_type():
     exit_to_screen()
 
 
+@log
 def choice_test_channel():
-    logging.debug("choice_test_channel")
-
     if TEST_CASE_INFO[2] == "TV":
         if len(GL.TV_ch_attribute[3]) == 0:
             logging.info("无有EPG信息的电视节目")
@@ -589,8 +598,8 @@ def choice_test_channel():
             GL.report_data[3] = channel_info[1]
 
 
+@log
 def check_preparatory_work():
-    logging.debug("check_preparatory_work")
     state["clear_ch_epg_info_state"] = True
     if TEST_CASE_INFO[6] == "EPG":
         send_commd(KEY["EPG"])
@@ -603,8 +612,8 @@ def check_preparatory_work():
         logging.info(rsv_kws["current_sys_time"])
 
 
+@log
 def check_epg_info_already_show():      # 检查EPG信息是否已经显示
-    logging.debug("check_epg_info_already_show")
     global ch_epg_info
     while ch_epg_info[-1] == '':         # 假如还没有获取到当前节目的EPG信息，则需要退出等待5秒再进入
         # ch_epg_info = ['', '', '']
@@ -616,11 +625,11 @@ def check_epg_info_already_show():      # 检查EPG信息是否已经显示
     send_commd(KEY["EXIT"])
 
 
+@log
 def str_time_to_datetime_time(str_time):
-    logging.info("str_time_to_datetime_time")
-    '''
-        将字符串时间用datetime.datetime处理成datetime时间
-    '''
+    """
+    将字符串时间用datetime.datetime处理成datetime时间
+    """
     datetime_time = ''
     if len(str_time) == 16:
         str_time_split = re.split(r"[/\s:]", str_time)
@@ -646,6 +655,7 @@ def str_time_to_datetime_time(str_time):
     return datetime_time
 
 
+@log
 def from_date_to_secs(str_time):
     if len(str_time) == 19:
         if re.match(r'^\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}$', str_time):
@@ -684,6 +694,7 @@ def from_date_to_secs(str_time):
     return total_secs
 
 
+@log
 def from_secs_to_date(sec_time):
     small_scene = False
     equal_scene = False
@@ -780,8 +791,8 @@ def from_secs_to_date(sec_time):
     return fmt_date
 
 
+@log
 def get_random_time_between_time_period(start_time, end_time):
-    logging.info("get_random_time_between_time_period")
     # 在指定的起始和结束时间范围内随机取一个时间值
     start_time_secs = from_date_to_secs(start_time)
     end_time_secs = from_date_to_secs(end_time)
@@ -798,12 +809,12 @@ def get_random_time_between_time_period(start_time, end_time):
     return fmt_time
 
 
+@log
 def calculate_str_time_to_fmt_time(str_time, interval_time):
-    logging.info("calculate_str_time_to_fmt_time")
-    '''
+    """
         str_time为2000/01/01 00:00的格式;输出为202009111213的格式
         计算某个时间的与interval_time相加或相减后的时间值
-    '''
+    """
     # 字符串时间和格式化时间之间转换
     str_new_fmt_date = ''
     str_time_split = re.split(r"[/:\s]", str_time)
@@ -834,8 +845,8 @@ def calculate_str_time_to_fmt_time(str_time, interval_time):
     return str_new_fmt_date
 
 
+@log
 def str_time_to_fmt_time(str_time):
-    logging.info("fmt_time_to_str_time")
     # 将“2020/09/09 12:11”格式转化为”202009091211”格式
     fmt_time = ''
     if len(str_time) == 16:
@@ -850,8 +861,8 @@ def str_time_to_fmt_time(str_time):
     return fmt_time
 
 
+@log
 def fmt_time_to_str_time(fmt_time):
-    logging.info("fmt_time_to_str_time")
     # 将”202009091211”格式转化为“2020/09/09 12：11”格式
     str_time = ''
     if len(fmt_time) == 12:
@@ -862,13 +873,13 @@ def fmt_time_to_str_time(fmt_time):
     return str_time
 
 
+@log
 def calculate_other_timezone_save_time(str_time):
-    logging.info("calculate_other_timezone_save_time")
-    '''
+    """
             str_time为2000/01/01 00:00的格式;
             返回的new_str_time也仍为2000/01/01 00:00的格式;
             计算某个时间的与interval_timezone相加或相减后的时间值
-        '''
+    """
     # 字符串时间和格式化时间之间转换
     new_str_time = ''
     interval_timezone = float(GL.choice_timezone)
@@ -890,8 +901,8 @@ def calculate_other_timezone_save_time(str_time):
     return new_str_time
 
 
+@log
 def calculate_expected_event_start_time():
-    logging.info("calculate_expected_event_start_time")
     str_expected_res_time = ''
     input_range_start_time = "0001/01/01 00:00"
     input_range_end_time = "9999/12/31 23:59"
@@ -1124,8 +1135,8 @@ def calculate_expected_event_start_time():
     return str_expected_res_time
 
 
+@log
 def create_expected_add_event_info():
-    logging.info("create_expected_add_event_info")
     # 创建期望的事件信息
     expected_event_info = ['', '', '', '', '']      # [起始时间，事件响应类型，节目名称，持续时间，事件触发模式]
     if TEST_CASE_INFO[5] == "InvalidDuration":
@@ -1166,8 +1177,8 @@ def create_expected_add_event_info():
     return expected_event_info
 
 
+@log
 def edit_add_new_res_event_info():
-    logging.info("edit_add_new_res_event_info")
     # 编辑预约事件信息
     start_date_list = []        # 用于将开始日期由字符串转化为发送指令的列表
     start_time_list = []        # 用于将开始时间由字符串转化为发送指令的列表
@@ -1285,8 +1296,8 @@ def edit_add_new_res_event_info():
     # exit_to_screen()
 
 
+@log
 def send_test_case_commd():
-    logging.info("send_test_case_commd")
     GL.report_data[1] = rsv_kws["current_sys_time"]
     if TEST_CASE_INFO[6] == "EPG":
         if TEST_CASE_INFO[5] == "Expired":
@@ -1377,9 +1388,8 @@ def send_test_case_commd():
     exit_to_screen()
 
 
+@log
 def padding_report_data():
-    logging.info("padding_report_data")
-
     if TEST_CASE_INFO[6] == "EPG":
         GL.report_data[0] = TEST_CASE_INFO[0]           # 用例编号
         GL.report_data[5] = TEST_CASE_INFO[3]           # 预约事件类型
@@ -1397,7 +1407,6 @@ def padding_report_data():
 
 
 def write_data_to_report():
-    logging.info("write_data_to_report")
     wb = ''
     ws = ''
     alignment = Alignment(horizontal="center", vertical="center", wrapText=True)
@@ -2160,9 +2169,9 @@ def write_data_to_report():
         wb.save(file_path[1])
 
 
+@log
 def before_cycle_test_clear_data_and_state():
     # 循环测试前，清理数据和状态变量
-    logging.info("before_cycle_test_clear_data_and_state")
     state["clear_variate_state"] = True
     if TEST_CASE_INFO[6] == "EPG":
         GL.report_data = ['', '', '', '', [], '', '', '', '']
@@ -2179,8 +2188,8 @@ def before_cycle_test_clear_data_and_state():
         state["receive_loop_state"] = True  # 触发结束接收进程的状态
 
 
+@log
 def check_event_numb():
-    logging.info("check_event_numb")
     # 检查Timer_setting界面所有的事件
     enter_timer_setting_interface = [KEY["MENU"], KEY["LEFT"], KEY["DOWN"], KEY["OK"]]
     # 获取已预约的事件信息，清除获取预约事件的list，并激活获取预约事件状态标志
@@ -2206,6 +2215,7 @@ def check_event_numb():
     exit_to_screen()
 
 
+@log
 def mail(message):
     my_sender = 'wangrun@nationalchip.com'  # 发件人邮箱账号
     my_pass = 'b8iNRgDiPUfkUVLW'  # 发件人邮箱密码
