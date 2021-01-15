@@ -127,7 +127,7 @@ def get_case_parent_suite_name(case_suite_id, suite_name=None):
     try:
         parent_suite_id = tlc.getTestSuiteByID(case_suite_id)['parent_id']
         if parent_suite_id != get_specify_project_id_by_name(exported_project_name):
-            suite_name.insert(0, tlc.getTestSuiteByID(case_suite_id)['name'])
+            suite_name.insert(0, tlc.getTestSuiteByID(case_suite_id)['name'].strip())
             # print(parent_suite_id, 'parent_suite_id')
             get_case_parent_suite_name(parent_suite_id, suite_name=suite_name)
     except:
@@ -150,7 +150,7 @@ def check_suite_and_case_in_suite(suite_id):
             # 由于每个test_case是一个list，且只有一个元素，所以test_case[0].get('name')就能获取到当前case的名称，其他信息都是如此
             print(test_case[0].get('name'))  # 也可以用print(test_case[0]['name'])
             # 每个case下的摘要、前提、步骤、期望的结果
-            case_info.append(data_replace(test_case[0].get('name')))
+            case_info.append(data_replace(test_case[0].get('name').strip()))
             case_info.append(data_replace(test_case[0].get('summary')))
             case_info.append(data_replace(test_case[0].get('preconditions')))
             step_action_result = {}
