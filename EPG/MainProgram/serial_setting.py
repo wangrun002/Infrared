@@ -7,6 +7,8 @@ import platform
 import logging
 
 
+MAIL_KEY = 'G46cCk7yX5jWXqNG'
+
 class CustomException(Exception):
     pass
 
