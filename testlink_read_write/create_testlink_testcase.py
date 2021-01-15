@@ -6,7 +6,7 @@ from openpyxl import load_workbook
 import testlink
 import logging
 import re
-
+import time
 
 def logging_info_setting():
     # 配置logging输出格式
@@ -201,12 +201,15 @@ class ExcelTestCaseHandle(object):
         #     if len(name) == 1:
         #         eval_suite_name_list.append(name[0])
         # return eval_suite_name_list
-        suite_name_list = eval(suites_name)
+        suite_name_list = list(map(lambda x: x.strip(), eval(suites_name)))
         return suite_name_list
 
     def handle_add_tag_to_obj(self, old_object):
+        # def f(x):
+        #     return f'<p>{x}</p>'
+
         def f(x):
-            return f'<p>{x}</p>'
+            return x
 
         new_object = []
         # 假如原数据对象是list，用于步骤和期望结果的数据处理
@@ -240,13 +243,13 @@ class ExcelTestCaseHandle(object):
         new_list_result_split = []
         if step_action is not None:
             # 处理步骤数＋步骤内容
-            action_split = re.split(r'步骤\d+、', step_action)
+            action_split = re.split(r'步骤\d+、<p*>?', step_action)
             list_action_split = list(filter(lambda x: x, action_split))
             new_list_action_split = self.handle_add_tag_to_obj(list_action_split)
 
         if step_result is not None:
             # 处理步骤数＋期望的结果内容
-            result_split = re.split(r'步骤\d+、', step_result)
+            result_split = re.split(r'步骤\d+、<p*>?', step_result)
             list_result_split = list(filter(lambda x: x, result_split))
             new_list_result_split = self.handle_add_tag_to_obj(list_result_split)
 
@@ -263,6 +266,8 @@ class ExcelTestCaseHandle(object):
             elif len(new_list_action_split) == 0:
                 return steps
         else:
+            print('创建步骤失败')
+            print(f"步骤数：{len(new_list_action_split)}--预期结果数：{len(new_list_result_split)}")
             return False
 
 
@@ -274,14 +279,14 @@ if __name__ == '__main__':
     for project in projects:
         print(project)
 
-    specify_project_name = 'test_for_using_testlink'
+    specify_project_name = 'DVBS-4.0'
     pj_id = TLH.get_project_id_by_name(specify_project_name)
     print(f'{specify_project_name}的id为{pj_id}')
 
     pj_first_suites = TLH.get_suites(pj_id)
 
     # 单条case的所有信息和当前模块名称
-    import_project_name = '这是一个测试集1.xlsx'
+    import_project_name = '多媒体.xlsx'
 
     all_cases_info, module_name = ETCH.get_single_testcase(import_project_name)
     for single_case_info in all_cases_info:
@@ -292,7 +297,7 @@ if __name__ == '__main__':
         # print(handle_suite_name_list)
 
         # 单条case中的用例标题名称
-        single_case_name = single_case_info[1]
+        single_case_name = single_case_info[1].strip()
         # print(single_case_name)
 
         # 单条case中用例的摘要
@@ -320,3 +325,4 @@ if __name__ == '__main__':
             single_case_steps_info, single_case_name, case_parent_suite_id, pj_id, author_name,
             single_case_summary, single_case_preconditions)
         print(return_testcase_info)
+        time.sleep(0.2)
