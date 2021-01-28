@@ -220,7 +220,7 @@ class Data(object):
                 self.write_filter_data(output_file_path, f'{key}:共({len(data_dict[key])})个\n')
                 for value in data_dict[key]:
                     # print('* {{issue(%d)}}' % value)
-                    self.write_filter_data(output_file_path, '* {{issue(%d)}}\n' % value)
+                    self.write_filter_data(output_file_path, '* {{issue(%s)}}\n' % value)
                 # print('')
                 self.write_filter_data(output_file_path, '\n')
         else:
